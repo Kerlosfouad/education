@@ -21,7 +21,13 @@ export default async function DashboardLayout({ children }: DashboardLayoutProps
 
   return (
     <DashboardShell>
-      <DashboardNav user={session.user} />
+      <DashboardNav user={{
+        id: session.user.id,
+        name: session.user.name ?? null,
+        email: session.user.email ?? '',
+        image: session.user.image ?? null,
+        role: session.user.role,
+      }} />
       <main className="flex-1 overflow-y-auto p-4 md:p-8">
         {children}
       </main>
