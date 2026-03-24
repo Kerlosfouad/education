@@ -1,0 +1,78 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { notifyAllStudents } from '@/lib/notifications';
+
+export async function GET() {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const videos = await db.lectureSlide.findMany({
+      where: { fileType: 'video' },
+      include: { subject: { select: { name: true } } },
+      orderBy: { uploadedAt: 'desc' },
+    });
+
+    return NextResponse.json({ success: true, data: videos });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const body = await req.json();
+    const { title, description, subjectId, fileUrl, fileSize } = body;
+
+    if (!title || !fileUrl) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    const video = await db.lectureSlide.create({
+      data: {
+        title,
+        description: description || '',
+        ...(subjectId ? { subjectId } : {}),
+        fileUrl,
+        fileType: 'video',
+        fileSize: fileSize ? Number(fileSize) : 0,
+        uploadedBy: session.user.id,
+        order: 0,
+      },
+    });
+
+    await notifyAllStudents(
+      '🎬 فيديو جديد',
+      `تم رفع فيديو جديد: ${title}`,
+      'ANNOUNCEMENT'
+    );
+
+    return NextResponse.json({ success: true, data: video }, { status: 201 });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+    if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 });
+
+    await db.lectureSlide.delete({ where: { id } });
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+  }
+}

@@ -1,0 +1,232 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useSession, signOut } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
+import { Loader2, Building2, GraduationCap, Phone, BookOpen, CheckCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from 'sonner';
+
+const academicYearsByDept: Record<string, { value: string; label: string }[]> = {
+  PREP: [{ value: '1', label: 'First Year' }],
+  default: [
+    { value: '2', label: 'Second Year' },
+    { value: '3', label: 'Third Year' },
+    { value: '4', label: 'Fourth Year' },
+    { value: '5', label: 'Fifth Year' },
+  ],
+};
+
+export default function CompleteProfilePage() {
+  const { data: session, status, update } = useSession();
+  const router = useRouter();
+
+  const [departments, setDepartments] = useState<{ id: string; name: string; code: string }[]>([]);
+  const [departmentId, setDepartmentId] = useState('');
+  const [academicYear, setAcademicYear] = useState('');
+  const [phone, setPhone] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [isDone, setIsDone] = useState(false);
+
+  const selectedDept = departments.find(d => d.id === departmentId);
+  const academicYears = selectedDept?.code === 'PREP'
+    ? academicYearsByDept['PREP']
+    : academicYearsByDept['default'];
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/auth/login');
+      return;
+    }
+    // If student profile already complete, redirect
+    if (status === 'authenticated' && (session?.user as any)?.student) {
+      router.push('/dashboard');
+      return;
+    }
+    fetch('/api/subjects/departments')
+      .then(r => r.json())
+      .then(json => { if (json.success) setDepartments(json.data); })
+      .catch(() => {});
+  }, [status, session, router]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!departmentId || !academicYear) {
+      setError('Please select department and academic year');
+      return;
+    }
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const res = await fetch('/api/auth/complete-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          departmentId,
+          academicYear: parseInt(academicYear),
+          phone: phone || undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to complete profile');
+
+      // Refresh session to pick up new student data
+      await update({ refreshStatus: true });
+      setIsDone(true);
+      toast.success('Profile completed! Waiting for approval.');
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (isDone) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-purple-500/5 to-blue-500/5 p-4">
+        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md">
+          <Card className="border-0 shadow-xl text-center">
+            <CardContent className="p-8">
+              <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6">
+                <CheckCircle className="w-10 h-10 text-green-600" />
+              </div>
+              <h2 className="text-2xl font-bold mb-2">Profile Complete!</h2>
+              <p className="text-muted-foreground mb-6">
+                Your account is pending approval from the doctor. You will be notified once approved.
+              </p>
+              <Button onClick={() => router.push('/auth/pending')} className="w-full bg-gradient-to-r from-primary to-purple-600">
+                Go to Pending Page
+              </Button>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-purple-500/5 to-blue-500/5 p-4">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="w-full max-w-md"
+      >
+        <Card className="border-0 shadow-xl">
+          <CardHeader className="space-y-1 text-center">
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center">
+                <BookOpen className="w-8 h-8 text-white" />
+              </div>
+            </div>
+            <CardTitle className="text-2xl font-bold">Complete Your Profile</CardTitle>
+            <CardDescription>
+              Welcome, {session?.user?.name}! Please select your department and year to finish registration.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {error && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Department *</Label>
+                <Select
+                  value={departmentId}
+                  onValueChange={(v) => { setDepartmentId(v); setAcademicYear(''); }}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger>
+                    <Building2 className="w-4 h-4 mr-2 text-muted-foreground" />
+                    <SelectValue placeholder="Select department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments.map(d => (
+                      <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Academic Year *</Label>
+                <Select
+                  value={academicYear}
+                  onValueChange={setAcademicYear}
+                  disabled={isLoading || !departmentId}
+                >
+                  <SelectTrigger>
+                    <GraduationCap className="w-4 h-4 mr-2 text-muted-foreground" />
+                    <SelectValue placeholder="Select year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {academicYears.map(y => (
+                      <SelectItem key={y.value} value={y.value}>{y.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Phone Number (optional)</Label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    type="tel"
+                    placeholder="Enter your phone number"
+                    value={phone}
+                    onChange={e => setPhone(e.target.value)}
+                    className="pl-10"
+                    disabled={isLoading}
+                  />
+                </div>
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full bg-gradient-to-r from-primary to-purple-600"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</>
+                ) : (
+                  'Complete Registration'
+                )}
+              </Button>
+            </form>
+
+            <div className="mt-4 text-center">
+              <button
+                type="button"
+                onClick={() => signOut({ callbackUrl: '/auth/login' })}
+                className="text-sm text-muted-foreground hover:text-foreground"
+              >
+                Sign out and use a different account
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+    </div>
+  );
+}

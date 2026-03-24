@@ -1,0 +1,92 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { db } from '@/lib/db';
+
+// GET /api/assignments/[id] - get submissions for an assignment
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || (session.user.role !== 'DOCTOR' && session.user.role !== 'ADMIN')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const assignment = await db.assignment.findUnique({
+      where: { id: params.id },
+      include: {
+        subject: { select: { name: true } },
+        submissions: {
+          include: {
+            student: {
+              include: { user: { select: { name: true, email: true } } },
+            },
+          },
+          orderBy: { submittedAt: 'desc' },
+        },
+      },
+    });
+
+    if (!assignment) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
+    return NextResponse.json({ success: true, data: assignment });
+  } catch (error) {
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+  }
+}
+
+// PATCH /api/assignments/[id] - grade a submission
+export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || (session.user.role !== 'DOCTOR' && session.user.role !== 'ADMIN')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { submissionId, score, feedback } = await req.json();
+    if (!submissionId || score === undefined) {
+      return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
+    }
+
+    const updated = await db.assignmentSubmission.update({
+      where: { id: submissionId },
+      data: {
+        score: Number(score),
+        feedback: feedback || null,
+        gradedAt: new Date(),
+        gradedBy: session.user.id,
+        status: 'GRADED',
+      },
+    });
+
+    return NextResponse.json({ success: true, data: updated });
+  } catch (error) {
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+  }
+}
+
+// POST /api/assignments/[id] - student marks assignment as submitted
+export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || session.user.role !== 'STUDENT') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const student = await db.student.findUnique({ where: { userId: session.user.id } });
+    if (!student) return NextResponse.json({ error: 'Student not found' }, { status: 404 });
+
+    const existing = await db.assignmentSubmission.findUnique({
+      where: { assignmentId_studentId: { assignmentId: params.id, studentId: student.id } },
+    });
+
+    if (existing) return NextResponse.json({ success: true, data: existing });
+
+    const submission = await db.assignmentSubmission.create({
+      data: { assignmentId: params.id, studentId: student.id, status: 'SUBMITTED' },
+    });
+
+    return NextResponse.json({ success: true, data: submission }, { status: 201 });
+  } catch (error) {
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+  }
+}

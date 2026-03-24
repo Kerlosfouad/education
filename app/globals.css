@@ -1,0 +1,432 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    /* UniCodeX theme: navy #0a1628, green #00c896, blue #1a6bff */
+    --background: 218 62% 10%;        /* #0a1628 */
+    --foreground: 0 0% 95%;           /* near white */
+    --card: 220 55% 14%;              /* slightly lighter navy */
+    --card-foreground: 0 0% 95%;
+    --popover: 220 55% 14%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 162 100% 39%;          /* #00c896 green */
+    --primary-foreground: 218 62% 10%;
+    --secondary: 220 45% 18%;         /* dark navy card */
+    --secondary-foreground: 0 0% 90%;
+    --muted: 220 45% 18%;
+    --muted-foreground: 215 20% 60%;
+    --accent: 220 45% 18%;
+    --accent-foreground: 0 0% 90%;
+    --destructive: 0 63% 45%;
+    --destructive-foreground: 0 0% 95%;
+    --border: 220 40% 20%;
+    --input: 220 40% 20%;
+    --ring: 162 100% 39%;             /* green ring */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  /* Dark mode: UniCodeX navy theme */
+  .dark aside {
+    background-color: #0d1e35 !important;
+    border-color: #1a2f4a !important;
+  }
+  .dark .bg-\[#f8fafc\] {
+    background-color: #0a1628 !important;
+  }
+  .dark .bg-slate-900 {
+    background-color: #0a1628 !important;
+  }
+  .dark .bg-white {
+    background-color: #0f1f38 !important;
+  }
+  .dark .bg-slate-800 {
+    background-color: #0d1e35 !important;
+  }
+  .dark .bg-slate-800\/50 {
+    background-color: rgba(13, 30, 53, 0.5) !important;
+  }
+
+  /* ── Inputs & textareas → light card color (not brown) ── */
+  .dark input,
+  .dark textarea,
+  .dark select {
+    background-color: #132540 !important;
+    color: #f0f4ff !important;
+    border-color: #1a2f4a !important;
+  }
+  .dark input::placeholder,
+  .dark textarea::placeholder {
+    color: #4a6a86 !important;
+  }
+  /* Tailwind bg classes used on inputs */
+  .dark .bg-slate-50.rounded-xl,
+  .dark .bg-slate-50.rounded-2xl,
+  .dark input.bg-slate-50,
+  .dark textarea.bg-slate-50,
+  .dark select.bg-slate-50 {
+    background-color: #132540 !important;
+  }
+  .dark .border-slate-100,
+  .dark .border-slate-200,
+  .dark .border-slate-700,
+  .dark .border-slate-700\/60 {
+    border-color: #1a2f4a !important;
+  }
+  .dark .bg-slate-50\/50 {
+    background-color: rgba(13, 30, 53, 0.5) !important;
+  }
+  .dark .hover\:bg-slate-50:hover,
+  .dark .hover\:bg-slate-800:hover {
+    background-color: #1a3352 !important;
+  }
+  .dark .bg-slate-50 {
+    background-color: #162d4a !important;
+  }
+  .dark .bg-slate-700\/50 {
+    background-color: rgba(13, 30, 53, 0.5) !important;
+  }
+  /* Text colors in dark mode */
+  .dark .text-slate-800 {
+    color: #f0f4ff !important;
+  }
+  .dark .text-slate-600 {
+    color: #a8bdd4 !important;
+  }
+  .dark .text-slate-500 {
+    color: #7a9ab8 !important;
+  }
+  .dark .text-slate-400 {
+    color: #5a7a96 !important;
+  }
+  .dark .text-slate-100 {
+    color: #f0f4ff !important;
+  }
+  /* Indigo accent → green in dark mode */
+  .dark .text-indigo-600 {
+    color: #00c896 !important;
+  }
+  .dark .bg-indigo-600 {
+    background-color: #00c896 !important;
+  }
+  .dark .bg-indigo-50 {
+    background-color: rgba(0, 200, 150, 0.1) !important;
+  }
+  .dark .bg-indigo-50\/50 {
+    background-color: rgba(0, 200, 150, 0.07) !important;
+  }
+  .dark .bg-indigo-900\/30 {
+    background-color: rgba(0, 200, 150, 0.12) !important;
+  }
+  .dark .bg-indigo-900\/20 {
+    background-color: rgba(0, 200, 150, 0.08) !important;
+  }
+  .dark .bg-indigo-100 {
+    background-color: rgba(0, 200, 150, 0.15) !important;
+  }
+  .dark .border-indigo-100 {
+    border-color: rgba(0, 200, 150, 0.2) !important;
+  }
+  .dark .border-indigo-800\/40 {
+    border-color: rgba(0, 200, 150, 0.2) !important;
+  }
+  .dark .hover\:bg-indigo-50:hover {
+    background-color: rgba(0, 200, 150, 0.1) !important;
+  }
+  .dark .hover\:bg-indigo-100:hover {
+    background-color: rgba(0, 200, 150, 0.15) !important;
+  }
+  .dark .hover\:bg-indigo-900\/40:hover {
+    background-color: rgba(0, 200, 150, 0.18) !important;
+  }
+  .dark .bg-indigo-500 {
+    background-color: #00c896 !important;
+  }
+  .dark .text-indigo-500 {
+    color: #00c896 !important;
+  }
+
+  /* ── Blue → Green in dark mode (buttons, badges, accents) ── */
+  .dark .bg-blue-600,
+  .dark .bg-blue-500 {
+    background-color: #00c896 !important;
+    color: #0a1628 !important;
+  }
+  .dark .hover\:bg-blue-700:hover,
+  .dark .hover\:bg-blue-600:hover {
+    background-color: #00b085 !important;
+  }
+  .dark .text-blue-600,
+  .dark .text-blue-500 {
+    color: #00c896 !important;
+  }
+  .dark .bg-blue-50 {
+    background-color: rgba(0, 200, 150, 0.08) !important;
+  }
+  .dark .bg-blue-100 {
+    background-color: rgba(0, 200, 150, 0.12) !important;
+  }
+  .dark .bg-blue-900\/30 {
+    background-color: rgba(0, 200, 150, 0.12) !important;
+  }
+  .dark .bg-blue-900\/20 {
+    background-color: rgba(0, 200, 150, 0.08) !important;
+  }
+  .dark .bg-blue-900\/40 {
+    background-color: rgba(0, 200, 150, 0.15) !important;
+  }
+  .dark .hover\:bg-blue-50:hover {
+    background-color: rgba(0, 200, 150, 0.08) !important;
+  }
+  .dark .hover\:bg-blue-100:hover {
+    background-color: rgba(0, 200, 150, 0.12) !important;
+  }
+  .dark .border-blue-100,
+  .dark .border-blue-200 {
+    border-color: rgba(0, 200, 150, 0.2) !important;
+  }
+  .dark .text-blue-700 {
+    color: #00c896 !important;
+  }
+  .dark .shadow-blue-100 {
+    --tw-shadow-color: transparent !important;
+  }
+  .dark .focus\:ring-blue-500\/20:focus {
+    --tw-ring-color: rgba(0, 200, 150, 0.2) !important;
+  }
+  .dark .focus\:ring-blue-300:focus {
+    --tw-ring-color: rgba(0, 200, 150, 0.3) !important;
+  }
+  .dark .focus\:ring-blue-200:focus {
+    --tw-ring-color: rgba(0, 200, 150, 0.2) !important;
+  }
+
+  /* ── Card backgrounds that use blue tints → navy ── */
+  .dark .bg-blue-50\/30 {
+    background-color: rgba(0, 200, 150, 0.05) !important;
+  }
+
+  /* ── Main headings → white in dark mode ── */
+  .dark h1,
+  .dark h2,
+  .dark h3 {
+    color: #f0f4ff !important;
+  }
+  /* Override for colored headings that should stay colored */
+  .dark h1.text-blue-600,
+  .dark h2.text-blue-600,
+  .dark h3.text-blue-600,
+  .dark h1.text-indigo-600,
+  .dark h2.text-indigo-600,
+  .dark h3.text-indigo-600 {
+    color: #00c896 !important;
+  }
+
+  /* ── Gray text headings → white ── */
+  .dark .text-gray-800,
+  .dark .text-gray-900 {
+    color: #f0f4ff !important;
+  }
+  .dark .text-gray-700 {
+    color: #c8d8e8 !important;
+  }
+  .dark .text-gray-600 {
+    color: #a8bdd4 !important;
+  }
+  .dark .text-gray-500,
+  .dark .text-gray-400 {
+    color: #5a7a96 !important;
+  }
+
+  /* ── Gray backgrounds → navy ── */
+  .dark .bg-gray-100 {
+    background-color: #132540 !important;
+  }
+  .dark .bg-gray-50 {
+    background-color: #0f1f38 !important;
+  }
+  .dark .border-gray-100,
+  .dark .border-gray-200 {
+    border-color: #1a2f4a !important;
+  }
+
+  /* ── Purple accent → keep purple but soften in dark ── */
+  .dark .bg-purple-50 {
+    background-color: rgba(147, 51, 234, 0.1) !important;
+  }
+  .dark .bg-purple-100 {
+    background-color: rgba(147, 51, 234, 0.15) !important;
+  }
+  .dark .bg-purple-900\/20 {
+    background-color: rgba(147, 51, 234, 0.12) !important;
+  }
+  .dark .bg-purple-900\/30 {
+    background-color: rgba(147, 51, 234, 0.15) !important;
+  }
+
+  /* ── Orange accent ── */
+  .dark .bg-orange-50 {
+    background-color: rgba(234, 88, 12, 0.1) !important;
+  }
+  .dark .bg-orange-100 {
+    background-color: rgba(234, 88, 12, 0.15) !important;
+  }
+
+  /* ── Green accent ── */
+  .dark .bg-green-50 {
+    background-color: rgba(0, 200, 150, 0.08) !important;
+  }
+  .dark .bg-green-100 {
+    background-color: rgba(0, 200, 150, 0.12) !important;
+  }
+
+  /* ── Red accent ── */
+  .dark .bg-red-50 {
+    background-color: rgba(239, 68, 68, 0.08) !important;
+  }
+  .dark .hover\:bg-red-50:hover {
+    background-color: rgba(239, 68, 68, 0.1) !important;
+  }
+  .dark .bg-red-900\/20 {
+    background-color: rgba(239, 68, 68, 0.1) !important;
+  }
+
+  /* ── Slate 700/50 card items (student profile modal) ── */
+  .dark .bg-slate-700\/50 {
+    background-color: #162d4a !important;
+  }
+
+  /* ── bg-gray-900 (video thumbnail bg) ── */
+  .dark .bg-gray-900 {
+    background-color: #060e1c !important;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-muted;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-muted-foreground/30 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-muted-foreground/50;
+}
+
+/* Typing animation for intro */
+.typing-effect {
+  overflow: hidden;
+  white-space: nowrap;
+  border-right: 2px solid;
+  animation: typing 2s steps(20, end), blink 0.7s step-end infinite;
+}
+
+/* QR Scanner overlay */
+.qr-scanner-overlay {
+  background: linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.8) 50%, transparent 100%);
+}
+
+/* Card hover effect */
+.card-hover {
+  @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
+}
+
+/* Gradient backgrounds */
+.gradient-primary {
+  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary)/0.8) 100%);
+}
+
+.gradient-hero {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+/* Glass effect */
+.glass {
+  @apply bg-white/10 backdrop-blur-lg border border-white/20;
+}
+
+/* RTL support */
+[dir="rtl"] {
+  direction: rtl;
+}
+
+/* Print styles for QR codes */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+}
+
+/* Hide uploadthing "No file chosen" label in dark mode */
+.dark [class*="ut-label"],
+.dark [class*="ut-allowed-content"],
+.dark .ut-label,
+.dark .ut-allowed-content {
+  background: transparent !important;
+  color: #64748b !important;
+}
+
+.dark [data-ut-element="button"] + * {
+  background: transparent !important;
+}
+
+/* Remove white background from uploadthing container in dark mode */
+.dark [class*="uploadthing"] input[type="file"]::file-selector-button,
+.dark input[type="file"]::file-selector-button {
+  background: transparent !important;
+  color: transparent !important;
+  border: none !important;
+}
+
+.dark [class*="uploadthing"] label,
+.dark [class*="ut-"] {
+  background-color: transparent !important;
+}
+
+/* Fix uploadthing allowed content background */
+.dark .ut-upload-btn-container,
+.dark [class*="ut-upload"] {
+  background: transparent !important;
+}
