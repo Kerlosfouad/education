@@ -23,7 +23,7 @@ export async function GET() {
     });
 
     const [quizzes, assignments, videos, liveSessions, libraryItems, attendances, openSession] = await Promise.all([
-      db.quiz.findMany({ where: { isPublished: true, OR: [{ departmentId: student.departmentId }, { departmentId: null }], OR: [{ academicYear: student.academicYear }, { academicYear: null }] }, include: { subject: { select: { name: true } }, _count: { select: { questions: true } } }, take: 5 }),
+      db.quiz.findMany({ where: { isPublished: true, AND: [{ OR: [{ departmentId: student.departmentId }, { departmentId: null }] }, { OR: [{ academicYear: student.academicYear }, { academicYear: null }] }] }, include: { subject: { select: { name: true } }, _count: { select: { questions: true } } }, take: 5 }),
       db.assignment.findMany({ where: { OR: [{ departmentId: student.departmentId }, { departmentId: null }] }, include: { subject: { select: { name: true } } }, orderBy: { createdAt: 'desc' }, take: 5 }),
       db.lectureSlide.findMany({ orderBy: { uploadedAt: 'desc' }, take: 5, include: { subject: { select: { name: true } } } }),
       db.zoomLecture.findMany({ where: { scheduledAt: { gte: new Date() } }, include: { subject: { select: { name: true } } }, orderBy: { scheduledAt: 'asc' }, take: 5 }),
