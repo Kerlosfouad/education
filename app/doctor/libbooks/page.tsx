@@ -6,7 +6,7 @@ import { UploadButton } from "@uploadthing/react";
 
 // Import actions - verify path
 import { saveBookAction, getBooksAction, deleteBookAction } from "../../actions/bookActions";
-import type { OurFileRouter } from "../../api/uploadthing/core";
+import type { OurFileRouter } from "@/app/api/uploadthing/core";
 
 export default function LibBooksPage() {
   const [files, setFiles] = useState<any[]>([]);
