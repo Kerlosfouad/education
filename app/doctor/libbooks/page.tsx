@@ -2,11 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { UploadCloud, FileText, File, Trash2, Download, Search } from 'lucide-react';
-import { UploadButton } from "@uploadthing/react";
-
-// Import actions - verify path
 import { saveBookAction, getBooksAction, deleteBookAction } from "../../actions/bookActions";
-import type { OurFileRouter } from "@/app/api/uploadthing/core";
+import { UploadButton } from "@/lib/uploadthing";
 
 export default function LibBooksPage() {
   const [files, setFiles] = useState<any[]>([]);
@@ -52,7 +49,7 @@ export default function LibBooksPage() {
             </div>
             <h3 className="text-xl font-bold text-slate-800 dark:text-white">New Upload</h3>
             <div className="w-full mt-8 [&_input[type=file]]:hidden [&_.ut-label]:hidden">
-              <UploadButton<OurFileRouter>
+              <UploadButton
                 endpoint="pdfUploader"
                 onClientUploadComplete={async (res) => {
                   if (res) {
