@@ -106,7 +106,7 @@ export default function AnalyticsPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                 <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} unit="%" />
-                <Tooltip formatter={(v: number) => `${v}%`} />
+                <Tooltip formatter={(v: number | string) => `${v}%`} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 <Bar dataKey="Attendance" fill="#60a5fa" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="Quizzes" fill="#a78bfa" radius={[4, 4, 0, 0]} />
@@ -125,7 +125,7 @@ export default function AnalyticsPage() {
                     <Cell key={i} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(v: number) => `${v} students`} />
+                <Tooltip formatter={(v: number | string) => `${v} students`} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
               </PieChart>
             </ResponsiveContainer>
@@ -140,7 +140,7 @@ export default function AnalyticsPage() {
                 <PolarAngleAxis dataKey="metric" tick={{ fontSize: 12 }} />
                 <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 10 }} />
                 <Radar name="Class Avg" dataKey="value" stroke="#6366f1" fill="#6366f1" fillOpacity={0.25} />
-                <Tooltip formatter={(v: number) => `${v}%`} />
+                <Tooltip formatter={(v: number | string) => `${v}%`} />
               </RadarChart>
             </ResponsiveContainer>
           </div>
