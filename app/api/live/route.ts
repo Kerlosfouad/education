@@ -9,15 +9,13 @@ export async function GET() {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const videos = await db.lectureSlide.findMany({
-      where: { fileType: 'video' },
+    const sessions = await db.zoomLecture.findMany({
       include: { subject: { select: { name: true } } },
-      orderBy: { uploadedAt: 'desc' },
+      orderBy: { scheduledAt: 'desc' },
     });
 
-    return NextResponse.json({ success: true, data: videos });
+    return NextResponse.json({ success: true, data: sessions });
   } catch (error) {
-    console.error(error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
@@ -25,35 +23,38 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!session || (session.user.role !== 'DOCTOR' && session.user.role !== 'ADMIN')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     const body = await req.json();
-    const { title, description, subjectId, fileUrl, fileSize } = body;
+    const { subjectId, title, description, meetingUrl, meetingId, password, scheduledAt, duration } = body;
 
-    if (!title || !fileUrl) {
+    if (!title || !meetingUrl || !scheduledAt || !duration || !subjectId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const video = await db.lectureSlide.create({
+    const lecture = await db.zoomLecture.create({
       data: {
+        subjectId,
         title,
-        description: description || '',
-        ...(subjectId ? { subjectId } : {}),
-        fileUrl,
-        fileType: 'video',
-        fileSize: fileSize ? Number(fileSize) : 0,
-        uploadedBy: session.user.id,
-        order: 0,
+        description,
+        meetingUrl,
+        meetingId,
+        password,
+        scheduledAt: new Date(scheduledAt),
+        duration: Number(duration),
       },
+      include: { subject: { select: { name: true } } },
     });
 
     await notifyAllStudents(
-      '🎬 فيديو جديد',
-      `تم رفع فيديو جديد: ${title}`,
+      '🎥 Live Session جديدة',
+      `تم جدولة محاضرة مباشرة: ${title}`,
       'ANNOUNCEMENT'
     );
 
-    return NextResponse.json({ success: true, data: video }, { status: 201 });
+    return NextResponse.json({ success: true, data: lecture }, { status: 201 });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
@@ -63,16 +64,17 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!session || (session.user.role !== 'DOCTOR' && session.user.role !== 'ADMIN')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 });
 
-    await db.lectureSlide.delete({ where: { id } });
+    await db.zoomLecture.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error(error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
