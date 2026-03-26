@@ -236,21 +236,21 @@ export default function DoctorDashboardPage() {
                 const approving = actionLoading === student.id + 'approve';
                 const rejecting = actionLoading === student.id + 'reject';
                 return (
-                  <div key={student.id} className="flex items-center justify-between p-4 bg-slate-50/50 dark:bg-[#0a1628]/60 hover:bg-slate-50 dark:hover:bg-[#132540] rounded-2xl transition-colors group">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-white dark:bg-[#0d1e35] border border-slate-200 dark:border-[#1a2f4a] rounded-xl flex items-center justify-center font-bold text-blue-600 dark:text-[#00c896] shadow-sm text-lg">
+                  <div key={student.id} className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 bg-slate-50/50 dark:bg-[#0a1628]/60 hover:bg-slate-50 dark:hover:bg-[#132540] rounded-2xl transition-colors group">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="w-10 h-10 bg-white dark:bg-[#0d1e35] border border-slate-200 dark:border-[#1a2f4a] rounded-xl flex items-center justify-center font-bold text-blue-600 dark:text-[#00c896] shadow-sm shrink-0">
                         {student.user.name?.charAt(0) ?? '?'}
                       </div>
-                      <div>
-                        <h4 className="font-bold text-slate-800 dark:text-white group-hover:text-blue-600 dark:group-hover:text-[#00c896] transition-colors">{student.user.name}</h4>
-                        <p className="text-[11px] text-slate-400 font-medium">{student.user.email} • {timeAgo(student.user.createdAt)}</p>
+                      <div className="min-w-0">
+                        <h4 className="font-bold text-slate-800 dark:text-white text-sm truncate">{student.user.name}</h4>
+                        <p className="text-[11px] text-slate-400 truncate">{student.user.email} • {timeAgo(student.user.createdAt)}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 shrink-0">
                       <button
                         onClick={() => handleAction(student.id, student.userId, 'approve')}
                         disabled={!!actionLoading}
-                        className="px-4 py-2 bg-blue-600 dark:bg-[#00c896] dark:text-[#0a1628] text-white text-[11px] font-bold rounded-xl hover:bg-blue-700 dark:hover:bg-[#00b085] transition-colors shadow-sm disabled:opacity-50 flex items-center gap-1"
+                        className="flex-1 sm:flex-none px-3 py-2 bg-blue-600 dark:bg-[#00c896] dark:text-[#0a1628] text-white text-[11px] font-bold rounded-xl hover:bg-blue-700 dark:hover:bg-[#00b085] transition-colors disabled:opacity-50 flex items-center justify-center gap-1"
                       >
                         {approving ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
                         Approve
@@ -258,7 +258,7 @@ export default function DoctorDashboardPage() {
                       <button
                         onClick={() => handleAction(student.id, student.userId, 'reject')}
                         disabled={!!actionLoading}
-                        className="px-4 py-2 bg-white dark:bg-[#0d1e35] text-slate-400 border border-slate-200 dark:border-[#1a2f4a] text-[11px] font-bold rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-500 transition-all disabled:opacity-50 flex items-center gap-1"
+                        className="flex-1 sm:flex-none px-3 py-2 bg-white dark:bg-[#0d1e35] text-slate-400 border border-slate-200 dark:border-[#1a2f4a] text-[11px] font-bold rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-500 transition-all disabled:opacity-50 flex items-center justify-center gap-1"
                       >
                         {rejecting ? <Loader2 size={12} className="animate-spin" /> : <XCircle size={12} />}
                         Reject
