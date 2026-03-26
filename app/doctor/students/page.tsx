@@ -41,6 +41,8 @@ export default function StudentsPage() {
   const [search, setSearch] = useState('');
   const [tab, setTab] = useState<'pending' | 'active'>('pending');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -75,6 +77,22 @@ export default function StudentsPage() {
       }
     } catch {}
     setActionLoading(null);
+  };
+
+  const handleDelete = async (studentId: string) => {
+    if (!confirm('Delete this student permanently?')) return;
+    setDeleteLoading(studentId);
+    setMenuOpen(null);
+    try {
+      const res = await fetch(`/api/students/${studentId}`, { method: 'DELETE' });
+      const json = await res.json();
+      if (json.success) {
+        setActiveStudents(prev => prev.filter(s => s.id !== studentId));
+        setAnalytics(prev => prev.filter(s => s.id !== studentId));
+        if (selectedStudent?.id === studentId) setSelectedStudent(null);
+      }
+    } catch {}
+    setDeleteLoading(null);
   };
 
   const pending = allStudents;
@@ -206,7 +224,29 @@ export default function StudentsPage() {
                   const initials = s.user.name?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || '?';
                   return (
                     <button key={s.id} onClick={() => setSelectedStudent(s)}
-                      className="bg-white dark:bg-[#0f1f38] p-5 rounded-2xl border border-slate-100 dark:border-[#1a2f4a] shadow-sm hover:shadow-md hover:border-purple-200 dark:hover:border-purple-700 transition-all text-left group">
+                      className="bg-white dark:bg-[#0f1f38] p-5 rounded-2xl border border-slate-100 dark:border-[#1a2f4a] shadow-sm hover:shadow-md hover:border-purple-200 dark:hover:border-purple-700 transition-all text-left group relative">
+                      {/* 3-dot menu */}
+                      <div className="absolute top-3 right-3" onClick={e => e.stopPropagation()}>
+                        <button onClick={() => setMenuOpen(menuOpen === s.id ? null : s.id)}
+                          className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-[#132540] rounded-lg transition-colors">
+                          <MoreVertical size={16} />
+                        </button>
+                        {menuOpen === s.id && (
+                          <>
+                            <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(null)} />
+                            <div className="absolute right-0 top-8 z-20 bg-white dark:bg-[#0d1e35] border border-slate-200 dark:border-[#1a2f4a] rounded-xl shadow-lg overflow-hidden w-36">
+                              <button onClick={() => handleDelete(s.id)}
+                                disabled={deleteLoading === s.id}
+                                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                                {deleteLoading === s.id
+                                  ? <Loader2 size={14} className="animate-spin" />
+                                  : <XCircle size={14} />}
+                                Delete Student
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
                       <div className="flex items-center gap-3 mb-4">
                         <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 font-bold overflow-hidden shrink-0">
                           {s.user.image
