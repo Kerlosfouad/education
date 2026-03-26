@@ -37,23 +37,25 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === 'approve') {
-      if (student) {
-        // Has Student record - generate barcode/QR
-        let barcode = student.barcode;
-        if (!barcode) barcode = await generateUniqueBarcode();
-        const qrCodeDataUrl = await generateStudentQRCode(student.id);
-        await db.student.update({
-          where: { id: student.id },
-          data: { barcode, qrCode: qrCodeDataUrl, approvedAt: new Date(), approvedBy: session.user.id },
-        });
-        const loginUrl = `${process.env.NEXTAUTH_URL}/auth/login`;
-        await sendStudentApprovalEmail(student.user.email, {
-          name: student.user.name || 'Student',
-          studentCode: student.studentCode,
-          qrCodeDataUrl,
-          loginUrl,
-        });
+      // Cannot approve if student hasn't completed their profile
+      if (!student) {
+        return NextResponse.json({ error: 'Student has not completed their profile yet' }, { status: 400 });
       }
+      // Has Student record - generate barcode/QR
+      let barcode = student.barcode;
+      if (!barcode) barcode = await generateUniqueBarcode();
+      const qrCodeDataUrl = await generateStudentQRCode(student.id);
+      await db.student.update({
+        where: { id: student.id },
+        data: { barcode, qrCode: qrCodeDataUrl, approvedAt: new Date(), approvedBy: session.user.id },
+      });
+      const loginUrl = `${process.env.NEXTAUTH_URL}/auth/login`;
+      await sendStudentApprovalEmail(student.user.email, {
+        name: student.user.name || 'Student',
+        studentCode: student.studentCode,
+        qrCodeDataUrl,
+        loginUrl,
+      });
 
       await db.user.update({ where: { id: targetUserId }, data: { status: 'ACTIVE' } });
       await db.notification.create({
