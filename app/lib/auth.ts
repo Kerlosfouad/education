@@ -94,6 +94,14 @@ export const authOptions: NextAuthOptions = {
             include: { student: true },
           });
         } else {
+          // Always reset to PENDING if no student record (re-registration case)
+          if (!dbUser.student) {
+            await db.user.update({
+              where: { id: dbUser.id },
+              data: { status: 'PENDING' },
+            });
+            dbUser.status = 'PENDING';
+          }
           if (user.image && dbUser.image !== user.image) {
             await db.user.update({
               where: { id: dbUser.id },
