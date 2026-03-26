@@ -79,13 +79,10 @@ export default function CompleteProfilePage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to complete profile');
 
+      // Refresh session to pick up new student data
+      await update({ refreshStatus: true });
       setIsDone(true);
       toast.success('Profile completed! Waiting for approval.');
-      // Update session then redirect
-      await update({ refreshStatus: true });
-      setTimeout(() => {
-        window.location.href = '/auth/pending';
-      }, 1500);
     } catch (err: any) {
       setError(err.message);
     } finally {

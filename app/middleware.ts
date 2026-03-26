@@ -12,7 +12,7 @@ export default withAuth(
     const status = token.status as string;
     const hasStudent = !!(token as any).hasStudent;
 
-    // New Google user - no student record yet
+    // New Google user - no student record yet (regardless of status)
     if (
       !hasStudent &&
       role !== 'DOCTOR' &&
