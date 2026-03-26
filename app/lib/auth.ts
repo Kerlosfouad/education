@@ -119,8 +119,13 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.role = (user as any).role;
         token.status = (user as any).status;
-        token.studentId = (user as any).studentId ?? null;
-        token.hasStudent = (user as any).hasStudent ?? false;
+        // Always fetch fresh student data from DB on login
+        const dbUser = await db.user.findUnique({
+          where: { id: user.id as string },
+          include: { student: true },
+        });
+        token.studentId = dbUser?.student?.id ?? null;
+        token.hasStudent = !!dbUser?.student;
       }
 
       // Manual session refresh
