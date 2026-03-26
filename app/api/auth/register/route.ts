@@ -57,7 +57,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const role = email.includes('admin') || email.includes('dr') ? 'DOCTOR' : 'STUDENT';
     const hashedPassword = await hashPassword(password);
 
     const user = await db.user.create({
@@ -65,36 +64,24 @@ export async function POST(req: NextRequest) {
         name,
         email: email.toLowerCase(),
         password: hashedPassword,
-        role: role as any,
-        status: role === 'STUDENT' ? 'PENDING' : 'ACTIVE',
+        role: 'STUDENT',
+        status: 'PENDING',
       },
     });
 
-    if (role === 'STUDENT') {
-      const studentCode = await generateStudentCode();
-      const qrCode = await generateQRCode(studentCode);
+    const studentCode = await generateStudentCode();
+    const qrCode = await generateQRCode(studentCode);
 
-      await db.student.create({
-        data: {
-          userId: user.id,
-          studentCode,
-          qrCode,
-          departmentId,
-          academicYear,
-          phone: phone || null,
-        },
-      });
-    }
-
-    if (role === 'DOCTOR') {
-      await db.doctorProfile.create({
-        data: {
-          userId: user.id,
-          title: 'Professor',
-          specialties: [],
-        },
-      });
-    }
+    await db.student.create({
+      data: {
+        userId: user.id,
+        studentCode,
+        qrCode,
+        departmentId,
+        academicYear,
+        phone: phone || null,
+      },
+    });
 
     return NextResponse.json(
       {
