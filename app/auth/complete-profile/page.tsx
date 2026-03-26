@@ -81,7 +81,8 @@ export default function CompleteProfilePage() {
 
       setIsDone(true);
       toast.success('Profile completed! Waiting for approval.');
-      // Force full page reload to refresh the session token
+      // Update session then redirect
+      await update({ refreshStatus: true });
       setTimeout(() => {
         window.location.href = '/auth/pending';
       }, 1500);
