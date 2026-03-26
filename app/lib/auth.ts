@@ -165,6 +165,21 @@ export const authOptions: NextAuthOptions = {
         }
       }
 
+      // Always verify user still exists in DB
+      if (!user && token.id) {
+        const dbUser = await db.user.findUnique({
+          where: { id: token.id as string },
+          include: { student: true },
+        });
+        // If user was deleted, invalidate token
+        if (!dbUser) return {} as any;
+        // Sync latest data
+        token.status = dbUser.status;
+        token.role = dbUser.role;
+        token.studentId = dbUser.student?.id ?? null;
+        token.hasStudent = !!dbUser.student;
+      }
+
       return token;
     },
 
