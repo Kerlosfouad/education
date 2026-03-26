@@ -124,7 +124,7 @@ export const authOptions: NextAuthOptions = {
       }
 
       // Manual session refresh
-      if (trigger === 'update' && session?.refreshStatus && token.email) {
+      if (trigger === 'update' && token.email) {
         const dbUser = await db.user.findUnique({
           where: { email: token.email as string },
           include: { student: true },
