@@ -105,7 +105,8 @@ export const authOptions: NextAuthOptions = {
         // Store minimal data only
         (user as any).id = dbUser.id;
         (user as any).role = dbUser.role;
-        (user as any).status = dbUser.status;
+        // If no student record, force PENDING regardless of DB status
+        (user as any).status = dbUser.student ? dbUser.status : 'PENDING';
         (user as any).studentId = dbUser.student?.id ?? null;
         (user as any).hasStudent = !!dbUser.student;
 
