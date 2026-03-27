@@ -30,13 +30,19 @@ export async function POST(req: NextRequest) {
       ? await db.student.findUnique({ where: { id: studentId }, include: { user: true, department: true } })
       : await db.student.findUnique({ where: { userId: directUserId }, include: { user: true, department: true } });
 
-    // If no Student record, work directly with User
     const targetUserId = student?.userId ?? directUserId;
     if (!targetUserId) {
       return NextResponse.json({ error: 'Student not found' }, { status: 404 });
     }
 
     if (action === 'approve') {
+      if (!student) {
+        return NextResponse.json(
+          { error: 'Cannot approve account before profile completion' },
+          { status: 400 }
+        );
+      }
+
       if (student) {
         // Has Student record - generate barcode/QR
         let barcode = student.barcode;

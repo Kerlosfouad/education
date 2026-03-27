@@ -11,9 +11,13 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get pending users - could have Student record or not yet
+    // Only show pending users that already completed profile.
     const pendingUsers = await db.user.findMany({
-      where: { role: 'STUDENT', status: 'PENDING' },
+      where: {
+        role: 'STUDENT',
+        status: 'PENDING',
+        student: { isNot: null },
+      },
       select: {
         id: true,
         name: true,
@@ -29,7 +33,7 @@ export async function GET() {
 
     // Normalize to a consistent shape
     const data = pendingUsers.map(u => ({
-      id: u.student?.id ?? u.id,   // use Student.id if exists, else User.id
+      id: u.student!.id,
       userId: u.id,
       user: {
         name: u.name ?? '',

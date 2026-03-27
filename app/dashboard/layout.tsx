@@ -15,6 +15,12 @@ export default async function DashboardLayout({ children }: DashboardLayoutProps
     redirect('/auth/login');
   }
 
+  const hasStudentProfile = !!(session.user as any).student;
+
+  if (!hasStudentProfile) {
+    redirect('/auth/complete-profile');
+  }
+
   if (session.user.status === 'PENDING') {
     redirect('/auth/pending');
   }
