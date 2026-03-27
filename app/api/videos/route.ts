@@ -9,8 +9,28 @@ export async function GET() {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+    // Students should only see videos for their department/year (plus "General" videos with no subject).
+    let studentFilter: { departmentId: string; academicYear: number } | null = null;
+    if (session.user.role === 'STUDENT') {
+      const student = await db.student.findUnique({
+        where: { userId: session.user.id },
+        select: { departmentId: true, academicYear: true },
+      });
+      if (student) studentFilter = student;
+    }
+
     const videos = await db.lectureSlide.findMany({
-      where: { fileType: 'video' },
+      where: {
+        fileType: 'video',
+        ...(studentFilter
+          ? {
+              OR: [
+                { subjectId: null },
+                { subject: { departmentId: studentFilter.departmentId, academicYear: studentFilter.academicYear } },
+              ],
+            }
+          : {}),
+      },
       include: { subject: { select: { name: true } } },
       orderBy: { uploadedAt: 'desc' },
     });

@@ -16,16 +16,18 @@ type VideoItem = {
 };
 
 type Subject = { id: string; name: string };
+type Department = { id: string; name: string; code: string; nameAr: string | null };
 
 export default function VideosPage() {
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [playingVideo, setPlayingVideo] = useState<VideoItem | null>(null);
 
-  const [form, setForm] = useState({ title: '', description: '', subjectId: '' });
+  const [form, setForm] = useState({ title: '', description: '', departmentId: '', academicYear: '', subjectId: '' });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -38,18 +40,35 @@ export default function VideosPage() {
   useEffect(() => {
     Promise.all([
       fetch('/api/videos').then(r => r.json()),
-      fetch('/api/subjects').then(r => r.json()),
-    ]).then(([vData, sData]) => {
+      fetch('/api/subjects/departments').then(r => r.json()),
+    ]).then(([vData, dData]) => {
       setVideos(Array.isArray(vData.data) ? vData.data : []);
-      setSubjects(Array.isArray(sData.data) ? sData.data : []);
+      setDepartments(Array.isArray(dData.data) ? dData.data : []);
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    // Load subjects filtered by department + academic year.
+    if (!form.departmentId || !form.academicYear) {
+      setSubjects([]);
+      setForm(p => ({ ...p, subjectId: '' }));
+      return;
+    }
+    fetch(`/api/subjects?departmentId=${encodeURIComponent(form.departmentId)}&academicYear=${encodeURIComponent(form.academicYear)}`)
+      .then(r => r.json())
+      .then(json => setSubjects(Array.isArray(json.data) ? json.data : []))
+      .catch(() => setSubjects([]));
+  }, [form.departmentId, form.academicYear]);
 
   const handleUpload = async () => {
     setError('');
     if (!form.title || !selectedFile) {
       setError('Please enter a title and select a video file');
+      return;
+    }
+    if (!form.departmentId || !form.academicYear || !form.subjectId) {
+      setError('Please select department, academic year, and subject');
       return;
     }
     setUploading(true);
@@ -65,13 +84,13 @@ export default function VideosPage() {
       const res = await fetch('/api/videos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, fileUrl, fileSize }),
+        body: JSON.stringify({ title: form.title, description: form.description, subjectId: form.subjectId, fileUrl, fileSize }),
       });
       const data = await res.json();
       if (data.success) {
         setVideos(prev => [data.data, ...prev]);
         setShowModal(false);
-        setForm({ title: '', description: '', subjectId: '' });
+        setForm({ title: '', description: '', departmentId: '', academicYear: '', subjectId: '' });
         setSelectedFile(null);
         setUploadProgress(0);
       } else {
@@ -100,6 +119,20 @@ export default function VideosPage() {
     v.title.toLowerCase().includes(search.toLowerCase()) ||
     v.subject?.name.toLowerCase().includes(search.toLowerCase())
   );
+
+  const academicYearsByDept: Record<string, { value: string; label: string }[]> = {
+    PREP: [{ value: '1', label: 'First Year' }],
+    default: [
+      { value: '2', label: 'Second Year' },
+      { value: '3', label: 'Third Year' },
+      { value: '4', label: 'Fourth Year' },
+      { value: '5', label: 'Fifth Year' },
+    ],
+  };
+  const selectedDept = departments.find(d => d.id === form.departmentId);
+  const academicYears = selectedDept?.code === 'PREP'
+    ? academicYearsByDept['PREP']
+    : academicYearsByDept['default'];
 
   return (
     <div className="p-6 space-y-6">
@@ -244,13 +277,43 @@ export default function VideosPage() {
                 </div>
 
                 <div>
+                  <label className="text-sm font-medium text-gray-600 mb-1 block">Department *</label>
+                  <select
+                    value={form.departmentId}
+                    onChange={e => setForm(p => ({ ...p, departmentId: e.target.value, academicYear: '', subjectId: '' }))}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="">Select department...</option>
+                    {departments.map(d => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-gray-600 mb-1 block">Academic Year *</label>
+                  <select
+                    value={form.academicYear}
+                    disabled={!form.departmentId}
+                    onChange={e => setForm(p => ({ ...p, academicYear: e.target.value, subjectId: '' }))}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+                  >
+                    <option value="">Select year...</option>
+                    {academicYears.map(y => (
+                      <option key={y.value} value={y.value}>{y.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
                   <label className="text-sm font-medium text-gray-600 mb-1 block">Subject</label>
                   <select
                     value={form.subjectId}
                     onChange={e => setForm(p => ({ ...p, subjectId: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    disabled={!form.departmentId || !form.academicYear}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
                   >
-                    <option value="">General</option>
+                    <option value="">Select subject...</option>
                     {subjects.map(s => (
                       <option key={s.id} value={s.id}>{s.name}</option>
                     ))}

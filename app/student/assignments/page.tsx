@@ -10,7 +10,7 @@ interface Assignment {
   deadline: string;
   maxScore: number;
   fileUrl: string | null;
-  subject: { name: string };
+  subject: { name: string } | null;
   submissions: { id: string; status: string; score: number | null; fileUrl: string | null }[];
 }
 
@@ -72,7 +72,7 @@ export default function StudentAssignmentsPage() {
                     </div>
                     <div>
                       <h3 className="font-bold text-slate-800 dark:text-slate-100">{a.title}</h3>
-                      <p className="text-xs text-slate-400">{a.subject.name}</p>
+                      <p className="text-xs text-slate-400">{a.subject?.name ?? 'General'}</p>
                     </div>
                   </div>
                   <span className={`text-xs font-bold px-3 py-1 rounded-full ${
