@@ -3,6 +3,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
 import bcrypt from 'bcryptjs';
 import { db } from './db';
+import { isDoctorEmail } from './role-rules';
 
 export const authOptions: NextAuthOptions = {
   session: {
@@ -76,26 +77,37 @@ export const authOptions: NextAuthOptions = {
     async signIn({ user, account }) {
       if (account?.provider === 'google') {
         const email = user.email!;
+        const normalizedEmail = email.toLowerCase();
+        const doctorByWhitelist = isDoctorEmail(normalizedEmail);
 
         let dbUser = await db.user.findUnique({
-          where: { email },
+          where: { email: normalizedEmail },
           include: { student: true },
         });
 
         if (!dbUser) {
           dbUser = await db.user.create({
             data: {
-              email,
+              email: normalizedEmail,
               name: user.name || email.split('@')[0],
               image: user.image,
-              role: 'STUDENT',
-              status: 'PENDING',
+              role: doctorByWhitelist ? 'DOCTOR' : 'STUDENT',
+              status: doctorByWhitelist ? 'ACTIVE' : 'PENDING',
             },
             include: { student: true },
           });
         } else {
+          if (doctorByWhitelist && dbUser.role !== 'DOCTOR') {
+            await db.user.update({
+              where: { id: dbUser.id },
+              data: { role: 'DOCTOR', status: 'ACTIVE' },
+            });
+            dbUser.role = 'DOCTOR';
+            dbUser.status = 'ACTIVE';
+          }
+
           // Always reset to PENDING if no student record (re-registration case)
-          if (!dbUser.student) {
+          if (!dbUser.student && dbUser.role === 'STUDENT') {
             await db.user.update({
               where: { id: dbUser.id },
               data: { status: 'PENDING' },
@@ -113,8 +125,11 @@ export const authOptions: NextAuthOptions = {
         // Store minimal data only
         (user as any).id = dbUser.id;
         (user as any).role = dbUser.role;
-        // If no student record, force PENDING regardless of DB status
-        (user as any).status = dbUser.student ? dbUser.status : 'PENDING';
+        // If student with no profile, keep PENDING. Doctors/Admins keep their status.
+        (user as any).status =
+          dbUser.role === 'STUDENT' && !dbUser.student
+            ? 'PENDING'
+            : dbUser.status;
         (user as any).studentId = dbUser.student?.id ?? null;
         (user as any).hasStudent = !!dbUser.student;
 

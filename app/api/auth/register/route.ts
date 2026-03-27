@@ -3,14 +3,15 @@ import { db } from '@/lib/db';
 import { hashPassword } from '@/lib/auth';
 import { z } from 'zod';
 import QRCode from 'qrcode';
+import { isDoctorEmail } from '@/lib/role-rules';
 
 const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Invalid email address'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   phone: z.string().optional(),
-  departmentId: z.string().min(1, 'Department is required'),
-  academicYear: z.number().min(1).max(5),
+  departmentId: z.string().optional(),
+  academicYear: z.number().optional(),
 });
 
 /** Generate a unique 6-digit numeric student code */
@@ -45,9 +46,11 @@ export async function POST(req: NextRequest) {
     }
 
     const { name, email, password, phone, departmentId, academicYear } = result.data;
+    const normalizedEmail = email.toLowerCase();
+    const isDoctor = isDoctorEmail(normalizedEmail);
 
     const existingUser = await db.user.findUnique({
-      where: { email: email.toLowerCase() },
+      where: { email: normalizedEmail },
     });
 
     if (existingUser) {
@@ -62,26 +65,35 @@ export async function POST(req: NextRequest) {
     const user = await db.user.create({
       data: {
         name,
-        email: email.toLowerCase(),
+        email: normalizedEmail,
         password: hashedPassword,
-        role: 'STUDENT',
-        status: 'PENDING',
+        role: isDoctor ? 'DOCTOR' : 'STUDENT',
+        status: isDoctor ? 'ACTIVE' : 'PENDING',
       },
     });
 
-    const studentCode = await generateStudentCode();
-    const qrCode = await generateQRCode(studentCode);
+    if (!isDoctor) {
+      if (!departmentId) {
+        return NextResponse.json({ error: 'Department is required' }, { status: 400 });
+      }
+      if (!academicYear || academicYear < 1 || academicYear > 5) {
+        return NextResponse.json({ error: 'Academic year must be between 1 and 5' }, { status: 400 });
+      }
 
-    await db.student.create({
-      data: {
-        userId: user.id,
-        studentCode,
-        qrCode,
-        departmentId,
-        academicYear,
-        phone: phone || null,
-      },
-    });
+      const studentCode = await generateStudentCode();
+      const qrCode = await generateQRCode(studentCode);
+
+      await db.student.create({
+        data: {
+          userId: user.id,
+          studentCode,
+          qrCode,
+          departmentId,
+          academicYear,
+          phone: phone || null,
+        },
+      });
+    }
 
     return NextResponse.json(
       {
