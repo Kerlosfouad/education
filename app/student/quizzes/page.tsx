@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { BookOpen, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
+import { useI18n } from '@/lib/i18n';
 
 type Quiz = {
   id: string;
@@ -31,6 +32,7 @@ type Quiz = {
 export default function StudentQuizzesPage() {
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [loading, setLoading] = useState(true);
+  const { t } = useI18n();
 
   useEffect(() => {
     fetch('/api/quizzes')
@@ -55,8 +57,8 @@ export default function StudentQuizzesPage() {
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-800">My Quizzes</h1>
-        <p className="text-gray-500 mt-1">Take your quizzes before the deadline</p>
+        <h1 className="text-3xl font-bold text-gray-800">{t('myQuizzes')}</h1>
+        <p className="text-gray-500 mt-1">{t('takeQuizzesBeforeDeadline')}</p>
       </div>
 
       {loading ? (
@@ -68,7 +70,7 @@ export default function StudentQuizzesPage() {
       ) : quizzes.length === 0 ? (
         <div className="text-center py-20 text-gray-400">
           <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-30" />
-          <p>No quizzes available yet</p>
+          <p>{t('noQuizzesYet')}</p>
         </div>
       ) : (
         <div className="grid gap-4">
@@ -97,20 +99,20 @@ export default function StudentQuizzesPage() {
                     <div className="flex flex-wrap gap-4 text-sm text-gray-500">
                       <span className="flex items-center gap-1">
                         <BookOpen className="w-4 h-4 text-blue-400" />
-                        {quiz._count.questions} Questions
+                        {quiz._count.questions} {t('questions')}
                       </span>
                       <span className="flex items-center gap-1">
                         <Clock className="w-4 h-4 text-purple-400" />
-                        {quiz.timeLimit} min
+                        {quiz.timeLimit} {t('minutes')}
                       </span>
                       <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">
-                        Pass: {quiz.passingScore}%
+                        {t('pass')}: {quiz.passingScore}%
                       </span>
                     </div>
 
                     {quiz.endTime && (
                       <p className="text-xs text-red-400 mt-2">
-                        Deadline: {new Date(quiz.endTime).toLocaleString()}
+                        {t('deadline')}: {new Date(quiz.endTime).toLocaleString()}
                       </p>
                     )}
 
@@ -123,14 +125,14 @@ export default function StudentQuizzesPage() {
                             : <XCircle className="w-4 h-4 text-red-500" />
                           }
                           <span className="text-sm font-medium text-gray-700">
-                            Score: {attempt.score}/{attempt.maxScore} ({attempt.percentage}%)
+                            {t('score')}: {attempt.score}/{attempt.maxScore} ({attempt.percentage}%)
                           </span>
                           <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                             attempt.percentage >= quiz.passingScore
                               ? 'bg-green-100 text-green-700'
                               : 'bg-red-100 text-red-700'
                           }`}>
-                            {attempt.percentage >= quiz.passingScore ? 'Passed' : 'Failed'}
+                            {attempt.percentage >= quiz.passingScore ? t('passed') : t('failed')}
                           </span>
                         </div>
                       </div>
@@ -144,7 +146,7 @@ export default function StudentQuizzesPage() {
                         href={`/student/quizzes/${quiz.id}`}
                         className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl transition-colors"
                       >
-                        Start Quiz
+                        {t('startQuiz')}
                       </Link>
                     )}
                     {status === 'completed' && (
@@ -152,17 +154,17 @@ export default function StudentQuizzesPage() {
                         href={`/student/quizzes/${quiz.id}`}
                         className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-medium rounded-xl transition-colors"
                       >
-                        View Result
+                        {t('viewResult')}
                       </Link>
                     )}
                     {status === 'expired' && (
                       <span className="px-4 py-2 bg-red-50 text-red-400 text-sm font-medium rounded-xl">
-                        Expired
+                        {t('expired')}
                       </span>
                     )}
                     {status === 'upcoming' && (
                       <span className="px-4 py-2 bg-yellow-50 text-yellow-600 text-sm font-medium rounded-xl">
-                        Upcoming
+                        {t('upcoming')}
                       </span>
                     )}
                   </div>
@@ -177,6 +179,7 @@ export default function StudentQuizzesPage() {
 }
 
 function StatusBadge({ status }: { status: string }) {
+  const { t } = useI18n();
   const styles: Record<string, string> = {
     available: 'bg-green-100 text-green-700',
     completed: 'bg-blue-100 text-blue-700',
@@ -185,7 +188,11 @@ function StatusBadge({ status }: { status: string }) {
   };
   return (
     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${styles[status] ?? 'bg-gray-100 text-gray-500'}`}>
-      {status.charAt(0).toUpperCase() + status.slice(1)}
+      {status === 'available' ? t('open')
+        : status === 'completed' ? t('submitted')
+        : status === 'expired' ? t('expired')
+        : status === 'upcoming' ? t('upcoming')
+        : status}
     </span>
   );
 }

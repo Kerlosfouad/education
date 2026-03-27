@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { CalendarCheck2, Plus, Users, Clock, CheckCircle2, XCircle, Loader2, X, Check, MoreVertical, Trash2 } from 'lucide-react';
+import { useI18n } from '@/lib/i18n';
 
 interface AttendanceRecord { studentId: string; verificationMethod: string; }
 interface AttendanceSession {
@@ -13,6 +14,7 @@ interface Student { id: string; studentCode: string; user: { name: string; email
 interface Subject { id: string; name: string; }
 
 export default function AttendancePage() {
+  const { t } = useI18n();
   const [sessions, setSessions] = useState<AttendanceSession[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -65,7 +67,7 @@ export default function AttendancePage() {
       });
       const json = await res.json();
       if (json.success) { setShowModal(false); setForm({ subjectId: '', title: '', openTime: '', closeTime: '' }); fetchData(); }
-      else setError(json.error || 'حدث خطأ');
+      else setError(json.error || t('errorOccurred'));
     } catch { setError('Network error'); }
     setSaving(false);
   };
@@ -123,7 +125,9 @@ export default function AttendancePage() {
         {(['sessions', 'table'] as const).map(tab => (
           <button key={tab} onClick={() => setActiveTab(tab)}
             className={`px-5 py-2 rounded-xl text-sm font-bold transition-colors ${activeTab === tab ? 'bg-blue-600 text-white' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'}`}>
-            {tab === 'sessions' ? `الجلسات (${sessions.length})` : 'جدول الحضور'}
+            {tab === 'sessions'
+              ? `${t('sessionsTab')} (${sessions.length})`
+              : t('attendanceTable')}
           </button>
         ))}
       </div>
@@ -155,7 +159,7 @@ export default function AttendancePage() {
                     </div>
                       <div className="flex items-center gap-2">
                         <span className={`text-xs font-bold px-3 py-1 rounded-full ${isActive ? 'bg-green-100 text-green-700 animate-pulse' : 'bg-slate-100 text-slate-500'}`}>
-                          {isActive ? '🟢 مفتوح' : '⚫ مغلق'}
+                          {isActive ? `🟢 ${t('open')}` : `⚫ ${t('closed')}`}
                         </span>
                         <button
                           type="button"
@@ -178,19 +182,19 @@ export default function AttendancePage() {
                           onClick={() => deleteSession(s.id)}
                           className="w-full text-left px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 transition-colors"
                         >
-                          حذف الجلسة
+                          {t('deleteSession')}
                         </button>
                       </div>
                     )}
 
                   <div className="flex items-center gap-4 text-xs mb-4">
                     <span className="flex items-center gap-1 text-slate-400"><Clock size={12} />{new Date(s.openTime).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })} → {new Date(s.closeTime).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</span>
-                    <span className="flex items-center gap-1 text-green-600 font-bold"><Check size={12} /> {presentCount} حضر</span>
-                    <span className="flex items-center gap-1 text-red-500 font-bold"><X size={12} /> {absentCount} غاب</span>
+                    <span className="flex items-center gap-1 text-green-600 font-bold"><Check size={12} /> {presentCount} {t('present')}</span>
+                    <span className="flex items-center gap-1 text-red-500 font-bold"><X size={12} /> {absentCount} {t('absent')}</span>
                   </div>
                   <button onClick={() => toggleSession(s.id, s.isOpen)}
                     className={`w-full py-2.5 rounded-2xl text-sm font-bold transition-colors ${s.isOpen ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}>
-                    {s.isOpen ? 'إغلاق الجلسة' : 'فتح الجلسة'}
+                    {s.isOpen ? t('closeSession') : t('openSession')}
                   </button>
                 </div>
               );
@@ -204,21 +208,21 @@ export default function AttendancePage() {
           {sessions.length === 0 || students.length === 0 ? (
             <div className="text-center py-20 text-slate-400">
               <Users size={48} className="mx-auto mb-3 opacity-30" />
-              <p>لا توجد بيانات كافية لعرض الجدول</p>
+              <p>{t('notEnoughData')}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="bg-slate-50">
-                    <th className="p-4 text-xs font-bold text-slate-500 text-right sticky left-0 bg-slate-50 z-10 border-b border-slate-100 min-w-[160px]">الطالب</th>
+                    <th className="p-4 text-xs font-bold text-slate-500 text-right sticky left-0 bg-slate-50 z-10 border-b border-slate-100 min-w-[160px]">{t('student')}</th>
                     {sessions.map(s => (
                       <th key={s.id} className="p-3 text-[10px] font-bold text-slate-400 text-center border-b border-slate-100 min-w-[80px]">
                         <div>{s.title || s.subject.name}</div>
                         <div className="text-slate-300 font-normal">{new Date(s.openTime).toLocaleDateString('ar-EG', { month: 'short', day: 'numeric' })}</div>
                       </th>
                     ))}
-                    <th className="p-3 text-[10px] font-bold text-slate-400 text-center border-b border-slate-100 min-w-[70px]">النسبة</th>
+                    <th className="p-3 text-[10px] font-bold text-slate-400 text-center border-b border-slate-100 min-w-[70px]">{t('percentage')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
@@ -267,33 +271,33 @@ export default function AttendancePage() {
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl animate-in zoom-in-95 duration-300">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-slate-800">جلسة حضور جديدة</h3>
+              <h3 className="text-xl font-bold text-slate-800">{t('newAttendanceSession')}</h3>
               <button onClick={() => setShowModal(false)} className="p-2 hover:bg-slate-100 rounded-xl"><X size={20} className="text-slate-400" /></button>
             </div>
             {error && <div className="bg-red-50 text-red-600 rounded-2xl px-4 py-3 text-sm mb-4">{error}</div>}
             <form onSubmit={handleCreate} className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-slate-400 uppercase mb-1.5 block">المادة *</label>
+                <label className="text-xs font-bold text-slate-400 uppercase mb-1.5 block">{t('subject')} *</label>
                 <select required value={form.subjectId} onChange={e => setForm(f => ({ ...f, subjectId: e.target.value }))}
                   className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
-                  <option value="">اختر المادة</option>
+                  <option value="">{t('selectSubject')}</option>
                   {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-xs font-bold text-slate-400 uppercase mb-1.5 block">عنوان الجلسة (اختياري)</label>
+                <label className="text-xs font-bold text-slate-400 uppercase mb-1.5 block">{t('sessionTitleOptional')}</label>
                 <input type="text" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                  placeholder="مثال: محاضرة الفصل الثالث"
+                  placeholder="e.g. Week 3 lecture"
                   className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-bold text-slate-400 uppercase mb-1.5 block">وقت الفتح *</label>
+                  <label className="text-xs font-bold text-slate-400 uppercase mb-1.5 block">{t('openTime')} *</label>
                   <input type="datetime-local" required value={form.openTime} onChange={e => setForm(f => ({ ...f, openTime: e.target.value }))}
                     className="w-full border border-slate-200 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-slate-400 uppercase mb-1.5 block">وقت الإغلاق *</label>
+                  <label className="text-xs font-bold text-slate-400 uppercase mb-1.5 block">{t('closeTime')} *</label>
                   <input type="datetime-local" required value={form.closeTime} onChange={e => setForm(f => ({ ...f, closeTime: e.target.value }))}
                     className="w-full border border-slate-200 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
                 </div>
@@ -301,7 +305,7 @@ export default function AttendancePage() {
               <button type="submit" disabled={saving}
                 className="w-full py-3.5 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 mt-2">
                 {saving ? <Loader2 size={18} className="animate-spin" /> : <Plus size={18} />}
-                {saving ? 'جاري الحفظ...' : 'إنشاء الجلسة'}
+                {saving ? t('saving') : t('createSession')}
               </button>
             </form>
           </div>

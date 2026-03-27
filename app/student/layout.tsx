@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { LanguageToggle } from '@/components/language-toggle';
+import { useI18n } from '@/lib/i18n';
 
 interface Notification {
   id: string; title: string; message: string;
@@ -44,18 +46,19 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
   const pathname = usePathname();
   const { data: session } = useSession();
   const { theme, setTheme } = useTheme();
+  const { t } = useI18n();
 
   const isDark = mounted && theme === 'dark';
   const toggleTheme = () => setTheme(isDark ? 'light' : 'dark');
 
   const menuItems = [
-    { icon: LayoutDashboard, label: 'Dashboard',     path: '/student/dashboard' },
-    { icon: CalendarCheck2,  label: 'Attendance',    path: '/student/attendance' },
-    { icon: FileText,        label: 'Assignments',   path: '/student/assignments' },
-    { icon: HelpCircle,      label: 'Quizzes',       path: '/student/quizzes' },
-    { icon: MonitorPlay,     label: 'Live Sessions', path: '/student/live' },
-    { icon: Video,           label: 'Videos',        path: '/student/videos' },
-    { icon: Library,         label: 'E-Library',     path: '/student/library' },
+    { icon: LayoutDashboard, label: t('dashboard'),     path: '/student/dashboard' },
+    { icon: CalendarCheck2,  label: t('attendance'),    path: '/student/attendance' },
+    { icon: FileText,        label: t('assignments'),   path: '/student/assignments' },
+    { icon: HelpCircle,      label: t('quizzes'),       path: '/student/quizzes' },
+    { icon: MonitorPlay,     label: t('liveSessions'),  path: '/student/live' },
+    { icon: Video,           label: t('videos'),        path: '/student/videos' },
+    { icon: Library,         label: t('eLibrary'),      path: '/student/library' },
   ];
 
   const fetchNotifications = useCallback(async () => {
@@ -169,6 +172,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
             <button onClick={toggleTheme} className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-300">
               {isDark ? <Sun size={20} /> : <Moon size={20} />}
             </button>
+            <LanguageToggle />
             <button className="relative p-2 bg-slate-50 rounded-lg text-slate-600" onClick={() => setShowNotifications(!showNotifications)}>
               <Bell size={20} />
               {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">{unreadCount > 9 ? '9+' : unreadCount}</span>}
@@ -231,6 +235,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
           <button onClick={toggleTheme} className="p-2 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
             {isDark ? <Sun size={20} /> : <Moon size={20} />}
           </button>
+          <LanguageToggle />
           <div className="relative">
             <button className="relative p-2 bg-slate-50 rounded-xl text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors" onClick={() => setShowNotifications(!showNotifications)}>
               <Bell size={22} />

@@ -19,7 +19,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     });
     if (!quiz) return NextResponse.json({ error: 'Quiz not found' }, { status: 404 });
 
-    // تحقق من عدد المحاولات
+    // Check attempts count
     const existingAttempts = await db.quizAttempt.count({
       where: { quizId: params.id, studentId: student.id },
     });
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const body = await req.json();
     const { answers, timeSpent } = body;
 
-    // تصحيح الإجابات
+    // Grade answers
     let score = 0;
     let maxScore = 0;
     const gradedAnswers: any[] = [];

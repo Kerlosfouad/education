@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, Video, Trash2, Search, X, Play, FileVideo } from 'lucide-react';
 import { useUploadThing } from '@/lib/uploadthing';
+import { useI18n } from '@/lib/i18n';
 
 type VideoItem = {
   id: string;
@@ -32,6 +33,7 @@ export default function VideosPage() {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState('');
+  const { t } = useI18n();
 
   const { startUpload } = useUploadThing('videoUploader', {
     onUploadProgress: (p) => setUploadProgress(p),
@@ -139,15 +141,15 @@ export default function VideosPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">Videos</h1>
-          <p className="text-gray-500 mt-1">Upload and manage your lecture videos</p>
+          <h1 className="text-3xl font-bold text-gray-800">{t('videos')}</h1>
+          <p className="text-gray-500 mt-1">{t('uploadManageVideos')}</p>
         </div>
         <button
           onClick={() => setShowModal(true)}
           className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
         >
           <Upload className="w-4 h-4" />
-          Upload Video
+          {t('uploadVideo')}
         </button>
       </div>
 
@@ -156,7 +158,7 @@ export default function VideosPage() {
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
         <input
           type="text"
-          placeholder="Search videos..."
+          placeholder={t('searchVideos')}
           value={search}
           onChange={e => setSearch(e.target.value)}
           className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -173,7 +175,7 @@ export default function VideosPage() {
       ) : filtered.length === 0 ? (
         <div className="text-center py-20 text-gray-400">
           <FileVideo className="w-12 h-12 mx-auto mb-3 opacity-30" />
-          <p>No videos yet. Upload your first video!</p>
+          <p>{t('noVideosUploadFirst')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

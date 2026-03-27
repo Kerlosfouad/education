@@ -23,6 +23,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import Link from 'next/link';
+import { LanguageToggle } from '@/components/language-toggle';
+import { useI18n } from '@/lib/i18n';
 
 const features = [
   {
@@ -93,6 +95,7 @@ export default function LandingPage() {
   const [doctorName, setDoctorName] = useState<string>('Dr. Kerlos Fouad');
   const { theme, setTheme } = useTheme();
   const { data: session, status: authStatus } = useSession();
+  const { t } = useI18n();
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -171,16 +174,17 @@ export default function LandingPage() {
                   {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                 </button>
               )}
+              <LanguageToggle />
               <Link href="/auth/login">
                 <Button variant="ghost" size="sm" className="hidden sm:flex">
                   <LogIn className="w-4 h-4 mr-2" />
-                  Login
+                  {t('login')}
                 </Button>
               </Link>
               <Link href="/auth/register">
                 <Button size="sm" className="bg-gradient-to-r from-primary to-purple-600">
                   <UserPlus className="w-4 h-4 mr-2" />
-                  Get Started
+                  {t('getStarted')}
                 </Button>
               </Link>
             </div>
@@ -245,13 +249,13 @@ export default function LandingPage() {
               <Link href="/auth/register">
                 <Button size="lg" className="bg-gradient-to-r from-primary to-purple-600 hover:opacity-90 text-lg px-8">
                   <UserPlus className="w-5 h-5 mr-2" />
-                  Create Account
+                  {t('createAccount')}
                 </Button>
               </Link>
               <Link href="/auth/login">
                 <Button size="lg" variant="outline" className="text-lg px-8">
                   <LogIn className="w-5 h-5 mr-2" />
-                  Login
+                  {t('login')}
                 </Button>
               </Link>
             </motion.div>
@@ -276,10 +280,9 @@ export default function LandingPage() {
                       </div>
                     </Link>
                     <div className="text-left">
-                      <h3 className="font-semibold text-lg">Scan to Access</h3>
+                      <h3 className="font-semibold text-lg">{t('scanToAccess')}</h3>
                       <p className="text-muted-foreground text-sm">
-                        Scan the QR code from your book to<br />
-                        quickly access the platform
+                        {t('scanHint')}
                       </p>
                     </div>
                   </div>

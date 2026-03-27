@@ -16,13 +16,13 @@ export default function LibBooksPage() {
     if (data) setFiles(data);
   };
 
-  // دالة الحذف
+  // Delete handler
   const handleDelete = async (id: string) => {
     if (confirm("Are you sure you want to delete this book?")) {
       const res = await deleteBookAction(id);
       if (res.success) {
         alert("Deleted successfully!");
-        refreshBooks(); // تحديث القائمة بعد الحذف
+        refreshBooks(); // Refresh list after delete
       } else {
         alert("Delete failed.");
       }

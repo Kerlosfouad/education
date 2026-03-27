@@ -49,8 +49,8 @@ export async function POST(req: NextRequest) {
     });
 
     await notifyAllStudents(
-      '🎥 Live Session جديدة',
-      `تم جدولة محاضرة مباشرة: ${title}`,
+      '🎥 New live session',
+      `A live session was scheduled: ${title}`,
       'ANNOUNCEMENT'
     );
 

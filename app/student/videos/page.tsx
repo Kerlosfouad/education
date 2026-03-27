@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Video, Play, Loader2 } from 'lucide-react';
+import { useI18n } from '@/lib/i18n';
 
 interface VideoItem {
   id: string;
@@ -15,6 +16,7 @@ interface VideoItem {
 export default function StudentVideosPage() {
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const { t } = useI18n();
 
   useEffect(() => {
     fetch('/api/videos')
@@ -32,14 +34,14 @@ export default function StudentVideosPage() {
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
       <div>
-        <h2 className="text-3xl font-black text-slate-800">Videos</h2>
-        <p className="text-slate-500 mt-1">All lecture videos</p>
+        <h2 className="text-3xl font-black text-slate-800">{t('videos')}</h2>
+        <p className="text-slate-500 mt-1">{t('allLectureVideos')}</p>
       </div>
 
       {videos.length === 0 ? (
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm text-center py-20">
           <Video size={48} className="mx-auto mb-3 text-slate-300" />
-          <p className="text-slate-400">No videos available yet</p>
+          <p className="text-slate-400">{t('noVideosAvailable')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -54,10 +56,10 @@ export default function StudentVideosPage() {
                 <h3 className="font-bold text-slate-800 mb-1 line-clamp-1">{v.title}</h3>
                 {v.description && <p className="text-xs text-slate-400 mb-3 line-clamp-2">{v.description}</p>}
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-slate-400">{v.subject?.name || 'General'}</span>
+                  <span className="text-xs text-slate-400">{v.subject?.name || t('general')}</span>
                   <a href={v.fileUrl} target="_blank" rel="noopener noreferrer"
                     className="flex items-center gap-1 text-xs bg-blue-100 text-blue-700 font-bold px-3 py-1.5 rounded-xl hover:bg-blue-200 transition-colors">
-                    <Play size={12} /> Watch
+                    <Play size={12} /> {t('watch')}
                   </a>
                 </div>
               </div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { CalendarCheck2, CheckCircle2, XCircle, Clock, Loader2, AlertCircle } from 'lucide-react';
+import { useI18n } from '@/lib/i18n';
 
 interface AttendanceRecord {
   id: string;
@@ -22,6 +23,7 @@ interface OpenSession {
 }
 
 export default function StudentAttendancePage() {
+  const { t } = useI18n();
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ attended: 0, absent: 0, total: 0, rate: 0 });
@@ -88,8 +90,8 @@ export default function StudentAttendancePage() {
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
       <div>
-        <h2 className="text-3xl font-black text-slate-800">Attendance</h2>
-        <p className="text-slate-500 mt-1">Track your attendance across all lectures.</p>
+        <h2 className="text-3xl font-black text-slate-800">{t('attendance')}</h2>
+        <p className="text-slate-500 mt-1">{t('trackYourAttendanceAcrossAllLectures')}</p>
       </div>
 
       {/* Open Session Banner */}
@@ -104,11 +106,11 @@ export default function StudentAttendancePage() {
               </div>
               <div>
                 <p className="font-black text-slate-800 text-lg">
-                  {alreadyMarked || markDone ? 'Attendance recorded' : 'Attendance session is open'}
+                  {alreadyMarked || markDone ? t('attendanceRecordedShort') : t('attendanceSessionOpen')}
                 </p>
                 <p className="text-slate-500 text-sm">
                   {openSession.title || openSession.subject?.name} &bull;{' '}
-                  closes at {new Date(openSession.closeTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                  {t('closesAt')} {new Date(openSession.closeTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                 </p>
               </div>
             </div>
@@ -125,7 +127,7 @@ export default function StudentAttendancePage() {
                   className="flex items-center justify-center gap-2 px-8 py-3 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-colors disabled:opacity-60"
                 >
                   {marking ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle2 size={18} />}
-                  {marking ? 'Marking...' : 'Mark Attendance'}
+                  {marking ? t('marking') : t('markAttendance')}
                 </button>
               </div>
             )}
@@ -140,33 +142,33 @@ export default function StudentAttendancePage() {
             <CheckCircle2 className="text-green-600" size={28} />
           </div>
           <p className="text-3xl font-black text-slate-800">{stats.attended}</p>
-          <p className="text-slate-400 text-sm mt-1">Lectures attended</p>
+          <p className="text-slate-400 text-sm mt-1">{t('lecturesAttended')}</p>
         </div>
         <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm text-center">
           <div className="w-14 h-14 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
             <XCircle className="text-red-500" size={28} />
           </div>
           <p className="text-3xl font-black text-slate-800">{stats.absent ?? (stats.total - stats.attended)}</p>
-          <p className="text-slate-400 text-sm mt-1">Lectures missed</p>
+          <p className="text-slate-400 text-sm mt-1">{t('lecturesMissed')}</p>
         </div>
         <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm text-center">
           <div className="w-14 h-14 bg-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
             <CalendarCheck2 className="text-indigo-600" size={28} />
           </div>
           <p className="text-3xl font-black text-slate-800">{stats.rate}%</p>
-          <p className="text-slate-400 text-sm mt-1">Attendance rate</p>
+          <p className="text-slate-400 text-sm mt-1">{t('attendanceRateLabel')}</p>
         </div>
       </div>
 
       {/* Records */}
       <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="p-6 border-b border-slate-50">
-          <h3 className="font-bold text-slate-800">Attendance Record</h3>
+          <h3 className="font-bold text-slate-800">{t('attendanceRecord')}</h3>
         </div>
         {validRecords.length === 0 ? (
           <div className="text-center py-16 text-slate-400">
             <CalendarCheck2 size={48} className="mx-auto mb-3 opacity-30" />
-            <p>No attendance records yet.</p>
+            <p>{t('noAttendanceRecords')}</p>
           </div>
         ) : (
           <div className="divide-y divide-slate-50">
@@ -187,7 +189,7 @@ export default function StudentAttendancePage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className={`text-xs font-bold px-2 py-1 rounded-full ${isAbsent ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-700'}`}>
-                      {isAbsent ? 'Absent' : 'Present'}
+                      {isAbsent ? t('absentStatus') : t('presentStatus')}
                     </span>
                     <div className="flex items-center gap-1 text-xs text-slate-400">
                       <Clock size={12} />

@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { LanguageToggle } from '@/components/language-toggle';
+import { useI18n } from '@/lib/i18n';
 
 interface DoctorProfile {
   name: string; email: string; image: string;
@@ -26,6 +28,7 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
+  const { t } = useI18n();
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -44,17 +47,17 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
   const initials = doctorName.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
 
   const menuItems = [
-    { icon: LayoutDashboard, label: 'Dashboard',     path: '/doctor' },
-    { icon: Users,           label: 'Students',      path: '/doctor/students' },
-    { icon: Calendar,        label: 'Attendance',    path: '/doctor/attendance' },
-    { icon: ClipboardList,   label: 'Assignments',   path: '/doctor/assignments' },
-    { icon: HelpCircle,      label: 'Quizzes',       path: '/doctor/quizzes' },
-    { icon: MonitorPlay,     label: 'Live Sessions', path: '/doctor/lectures' },
-    { icon: Video,           label: 'Videos',        path: '/doctor/videos' },
-    { icon: Library,         label: 'E-Library',     path: '/doctor/libbooks' },
-    { icon: GraduationCap,   label: 'Results',       path: '/doctor/results' },
-    { icon: BarChart3,       label: 'Analytics',     path: '/doctor/analytics' },
-    { icon: Settings,        label: 'Settings',      path: '/doctor/settings' },
+    { icon: LayoutDashboard, label: t('dashboard'),     path: '/doctor' },
+    { icon: Users,           label: t('students'),      path: '/doctor/students' },
+    { icon: Calendar,        label: t('attendance'),    path: '/doctor/attendance' },
+    { icon: ClipboardList,   label: t('assignments'),   path: '/doctor/assignments' },
+    { icon: HelpCircle,      label: t('quizzes'),       path: '/doctor/quizzes' },
+    { icon: MonitorPlay,     label: t('liveSessions'),  path: '/doctor/lectures' },
+    { icon: Video,           label: t('videos'),        path: '/doctor/videos' },
+    { icon: Library,         label: t('eLibrary'),      path: '/doctor/libbooks' },
+    { icon: GraduationCap,   label: t('results'),       path: '/doctor/results' },
+    { icon: BarChart3,       label: t('analytics'),     path: '/doctor/analytics' },
+    { icon: Settings,        label: t('settings'),      path: '/doctor/settings' },
   ];
 
   return (
@@ -118,6 +121,7 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
             <button onClick={toggleTheme} className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-300">
               {isDark ? <Sun size={20} /> : <Moon size={20} />}
             </button>
+            <LanguageToggle />
             <button className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-300" onClick={() => setIsSidebarOpen(true)}>
               <Menu size={24} />
             </button>
@@ -130,6 +134,9 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
             className="p-2 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
             {isDark ? <Sun size={20} /> : <Moon size={20} />}
           </button>
+          <div className="ml-2">
+            <LanguageToggle />
+          </div>
         </div>
 
         <div className="p-4 md:p-8 lg:p-10">{children}</div>

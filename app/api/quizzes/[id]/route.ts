@@ -20,7 +20,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     if (!quiz) return NextResponse.json({ error: 'Quiz not found' }, { status: 404 });
 
-    // للطالب — اخفي الإجابات الصح
+    // Student: hide correct answers
     if (session.user.role === 'STUDENT') {
       const student = await getOrCreateStudent(session.user.id);
       const safeQuestions = quiz.questions.map(q => ({

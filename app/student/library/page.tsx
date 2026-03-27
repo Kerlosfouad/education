@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Library, FileText, File, ExternalLink, Loader2, Download } from 'lucide-react';
+import { useI18n } from '@/lib/i18n';
 
 interface LibraryItem {
   id: string;
@@ -18,6 +19,7 @@ export default function StudentLibraryPage() {
   const [items, setItems] = useState<LibraryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const { t } = useI18n();
 
   useEffect(() => {
     fetch('/api/student/library')
@@ -39,15 +41,15 @@ export default function StudentLibraryPage() {
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
       <div>
-        <h2 className="text-3xl font-black text-slate-800">E-Library</h2>
-        <p className="text-slate-500 mt-1">Books, references, and study materials</p>
+        <h2 className="text-3xl font-black text-slate-800">{t('eLibrary')}</h2>
+        <p className="text-slate-500 mt-1">{t('booksReferences')}</p>
       </div>
 
       {/* Search */}
       <div className="relative max-w-md">
         <input
           type="text"
-          placeholder="Search for a book..."
+          placeholder={t('searchBook')}
           value={search}
           onChange={e => setSearch(e.target.value)}
           className="w-full pl-4 pr-4 py-3 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white"
@@ -57,7 +59,7 @@ export default function StudentLibraryPage() {
       {filtered.length === 0 ? (
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm text-center py-20">
           <Library size={48} className="mx-auto mb-3 text-slate-300" />
-          <p className="text-slate-400">No files in the library yet</p>
+          <p className="text-slate-400">{t('noLibraryFiles')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">

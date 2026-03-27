@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { generateStudentQRCode, generateUniqueBarcode } from '@/lib/codes';
 import { sendStudentApprovalEmail } from '@/lib/email';
+import { generateStudentRegistrationPdf } from '@/lib/registrationPdf';
 
 // POST /api/students/approve - Approve a student
 export async function POST(req: NextRequest) {
@@ -53,11 +54,26 @@ export async function POST(req: NextRequest) {
           data: { barcode, qrCode: qrCodeDataUrl, approvedAt: new Date(), approvedBy: session.user.id },
         });
         const loginUrl = `${process.env.NEXTAUTH_URL}/auth/login`;
+
+        const registrationPdf = await generateStudentRegistrationPdf({
+          title: 'Registration Form',
+          studentName: student.user.name || 'Student',
+          studentCode: student.studentCode,
+          phone: student.phone,
+          email: student.user.email,
+          registeredAt: new Date(),
+          qrCodeDataUrl,
+        });
+
         await sendStudentApprovalEmail(student.user.email, {
           name: student.user.name || 'Student',
           studentCode: student.studentCode,
           qrCodeDataUrl,
           loginUrl,
+          registrationPdf: {
+            filename: `registration-${student.studentCode}.pdf`,
+            content: registrationPdf,
+          },
         });
       }
 

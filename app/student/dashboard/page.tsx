@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useI18n } from '@/lib/i18n';
 
 interface DashboardData {
   student: { id: string; name: string; email: string; studentCode: string; department: string; academicYear: number };
@@ -25,6 +26,7 @@ interface DashboardData {
 }
 
 export default function StudentDashboardPage() {
+  const { t } = useI18n();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAttendanceModal, setShowAttendanceModal] = useState(false);
@@ -63,19 +65,19 @@ export default function StudentDashboardPage() {
         setAttendanceDone(true);
         setTimeout(() => setShowAttendanceModal(false), 2000);
       } else {
-        setAttendanceError(json.error || 'Something went wrong');
+        setAttendanceError(json.error || t('somethingWentWrong'));
       }
     } catch {
-      setAttendanceError('Network error, please try again');
+      setAttendanceError(t('networkErrorPleaseTryAgain'));
     }
     setAttendanceLoading(false);
   };
 
   const stats = data ? [
-    { label: 'Available Quizzes', value: data.stats.quizzesCount, icon: HelpCircle, color: 'text-purple-600', bg: 'bg-purple-50 dark:bg-purple-900/30', href: '/student/quizzes' },
-    { label: 'Pending Assignments', value: data.stats.assignmentsCount, icon: FileText, color: 'text-orange-600', bg: 'bg-orange-50 dark:bg-orange-900/30', href: '/student/assignments' },
-    { label: 'Attendance Rate', value: `${data.stats.attendanceRate}%`, icon: CalendarCheck2, color: 'text-green-600', bg: 'bg-green-50 dark:bg-green-900/30', href: '/student/attendance' },
-    { label: 'Videos Available', value: data.stats.videosCount, icon: Video, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/30', href: '/student/videos' },
+    { label: t('availableQuizzes'), value: data.stats.quizzesCount, icon: HelpCircle, color: 'text-purple-600', bg: 'bg-purple-50 dark:bg-purple-900/30', href: '/student/quizzes' },
+    { label: t('pendingAssignments'), value: data.stats.assignmentsCount, icon: FileText, color: 'text-orange-600', bg: 'bg-orange-50 dark:bg-orange-900/30', href: '/student/assignments' },
+    { label: t('attendanceRateLabel'), value: `${data.stats.attendanceRate}%`, icon: CalendarCheck2, color: 'text-green-600', bg: 'bg-green-50 dark:bg-green-900/30', href: '/student/attendance' },
+    { label: t('videosAvailable'), value: data.stats.videosCount, icon: Video, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/30', href: '/student/videos' },
   ] : [];
 
   if (loading) return (
@@ -97,16 +99,16 @@ export default function StudentDashboardPage() {
                 <div className="w-20 h-20 bg-green-100 dark:bg-green-900/40 rounded-full flex items-center justify-center mx-auto mb-4">
                   <CheckCircle2 className="text-green-500" size={40} />
                 </div>
-                <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100 mb-2">Attendance Recorded!</h2>
-                <p className="text-slate-500 dark:text-slate-400">Your attendance has been marked for {data.openSession.subject.name}</p>
+                <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100 mb-2">{t('attendanceRecorded')}</h2>
+                <p className="text-slate-500 dark:text-slate-400">{t('attendanceMarkedFor')} {data.openSession.subject.name}</p>
               </>
             ) : (
               <>
                 <div className="w-20 h-20 bg-indigo-100 dark:bg-indigo-900/40 rounded-full flex items-center justify-center mx-auto mb-4">
                   <CalendarCheck2 className="text-indigo-600" size={40} />
                 </div>
-                <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100 mb-2">Mark Attendance</h2>
-                <p className="text-slate-500 dark:text-slate-400 mb-1">There is an open attendance session</p>
+                <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100 mb-2">{t('markAttendance')}</h2>
+                <p className="text-slate-500 dark:text-slate-400 mb-1">{t('openAttendanceSession')}</p>
                 <p className="text-indigo-600 font-bold text-lg mb-6">
                   {data.openSession.title || data.openSession.subject.name}
                 </p>
@@ -129,7 +131,7 @@ export default function StudentDashboardPage() {
                     }}
                     className="flex-1 py-3 rounded-2xl border-2 border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                   >
-                    Later
+                    {t('later')}
                   </button>
                   <button
                     onClick={markAttendance}
@@ -137,7 +139,7 @@ export default function StudentDashboardPage() {
                     className="flex-1 py-3 rounded-2xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
                   >
                     {attendanceLoading ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle2 size={18} />}
-                    Mark Attendance
+                    {t('markAttendance')}
                   </button>
                 </div>
               </>
@@ -150,7 +152,7 @@ export default function StudentDashboardPage() {
         {/* Header */}
         <div>
           <h2 className="text-4xl font-black text-slate-800 dark:text-slate-100 tracking-tight">
-            Welcome, {data?.student.name?.split(' ')[0]} 👋
+            {t('welcome')}, {data?.student.name?.split(' ')[0]} 👋
           </h2>
           <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">
             {data?.student.department} &bull; {academicYearLabel[data?.student.academicYear ?? 0] || `Year ${data?.student.academicYear}`}
@@ -233,13 +235,13 @@ export default function StudentDashboardPage() {
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2">
                 <HelpCircle className="text-purple-500" size={20} />
-                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Available Quizzes</h3>
+                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">{t('availableQuizzes')}</h3>
               </div>
-              <Link href="/student/quizzes" className="text-xs text-indigo-600 font-bold hover:underline">View all</Link>
+              <Link href="/student/quizzes" className="text-xs text-indigo-600 font-bold hover:underline">{t('viewAll')}</Link>
             </div>
             <div className="space-y-3">
               {data?.quizzes.length === 0 ? (
-                <p className="text-slate-400 text-sm text-center py-6">No quizzes available</p>
+                <p className="text-slate-400 text-sm text-center py-6">{t('noQuizzesAvailable')}</p>
               ) : data?.quizzes.map((quiz) => (
                 <Link key={quiz.id} href={`/student/quizzes/${quiz.id}`}>
                   <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700/50 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-2xl transition-colors group cursor-pointer">
@@ -252,7 +254,7 @@ export default function StudentDashboardPage() {
                         <p className="text-xs text-slate-400">{quiz.subject?.name} &bull; {quiz.timeLimit} min</p>
                       </div>
                     </div>
-                    <span className="text-xs bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 font-bold px-3 py-1 rounded-full">Open</span>
+                    <span className="text-xs bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 font-bold px-3 py-1 rounded-full">{t('open')}</span>
                   </div>
                 </Link>
               ))}
@@ -266,11 +268,11 @@ export default function StudentDashboardPage() {
                 <FileText className="text-orange-500" size={20} />
                 <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Assignments</h3>
               </div>
-              <Link href="/student/assignments" className="text-xs text-indigo-600 font-bold hover:underline">View all</Link>
+              <Link href="/student/assignments" className="text-xs text-indigo-600 font-bold hover:underline">{t('viewAll')}</Link>
             </div>
             <div className="space-y-3">
               {data?.assignments.length === 0 ? (
-                <p className="text-slate-400 text-sm text-center py-6">No assignments yet</p>
+                <p className="text-slate-400 text-sm text-center py-6">{t('noAssignmentsYet')}</p>
               ) : data?.assignments.map((a) => (
                 <div key={a.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700/50 rounded-2xl">
                   <div className="flex items-center gap-3">

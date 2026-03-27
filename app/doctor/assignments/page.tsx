@@ -5,6 +5,7 @@ import {
   Plus, FileText, ExternalLink, Clock, Users, Calendar,
   History, X, Trash2, ChevronRight, CheckCircle2, Star, Loader2
 } from 'lucide-react';
+import { useI18n } from '@/lib/i18n';
 import {
   getAssignmentsAction,
   createAssignmentAction,
@@ -31,6 +32,7 @@ interface AssignmentDetail {
 }
 
 export default function AssignmentsPage() {
+  const { t } = useI18n();
   const [assignments, setAssignments] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newAssignment, setNewAssignment] = useState({ title: '', formUrl: '', departmentId: '', academicYear: '' });
@@ -147,11 +149,11 @@ export default function AssignmentsPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-black text-slate-800 dark:text-slate-100 tracking-tight">Assignments</h2>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">Create assignments and grade student submissions.</p>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">{t('createAssignmentsAndGrade')}</p>
         </div>
         <button onClick={handleCreateClick}
           className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-100 dark:shadow-none transition-all w-fit">
-          <Plus size={20} /> Create New Assignment
+          <Plus size={20} /> {t('createNewAssignment')}
         </button>
       </div>
 
@@ -160,12 +162,12 @@ export default function AssignmentsPage() {
         <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm p-6">
           <div className="flex items-center gap-2 mb-5">
             <History className="text-indigo-500" size={20} />
-            <h3 className="font-bold text-slate-800 dark:text-slate-100">All Assignments</h3>
+            <h3 className="font-bold text-slate-800 dark:text-slate-100">{t('allAssignments')}</h3>
           </div>
           {assignments.length === 0 ? (
             <div className="text-center py-16 text-slate-400">
               <FileText size={40} className="mx-auto mb-3 opacity-30" />
-              <p>No assignments yet</p>
+              <p>{t('noAssignmentsYet')}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -252,7 +254,7 @@ export default function AssignmentsPage() {
               {selected.submissions.length === 0 ? (
                 <div className="text-center py-10 text-slate-400">
                   <Users size={36} className="mx-auto mb-2 opacity-30" />
-                  <p className="text-sm">No submissions yet</p>
+                  <p className="text-sm">{t('noSubmissionsYet')}</p>
                 </div>
               ) : (
                 <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">

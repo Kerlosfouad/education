@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { notifyAllStudents } from "@/lib/notifications";
 
-// دالة لجلب الكتب من الداتا بيز
+// Fetch books from database
 export async function getBooksAction() {
   try {
     return await db.book.findMany({
@@ -29,7 +29,7 @@ export async function deleteBookAction(id: string) {
   }
 }
 
-// دالة لحفظ كتاب جديد
+// Save a new book
 export async function saveBookAction(data: { name: string, type: string, size: string, url: string }) {
   try {
     const book = await db.book.create({
@@ -41,8 +41,8 @@ export async function saveBookAction(data: { name: string, type: string, size: s
       },
     });
     await notifyAllStudents(
-      '📚 كتاب جديد في المكتبة',
-      `تمت إضافة "${data.name}" للمكتبة الإلكترونية`,
+      '📚 New library item',
+      `"${data.name}" was added to the E-Library`,
       'ANNOUNCEMENT'
     );
     revalidatePath("/doctor/libbooks");

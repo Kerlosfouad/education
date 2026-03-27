@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, CheckCircle, XCircle, AlertCircle, ChevronLeft, ChevronRight, Send } from 'lucide-react';
+import { useI18n } from '@/lib/i18n';
 
 type Question = {
   id: string;
@@ -46,6 +47,7 @@ type Result = {
 export default function QuizPage() {
   const { id } = useParams();
   const router = useRouter();
+  const { t } = useI18n();
 
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [loading, setLoading] = useState(true);
@@ -97,11 +99,11 @@ export default function QuizPage() {
       if (data.success) {
         setResult(data.data);
       } else {
-        alert(data.error || 'Failed to submit quiz');
+        alert(data.error || t('failedToSubmitQuiz'));
       }
     } catch (err) {
       console.error('Submit error:', err);
-      alert('Network error, please try again');
+      alert(t('networkErrorPleaseTryAgain'));
     } finally {
       setSubmitting(false);
     }
@@ -133,7 +135,7 @@ export default function QuizPage() {
   );
 
   if (!quiz) return (
-    <div className="p-6 text-center text-gray-400">Quiz not found</div>
+    <div className="p-6 text-center text-gray-400">{t('quizNotFound')}</div>
   );
 
   // ===== Result =====
@@ -149,20 +151,20 @@ export default function QuizPage() {
           : <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
         }
         <h2 className="text-2xl font-bold text-gray-800 mb-1">
-          {result.passed ? '🎉 Congratulations!' : 'Keep Trying!'}
+          {result.passed ? `🎉 ${t('congratulations')}` : t('keepTrying')}
         </h2>
         <p className="text-gray-500 mb-4">{quiz.title}</p>
         <div className="text-5xl font-black mb-2" style={{ color: result.passed ? '#22c55e' : '#ef4444' }}>
           {result.percentage}%
         </div>
         <p className="text-gray-500 text-sm">
-          {result.score} / {result.maxScore} points · Pass: {result.passingScore}%
+          {result.score} / {result.maxScore} {t('points')} · {t('pass')}: {result.passingScore}%
         </p>
       </motion.div>
 
       {/* Answer Details */}
       <div className="space-y-3">
-        <h3 className="font-semibold text-gray-700">Answer Review</h3>
+        <h3 className="font-semibold text-gray-700">{t('answerReview')}</h3>
         {result.gradedAnswers.map((a, i) => (
           <motion.div
             key={a.questionId}
@@ -182,13 +184,13 @@ export default function QuizPage() {
                 <p className="text-sm font-medium text-gray-800 mb-2">Q{i + 1}: {a.question}</p>
                 <div className="space-y-1 text-xs">
                   <p className="text-gray-500">
-                    Your answer: <span className={`font-medium ${a.isCorrect ? 'text-green-600' : 'text-red-600'}`}>
-                      {a.studentAnswer ?? 'Not answered'}
+                    {t('yourAnswer')}: <span className={`font-medium ${a.isCorrect ? 'text-green-600' : 'text-red-600'}`}>
+                      {a.studentAnswer ?? t('notAnswered')}
                     </span>
                   </p>
                   {!a.isCorrect && a.correctAnswer && (
                     <p className="text-gray-500">
-                      Correct answer: <span className="font-medium text-green-600">{a.correctAnswer}</span>
+                      {t('correctAnswer')}: <span className="font-medium text-green-600">{a.correctAnswer}</span>
                     </p>
                   )}
                   {a.explanation && (
@@ -206,7 +208,7 @@ export default function QuizPage() {
         onClick={() => router.push('/student/quizzes')}
         className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-colors"
       >
-        Back to Quizzes
+        {t('backToQuizzes')}
       </button>
     </div>
   );
@@ -228,15 +230,15 @@ export default function QuizPage() {
         <div className="grid grid-cols-3 gap-3 py-4">
           <div className="bg-blue-50 rounded-xl p-3">
             <p className="text-2xl font-bold text-blue-600">{quiz.questions.length}</p>
-            <p className="text-xs text-gray-400 mt-1">Questions</p>
+            <p className="text-xs text-gray-400 mt-1">{t('questions')}</p>
           </div>
           <div className="bg-purple-50 rounded-xl p-3">
             <p className="text-2xl font-bold text-purple-600">{quiz.timeLimit}</p>
-            <p className="text-xs text-gray-400 mt-1">Minutes</p>
+            <p className="text-xs text-gray-400 mt-1">{t('minutes')}</p>
           </div>
           <div className="bg-green-50 rounded-xl p-3">
             <p className="text-2xl font-bold text-green-600">{quiz.passingScore}%</p>
-            <p className="text-xs text-gray-400 mt-1">To Pass</p>
+            <p className="text-xs text-gray-400 mt-1">{t('toPass')}</p>
           </div>
         </div>
 
@@ -246,14 +248,14 @@ export default function QuizPage() {
 
         <p className="text-xs text-red-400 flex items-center justify-center gap-1">
           <Clock className="w-3.5 h-3.5" />
-          Timer starts immediately when you click Start
+          {t('timerStartsImmediately')}
         </p>
 
         <button
           onClick={() => setStarted(true)}
           className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-colors"
         >
-          Start Quiz
+          {t('startQuiz')}
         </button>
       </motion.div>
     </div>
@@ -270,7 +272,7 @@ export default function QuizPage() {
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
         <div className="flex items-center justify-between mb-3">
           <span className="text-sm text-gray-500 font-medium">
-            Question {currentQ + 1} of {quiz.questions.length}
+            {t('questionOf')} {currentQ + 1} {t('of')} {quiz.questions.length}
           </span>
           <div className={`flex items-center gap-1.5 font-bold text-lg ${timerColor}`}>
             <Clock className="w-5 h-5" />
@@ -372,7 +374,7 @@ export default function QuizPage() {
             className="flex items-center gap-2 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
           >
             <Send className="w-4 h-4" />
-            {submitting ? 'Submitting...' : `Submit (${answeredCount}/${quiz.questions.length})`}
+            {submitting ? t('submitting') : `${t('submit')} (${answeredCount}/${quiz.questions.length})`}
           </button>
         )}
       </div>

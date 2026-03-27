@@ -68,8 +68,8 @@ export async function POST(req: NextRequest) {
     });
 
     await notifyAllStudents(
-      '🎬 فيديو جديد',
-      `تم رفع فيديو جديد: ${title}`,
+      '🎬 New video',
+      `A new video was uploaded: ${title}`,
       'ANNOUNCEMENT'
     );
 
