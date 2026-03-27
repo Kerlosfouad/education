@@ -30,7 +30,7 @@ export async function deleteBookAction(id: string) {
 }
 
 // Save a new book
-export async function saveBookAction(data: { name: string, type: string, size: string, url: string }) {
+export async function saveBookAction(data: { name: string, type: string, size: string, url: string, departmentId?: string, academicYear?: number }) {
   try {
     const book = await db.book.create({
       data: {
@@ -38,6 +38,8 @@ export async function saveBookAction(data: { name: string, type: string, size: s
         type: data.type,
         size: data.size,
         url: data.url,
+        ...(data.departmentId ? { departmentId: data.departmentId } : {}),
+        ...(data.academicYear ? { academicYear: data.academicYear } : {}),
       },
     });
     await notifyAllStudents(

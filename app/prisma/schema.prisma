@@ -76,12 +76,16 @@ model VerificationToken {
 }
 
 model Book {
-  id        String   @id @default(cuid())
-  name      String
-  type      String
-  size      String
-  url       String
-  createdAt DateTime @default(now())
+  id           String   @id @default(cuid())
+  name         String
+  type         String
+  size         String
+  url          String
+  departmentId String?
+  academicYear Int?
+  createdAt    DateTime @default(now())
+
+  department   Department? @relation(fields: [departmentId], references: [id])
 }
 
 // Student profile
@@ -157,6 +161,7 @@ model Department {
   // Relations
   subjects    Subject[]
   students    Student[]
+  books       Book[]
   
   @@map("departments")
 }

@@ -5,31 +5,54 @@ import { UploadCloud, FileText, File, Trash2, Download, Search } from 'lucide-re
 import { saveBookAction, getBooksAction, deleteBookAction } from "../../actions/bookActions";
 import { UploadButton } from "@/lib/uploadthing";
 
+type Department = { id: string; name: string; code: string };
+
+const academicYearsByDept: Record<string, { value: string; label: string }[]> = {
+  PREP: [{ value: '1', label: 'First Year' }],
+  default: [
+    { value: '2', label: 'Second Year' },
+    { value: '3', label: 'Third Year' },
+    { value: '4', label: 'Fourth Year' },
+    { value: '5', label: 'Fifth Year' },
+  ],
+};
+
 export default function LibBooksPage() {
   const [files, setFiles] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [departmentId, setDepartmentId] = useState('');
+  const [academicYear, setAcademicYear] = useState('');
 
-  useEffect(() => { refreshBooks(); }, []);
+  useEffect(() => {
+    refreshBooks();
+    fetch('/api/subjects/departments').then(r => r.json()).then(json => {
+      setDepartments(Array.isArray(json.data) ? json.data : []);
+    }).catch(() => {});
+  }, []);
 
   const refreshBooks = async () => {
     const data = await getBooksAction();
     if (data) setFiles(data);
   };
 
-  // Delete handler
   const handleDelete = async (id: string) => {
     if (confirm("Are you sure you want to delete this book?")) {
       const res = await deleteBookAction(id);
       if (res.success) {
-        alert("Deleted successfully!");
-        refreshBooks(); // Refresh list after delete
+        refreshBooks();
       } else {
         alert("Delete failed.");
       }
     }
   };
 
-  const filteredFiles = files.filter(file => 
+  const selectedDept = departments.find(d => d.id === departmentId);
+  const academicYears = selectedDept?.code === 'PREP'
+    ? academicYearsByDept['PREP']
+    : academicYearsByDept['default'];
+
+  const filteredFiles = files.filter(file =>
     file.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -43,12 +66,47 @@ export default function LibBooksPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         {/* Upload Card */}
         <div className="lg:col-span-1">
-          <div className="bg-white dark:bg-[#0f1f38] p-8 rounded-[2.5rem] border-2 border-dashed border-slate-200 dark:border-[#1a2f4a] hover:border-indigo-400 transition-all flex flex-col items-center text-center shadow-sm">
-            <div className="w-20 h-20 bg-indigo-50 rounded-[2rem] flex items-center justify-center text-indigo-600 mb-6">
-              <UploadCloud size={40} />
+          <div className="bg-white dark:bg-[#0f1f38] p-8 rounded-[2.5rem] border-2 border-dashed border-slate-200 dark:border-[#1a2f4a] hover:border-indigo-400 transition-all flex flex-col gap-4 shadow-sm">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-20 h-20 bg-indigo-50 rounded-[2rem] flex items-center justify-center text-indigo-600 mb-3">
+                <UploadCloud size={40} />
+              </div>
+              <h3 className="text-xl font-bold text-slate-800 dark:text-white">New Upload</h3>
             </div>
-            <h3 className="text-xl font-bold text-slate-800 dark:text-white">New Upload</h3>
-            <div className="w-full mt-8 [&_input[type=file]]:hidden [&_.ut-label]:hidden">
+
+            {/* Department */}
+            <div>
+              <label className="text-sm font-medium text-slate-600 dark:text-slate-300 mb-1 block">Department</label>
+              <select
+                value={departmentId}
+                onChange={e => { setDepartmentId(e.target.value); setAcademicYear(''); }}
+                className="w-full border border-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">Select department...</option>
+                {departments.map(d => (
+                  <option key={d.id} value={d.id}>{d.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Academic Year */}
+            <div>
+              <label className="text-sm font-medium text-slate-600 dark:text-slate-300 mb-1 block">Academic Year</label>
+              <select
+                value={academicYear}
+                disabled={!departmentId}
+                onChange={e => setAcademicYear(e.target.value)}
+                className="w-full border border-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+              >
+                <option value="">Select year...</option>
+                {academicYears.map(y => (
+                  <option key={y.value} value={y.value}>{y.label}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Upload Button */}
+            <div className="w-full [&_input[type=file]]:hidden [&_.ut-label]:hidden">
               <UploadButton
                 endpoint="pdfUploader"
                 onClientUploadComplete={async (res) => {
@@ -57,7 +115,9 @@ export default function LibBooksPage() {
                       name: res[0].name,
                       type: res[0].name.endsWith('.pdf') ? 'PDF' : 'WORD',
                       size: (res[0].size / (1024 * 1024)).toFixed(1) + " MB",
-                      url: res[0].url
+                      url: res[0].url,
+                      departmentId: departmentId || undefined,
+                      academicYear: academicYear ? parseInt(academicYear) : undefined,
                     });
                     refreshBooks();
                   }
@@ -76,9 +136,9 @@ export default function LibBooksPage() {
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-white dark:bg-[#0f1f38] p-5 rounded-3xl border border-slate-100 dark:border-[#1a2f4a] flex items-center gap-4 shadow-sm">
             <Search className="text-slate-300" size={22} />
-            <input 
-              type="text" 
-              placeholder="Search books..." 
+            <input
+              type="text"
+              placeholder="Search books..."
               className="bg-transparent border-none outline-none text-sm w-full font-medium dark:text-white dark:placeholder:text-slate-500"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -94,17 +154,16 @@ export default function LibBooksPage() {
                   }`}>
                     {file.type === 'PDF' ? <FileText size={28} /> : <File size={28} />}
                   </div>
-                  <div className="truncate text-right">
+                  <div className="truncate">
                     <h4 className="font-bold text-slate-700 dark:text-white text-[15px] truncate max-w-[200px] md:max-w-md">{file.name}</h4>
                     <p className="text-[11px] text-slate-400 font-bold uppercase">{file.type} • {file.size}</p>
                   </div>
                 </div>
-                
                 <div className="flex items-center gap-3">
                   <a href={file.url} target="_blank" className="p-3 text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-2xl transition-all">
                     <Download size={22} />
                   </a>
-                  <button 
+                  <button
                     onClick={() => handleDelete(file.id)}
                     className="p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-2xl transition-all"
                   >
