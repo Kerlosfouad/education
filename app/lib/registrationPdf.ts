@@ -26,8 +26,8 @@ function rtlText(input: string) {
 }
 
 async function loadArabicFonts() {
-  const regularPath = path.join(process.cwd(), 'node_modules', 'noto-sans-arabic', 'fonts', 'Regular.ttf');
-  const boldPath = path.join(process.cwd(), 'node_modules', 'noto-sans-arabic', 'fonts', 'Bold.ttf');
+  const regularPath = path.join(process.cwd(), 'public', 'fonts', 'NotoSansArabic-Regular.ttf');
+  const boldPath = path.join(process.cwd(), 'public', 'fonts', 'NotoSansArabic-Bold.ttf');
   const [regularBytes, boldBytes] = await Promise.all([fs.readFile(regularPath), fs.readFile(boldPath)]);
   return { regularBytes, boldBytes };
 }
