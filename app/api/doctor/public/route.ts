@@ -1,21 +1,33 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 
-// Public doctor info - accessible to any authenticated user (students, doctors, admins)
+// Public doctor info - accessible without authentication.
 export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
   const doctor = await db.user.findFirst({
     where: { role: 'DOCTOR' },
     select: { name: true, email: true, image: true },
   });
 
-  if (!doctor) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  if (!doctor) {
+    return NextResponse.json(
+      {
+        success: true,
+        data: {
+          name: '',
+          email: '',
+          image: '',
+          title: '',
+          bio: '',
+          phone: '',
+          whatsapp: '',
+          facebook: '',
+          instagram: '',
+          twitter: '',
+        },
+      },
+      { status: 200 }
+    );
+  }
 
   const profiles = await db.$queryRaw<any[]>`
     SELECT title, bio, phone, whatsapp, facebook, instagram, twitter

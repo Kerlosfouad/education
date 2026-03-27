@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { motion, useInView, useMotionValue, useSpring } from 'framer-motion';
 import { useTheme } from 'next-themes';
 import QRCode from 'qrcode';
+import { useSession } from 'next-auth/react';
 import { 
   BookOpen, 
   GraduationCap, 
@@ -89,7 +90,9 @@ export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
+  const [doctorName, setDoctorName] = useState<string>('Dr. Kerlos Fouad');
   const { theme, setTheme } = useTheme();
+  const { data: session, status: authStatus } = useSession();
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -113,6 +116,31 @@ export default function LandingPage() {
     }).then(setQrDataUrl).catch(console.error);
   }, []);
 
+  // Pull doctor display name from DB (instead of hardcoding).
+  // - If logged-in doctor -> /api/doctor/me
+  // - Otherwise -> /api/doctor/public (first doctor fallback)
+  useEffect(() => {
+    if (authStatus === 'loading') return;
+
+    const endpoint =
+      authStatus === 'authenticated' && session?.user?.role === 'DOCTOR'
+        ? '/api/doctor/me'
+        : '/api/doctor/public';
+
+    let cancelled = false;
+    fetch(endpoint)
+      .then(r => r.json())
+      .then(json => {
+        const name = json?.data?.name;
+        if (!cancelled && typeof name === 'string' && name.trim()) setDoctorName(name.trim());
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authStatus, session?.user?.role]);
+
   const isDark = mounted && theme === 'dark';
 
   return (
@@ -131,7 +159,7 @@ export default function LandingPage() {
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center">
                 <BookOpen className="w-5 h-5 text-white" />
               </div>
-              <span className="font-bold text-xl hidden sm:block">Dr. Kerlos Fouad</span>
+              <span className="font-bold text-xl hidden sm:block">{doctorName}</span>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
               {mounted && (
@@ -192,7 +220,7 @@ export default function LandingPage() {
               className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6"
             >
               <span className="bg-gradient-to-r from-primary via-purple-600 to-blue-600 bg-clip-text text-transparent">
-                Dr. Kerlos Fouad
+                {doctorName}
               </span>
               <br />
               <span className="text-foreground">Educational System</span>
@@ -376,7 +404,7 @@ export default function LandingPage() {
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center">
                 <BookOpen className="w-4 h-4 text-white" />
               </div>
-              <span className="font-semibold">Dr. Kerlos Fouad Educational System</span>
+              <span className="font-semibold">{doctorName} Educational System</span>
             </div>
             <div className="text-muted-foreground text-sm">
               © {new Date().getFullYear()} All rights reserved.
