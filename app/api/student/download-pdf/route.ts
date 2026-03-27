@@ -45,7 +45,6 @@ export async function GET() {
       console.error('PDF generation failed:', pdfError);
       return NextResponse.json({ error: 'Failed to generate PDF: ' + String(pdfError) }, { status: 500 });
     }
-
     return new NextResponse(pdf, {
       headers: {
         'Content-Type': 'application/pdf',
