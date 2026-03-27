@@ -69,8 +69,8 @@ export default function VideosPage() {
       setError('Please enter a title and select a video file');
       return;
     }
-    if (!form.departmentId || !form.academicYear || !form.subjectId) {
-      setError('Please select department, academic year, and subject');
+    if (!form.departmentId || !form.academicYear) {
+      setError('Please select department and academic year');
       return;
     }
     setUploading(true);
@@ -86,7 +86,7 @@ export default function VideosPage() {
       const res = await fetch('/api/videos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: form.title, description: form.description, subjectId: form.subjectId, fileUrl, fileSize }),
+        body: JSON.stringify({ title: form.title, description: form.description, fileUrl, fileSize }),
       });
       const data = await res.json();
       if (data.success) {
@@ -303,21 +303,6 @@ export default function VideosPage() {
                     <option value="">Select year...</option>
                     {academicYears.map(y => (
                       <option key={y.value} value={y.value}>{y.label}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium text-gray-600 mb-1 block">Subject</label>
-                  <select
-                    value={form.subjectId}
-                    onChange={e => setForm(p => ({ ...p, subjectId: e.target.value }))}
-                    disabled={!form.departmentId || !form.academicYear}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
-                  >
-                    <option value="">Select subject...</option>
-                    {subjects.map(s => (
-                      <option key={s.id} value={s.id}>{s.name}</option>
                     ))}
                   </select>
                 </div>
