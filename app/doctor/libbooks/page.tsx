@@ -112,9 +112,8 @@ export default function LibBooksPage() {
             </div>
 
             {/* Upload Button */}
-            <div className="w-full [&_input[type=file]]:hidden [&_.ut-label]:hidden">
+            <div className="w-full">
               <UploadButton
-                key={`${departmentId}-${academicYear}`}
                 endpoint="pdfUploader"
                 onClientUploadComplete={async (res) => {
                   if (res) {
