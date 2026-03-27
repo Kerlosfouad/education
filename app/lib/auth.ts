@@ -179,7 +179,6 @@ export const authOptions: NextAuthOptions = {
         token.studentId = dbUser.student?.id ?? null;
         token.hasStudent = !!dbUser.student;
       }
-
       return token;
     },
 
