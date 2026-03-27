@@ -19,28 +19,9 @@ export async function generateStudentRegistrationPdf(input: {
   const pageWidth = page.getWidth();
   const pageHeight = page.getHeight();
 
-  // Try to embed QR image, skip if fails
-  let qrEmbedded = false;
-  try {
-    const commaIdx = input.qrCodeDataUrl.indexOf(',');
-    const base64 = commaIdx >= 0 ? input.qrCodeDataUrl.slice(commaIdx + 1) : input.qrCodeDataUrl;
-    const qrBytes = Uint8Array.from(Buffer.from(base64, 'base64'));
-    const qrImg = await pdfDoc.embedPng(qrBytes);
-    const qrSize = 100;
-    page.drawImage(qrImg, {
-      x: pageWidth - margin - qrSize,
-      y: pageHeight - margin - qrSize - 10,
-      width: qrSize,
-      height: qrSize,
-    });
-    qrEmbedded = true;
-  } catch {
-    // QR embed failed, continue without it
-  }
-
-  // Title
+  // ── Title ──
   const title = input.title ?? 'Registration Form';
-  const titleSize = 20;
+  const titleSize = 22;
   const titleWidth = fontBold.widthOfTextAtSize(title, titleSize);
   page.drawText(title, {
     x: (pageWidth - titleWidth) / 2,
@@ -55,22 +36,58 @@ export async function generateStudentRegistrationPdf(input: {
   const subWidth = font.widthOfTextAtSize(sub, subSize);
   page.drawText(sub, {
     x: (pageWidth - subWidth) / 2,
-    y: pageHeight - margin - 52,
+    y: pageHeight - margin - 54,
     size: subSize,
     font,
     color: rgb(0.4, 0.4, 0.4),
   });
 
-  // Divider
-  const lineY = pageHeight - margin - 75;
+  // ── Divider 1 ──
+  const divider1Y = pageHeight - margin - 72;
   page.drawLine({
-    start: { x: margin, y: lineY },
-    end: { x: pageWidth - margin, y: lineY },
+    start: { x: margin, y: divider1Y },
+    end: { x: pageWidth - margin, y: divider1Y },
     thickness: 1.5,
     color: rgb(0.2, 0.2, 0.2),
   });
 
-  // Table
+  // ── QR Code centered between dividers ──
+  const qrSize = 120;
+  const qrX = (pageWidth - qrSize) / 2;
+  const qrY = divider1Y - qrSize - 20;
+  let qrEmbedded = false;
+  try {
+    const commaIdx = input.qrCodeDataUrl.indexOf(',');
+    const base64 = commaIdx >= 0 ? input.qrCodeDataUrl.slice(commaIdx + 1) : input.qrCodeDataUrl;
+    const qrBytes = Uint8Array.from(Buffer.from(base64, 'base64'));
+    const qrImg = await pdfDoc.embedPng(qrBytes);
+    page.drawImage(qrImg, { x: qrX, y: qrY, width: qrSize, height: qrSize });
+    qrEmbedded = true;
+  } catch {
+    // skip QR if fails
+  }
+
+  const qrLabelY = qrY - 16;
+  const qrLabel = 'Scan to verify student identity';
+  const qrLabelWidth = font.widthOfTextAtSize(qrLabel, 9);
+  page.drawText(qrLabel, {
+    x: (pageWidth - qrLabelWidth) / 2,
+    y: qrLabelY,
+    size: 9,
+    font,
+    color: rgb(0.5, 0.5, 0.5),
+  });
+
+  // ── Divider 2 ──
+  const divider2Y = qrLabelY - 16;
+  page.drawLine({
+    start: { x: margin, y: divider2Y },
+    end: { x: pageWidth - margin, y: divider2Y },
+    thickness: 1,
+    color: rgb(0.75, 0.75, 0.75),
+  });
+
+  // ── Table ──
   const rows = [
     { label: 'Student Name', value: input.studentName },
     { label: 'Student Code', value: input.studentCode },
@@ -79,8 +96,8 @@ export async function generateStudentRegistrationPdf(input: {
     { label: 'Registration Date', value: input.registeredAt.toISOString().slice(0, 10) },
   ];
 
-  const tableTop = lineY - 20;
-  const rowHeight = 44;
+  const tableTop = divider2Y - 16;
+  const rowHeight = 40;
   const labelColWidth = 160;
   const tableWidth = pageWidth - margin * 2;
   const tableHeight = rows.length * rowHeight;
@@ -103,7 +120,7 @@ export async function generateStudentRegistrationPdf(input: {
 
   rows.forEach((r, idx) => {
     const yTop = tableTop - idx * rowHeight;
-    const textY = yTop - rowHeight + 14;
+    const textY = yTop - rowHeight + 13;
 
     if (idx > 0) {
       page.drawLine({
@@ -132,21 +149,12 @@ export async function generateStudentRegistrationPdf(input: {
     });
   });
 
-  if (!qrEmbedded) {
-    page.drawText('QR Code: ' + input.studentCode, {
-      x: margin,
-      y: tableTop - tableHeight - 30,
-      size: 10,
-      font,
-      color: rgb(0.5, 0.5, 0.5),
-    });
-  }
-
+  // ── Footer ──
   const footer = 'Please print this form and submit it to your professor.';
   const footerWidth = font.widthOfTextAtSize(footer, 10);
   page.drawText(footer, {
     x: (pageWidth - footerWidth) / 2,
-    y: tableTop - tableHeight - 55,
+    y: tableTop - tableHeight - 30,
     size: 10,
     font,
     color: rgb(0.5, 0.5, 0.5),

@@ -4,7 +4,6 @@ import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { generateStudentQRCode, generateUniqueBarcode } from '@/lib/codes';
 import { sendStudentApprovalEmail } from '@/lib/email';
-import { generateStudentRegistrationPdf } from '@/lib/registrationPdf';
 
 // POST /api/students/approve - Approve a student
 export async function POST(req: NextRequest) {
@@ -66,42 +65,17 @@ export async function POST(req: NextRequest) {
           data: { barcode, qrCode: qrCodeDataUrl, approvedAt: new Date(), approvedBy: session.user.id },
         });
 
-        // Email/PDF must not block account approval.
         try {
           const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || '';
           const loginUrl = baseUrl ? `${baseUrl}/auth/login` : '/auth/login';
-          try {
-            const registrationPdf = await generateStudentRegistrationPdf({
-              title: 'Registration Form',
-              studentName: student.user.name || 'Student',
-              studentCode: student.studentCode,
-              phone: student.phone,
-              email: student.user.email,
-              registeredAt: new Date(),
-              qrCodeDataUrl,
-            });
-
-            emailSent = await sendStudentApprovalEmail(student.user.email, {
-              name: student.user.name || 'Student',
-              studentCode: student.studentCode,
-              qrCodeDataUrl,
-              loginUrl,
-              registrationPdf: {
-                filename: `registration-${student.studentCode}.pdf`,
-                content: registrationPdf,
-              },
-            });
-          } catch (pdfError) {
-            console.error('PDF generation failed. Sending approval email without PDF:', pdfError);
-            emailSent = await sendStudentApprovalEmail(student.user.email, {
-              name: student.user.name || 'Student',
-              studentCode: student.studentCode,
-              qrCodeDataUrl,
-              loginUrl,
-            });
-          }
+          emailSent = await sendStudentApprovalEmail(student.user.email, {
+            name: student.user.name || 'Student',
+            studentCode: student.studentCode,
+            qrCodeDataUrl,
+            loginUrl,
+          });
         } catch (mailError) {
-          console.error('Approval email/pdf generation failed:', mailError);
+          console.error('Approval email failed:', mailError);
         }
       }
 

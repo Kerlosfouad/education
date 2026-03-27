@@ -259,7 +259,6 @@ export async function sendStudentApprovalEmail(
     studentCode: string;
     qrCodeDataUrl: string;
     loginUrl: string;
-    registrationPdf?: { filename: string; content: Buffer };
   }
 ): Promise<boolean> {
   const template = emailTemplates.studentApproval(data);
@@ -267,9 +266,6 @@ export async function sendStudentApprovalEmail(
     to,
     subject: template.subject,
     html: template.html,
-    attachments: data.registrationPdf
-      ? [{ filename: data.registrationPdf.filename, content: data.registrationPdf.content, contentType: 'application/pdf' }]
-      : undefined,
   });
 }
 
