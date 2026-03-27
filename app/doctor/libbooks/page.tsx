@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { UploadCloud, FileText, File, Trash2, Download, Search } from 'lucide-react';
 import { saveBookAction, getBooksAction, deleteBookAction } from "../../actions/bookActions";
 import { UploadButton } from "@/lib/uploadthing";
@@ -23,6 +23,12 @@ export default function LibBooksPage() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [departmentId, setDepartmentId] = useState('');
   const [academicYear, setAcademicYear] = useState('');
+
+  // refs to capture latest values inside uploadthing callback
+  const departmentIdRef = useRef(departmentId);
+  const academicYearRef = useRef(academicYear);
+  useEffect(() => { departmentIdRef.current = departmentId; }, [departmentId]);
+  useEffect(() => { academicYearRef.current = academicYear; }, [academicYear]);
 
   useEffect(() => {
     refreshBooks();
@@ -108,6 +114,7 @@ export default function LibBooksPage() {
             {/* Upload Button */}
             <div className="w-full [&_input[type=file]]:hidden [&_.ut-label]:hidden">
               <UploadButton
+                key={`${departmentId}-${academicYear}`}
                 endpoint="pdfUploader"
                 onClientUploadComplete={async (res) => {
                   if (res) {
@@ -116,12 +123,13 @@ export default function LibBooksPage() {
                       type: res[0].name.endsWith('.pdf') ? 'PDF' : 'WORD',
                       size: (res[0].size / (1024 * 1024)).toFixed(1) + " MB",
                       url: res[0].url,
-                      departmentId: departmentId || undefined,
-                      academicYear: academicYear ? parseInt(academicYear) : undefined,
+                      departmentId: departmentIdRef.current || undefined,
+                      academicYear: academicYearRef.current ? parseInt(academicYearRef.current) : undefined,
                     });
                     refreshBooks();
                   }
                 }}
+                onUploadError={(err) => alert('Upload failed: ' + err.message)}
                 appearance={{
                   button: "w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold text-sm shadow-xl shadow-indigo-100 dark:shadow-none",
                   container: "w-full",
