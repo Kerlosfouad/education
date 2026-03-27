@@ -25,7 +25,7 @@ export async function GET() {
       studentCode: student.studentCode,
       phone: student.phone,
       email: student.user.email,
-      registeredAt: student.approvedAt || student.createdAt,
+      registeredAt: student.approvedAt || student.user.createdAt,
       qrCodeDataUrl,
     });
 
