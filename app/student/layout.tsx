@@ -346,13 +346,22 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
                       </div>
                       <img src={profile.qrCode} alt="QR Code" className="w-36 h-36 rounded-xl" />
                       <p className="text-[10px] text-slate-400">Scan to verify student identity</p>
-                      <a
-                        href="/api/student/download-pdf"
-                        download
+                      <button
+                        onClick={async () => {
+                          const res = await fetch('/api/student/download-pdf');
+                          if (!res.ok) return;
+                          const blob = await res.blob();
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `registration-${profile.studentCode}.pdf`;
+                          a.click();
+                          URL.revokeObjectURL(url);
+                        }}
                         className="mt-2 flex items-center gap-2 w-full justify-center py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-sm rounded-xl transition-colors"
                       >
                         <Download size={16} /> Download Data
-                      </a>
+                      </button>
                     </div>
                   )}
                 </>
