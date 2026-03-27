@@ -25,7 +25,12 @@ export async function GET() {
         status: true,
         createdAt: true,
         student: {
-          select: { id: true, studentCode: true, departmentId: true, academicYear: true },
+          select: {
+            id: true,
+            studentCode: true,
+            academicYear: true,
+            department: { select: { name: true } },
+          },
         },
       },
       orderBy: { createdAt: 'desc' },
@@ -35,6 +40,9 @@ export async function GET() {
     const data = pendingUsers.map(u => ({
       id: u.student!.id,
       userId: u.id,
+      studentCode: u.student!.studentCode,
+      academicYear: u.student!.academicYear,
+      department: { name: u.student!.department.name },
       user: {
         name: u.name ?? '',
         email: u.email,

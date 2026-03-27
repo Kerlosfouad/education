@@ -20,6 +20,9 @@ interface StudentRow {
 interface StudentRecord {
   id: string;
   userId: string;
+  studentCode: string;
+  academicYear: number;
+  department: { name: string };
   user: { name: string; email: string; createdAt: string; status: string };
 }
 
@@ -192,6 +195,22 @@ export default function StudentsPage() {
                       <div>
                         <p className="text-sm font-bold text-slate-800 dark:text-white">{s.user.name}</p>
                         <p className="text-[10px] text-slate-400">{s.user.email} • {timeAgo(s.user.createdAt)}</p>
+                        <div className="mt-3 space-y-1 text-xs">
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-400 font-medium">Code</span>
+                            <span className="font-black text-slate-700 dark:text-slate-200 tracking-widest">#{s.studentCode}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-400 font-medium">Department</span>
+                            <span className="font-semibold text-slate-700 dark:text-slate-200 truncate max-w-[140px]">{s.department.name}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-400 font-medium">Year</span>
+                            <span className="font-semibold text-slate-700 dark:text-slate-200">
+                              {['', 'First', 'Second', 'Third', 'Fourth', 'Fifth'][s.academicYear] || s.academicYear} Year
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                     <div className="flex gap-2">

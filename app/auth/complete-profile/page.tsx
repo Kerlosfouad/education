@@ -30,6 +30,7 @@ export default function CompleteProfilePage() {
   const [departments, setDepartments] = useState<{ id: string; name: string; code: string }[]>([]);
   const [departmentId, setDepartmentId] = useState('');
   const [academicYear, setAcademicYear] = useState('');
+  const [studentCode, setStudentCode] = useState('');
   const [phone, setPhone] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -58,8 +59,12 @@ export default function CompleteProfilePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!departmentId || !academicYear) {
-      setError('Please select department and academic year');
+    if (!departmentId || !academicYear || !studentCode) {
+      setError('Please select department, academic year, and enter your student code');
+      return;
+    }
+    if (!/^\d{6}$/.test(studentCode.trim())) {
+      setError('Student code must be exactly 6 digits');
       return;
     }
     setIsLoading(true);
@@ -72,6 +77,7 @@ export default function CompleteProfilePage() {
         body: JSON.stringify({
           departmentId,
           academicYear: parseInt(academicYear),
+          studentCode: studentCode.trim(),
           phone: phone || undefined,
         }),
       });
@@ -138,7 +144,7 @@ export default function CompleteProfilePage() {
             </div>
             <CardTitle className="text-2xl font-bold">Complete Your Profile</CardTitle>
             <CardDescription>
-              Welcome, {session?.user?.name}! Please select your department and year to finish registration.
+              Welcome, {session?.user?.name}! Please enter your department, academic year, and your 6-digit student code.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -185,6 +191,18 @@ export default function CompleteProfilePage() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Student Code *</Label>
+                <Input
+                  type="tel"
+                  inputMode="numeric"
+                  placeholder="e.g. 971304"
+                  value={studentCode}
+                  onChange={e => setStudentCode(e.target.value)}
+                  disabled={isLoading}
+                />
               </div>
 
               <div className="space-y-2">

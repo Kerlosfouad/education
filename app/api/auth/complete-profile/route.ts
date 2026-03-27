@@ -8,19 +8,12 @@ import { z } from 'zod';
 const schema = z.object({
   departmentId: z.string().min(1),
   academicYear: z.number().min(1).max(5),
+  studentCode: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/, 'Student code must be exactly 6 digits'),
   phone: z.string().optional(),
 });
-
-async function generateStudentCode(): Promise<string> {
-  let code: string;
-  let exists = true;
-  do {
-    code = String(Math.floor(100000 + Math.random() * 900000));
-    const existing = await db.student.findUnique({ where: { studentCode: code } });
-    exists = !!existing;
-  } while (exists);
-  return code;
-}
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -34,7 +27,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: result.error.errors[0].message }, { status: 400 });
   }
 
-  const { departmentId, academicYear, phone } = result.data;
+  const { departmentId, academicYear, studentCode, phone } = result.data;
 
   const user = await db.user.findUnique({
     where: { email: session.user.email },
@@ -44,7 +37,11 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
   if (user.student) return NextResponse.json({ error: 'Profile already completed' }, { status: 409 });
 
-  const studentCode = await generateStudentCode();
+  const existingStudentCode = await db.student.findUnique({ where: { studentCode } });
+  if (existingStudentCode) {
+    return NextResponse.json({ error: 'This student code is already used' }, { status: 409 });
+  }
+
   const qrUrl = `${process.env.QR_CODE_BASE_URL || 'http://localhost:3000'}/student/${studentCode}`;
   const qrCode = await QRCode.toDataURL(qrUrl, { width: 300, margin: 2 });
 
