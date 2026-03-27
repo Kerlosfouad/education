@@ -18,7 +18,7 @@ function rtlText(input: string) {
     // This yields clear Arabic for names/labels in most cases.
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const reshaper = require('arabic-persian-reshaper');
-    const reshaped: string = reshaper.reshape(text);
+    const reshaped: string = typeof reshaper.reshape === 'function' ? reshaper.reshape(text) : reshaper(text);
     return reshaped.split('').reverse().join('');
   } catch {
     return text.split('').reverse().join('');
