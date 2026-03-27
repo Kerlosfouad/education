@@ -348,15 +348,25 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
                       <p className="text-[10px] text-slate-400">Scan to verify student identity</p>
                       <button
                         onClick={async () => {
-                          const res = await fetch('/api/student/download-pdf');
-                          if (!res.ok) return;
-                          const blob = await res.blob();
-                          const url = URL.createObjectURL(blob);
-                          const a = document.createElement('a');
-                          a.href = url;
-                          a.download = `registration-${profile.studentCode}.pdf`;
-                          a.click();
-                          URL.revokeObjectURL(url);
+                          try {
+                            const res = await fetch('/api/student/download-pdf');
+                            if (!res.ok) {
+                              const err = await res.json().catch(() => ({}));
+                              alert('Failed to generate PDF: ' + (err.error || res.status));
+                              return;
+                            }
+                            const blob = await res.blob();
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `registration-${profile.studentCode}.pdf`;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(url);
+                          } catch (e) {
+                            alert('Download failed. Please try again.');
+                          }
                         }}
                         className="mt-2 flex items-center gap-2 w-full justify-center py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-sm rounded-xl transition-colors"
                       >
