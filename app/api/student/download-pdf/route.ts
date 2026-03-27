@@ -45,7 +45,7 @@ export async function GET() {
       console.error('PDF generation failed:', pdfError);
       return NextResponse.json({ error: 'Failed to generate PDF: ' + String(pdfError) }, { status: 500 });
     }
-    return new NextResponse(pdf, {
+    return new NextResponse(new Uint8Array(pdf), {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="registration-${student.studentCode}.pdf"`,
