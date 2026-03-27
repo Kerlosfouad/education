@@ -352,7 +352,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
                             const res = await fetch('/api/student/download-pdf');
                             if (!res.ok) {
                               const err = await res.json().catch(() => ({}));
-                              alert('Failed to generate PDF: ' + (err.error || res.status));
+                              alert('Error: ' + (err.error || 'Unknown error - status ' + res.status));
                               return;
                             }
                             const blob = await res.blob();
@@ -365,7 +365,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
                             document.body.removeChild(a);
                             URL.revokeObjectURL(url);
                           } catch (e) {
-                            alert('Download failed. Please try again.');
+                            alert('Download failed: ' + String(e));
                           }
                         }}
                         className="mt-2 flex items-center gap-2 w-full justify-center py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-sm rounded-xl transition-colors"
