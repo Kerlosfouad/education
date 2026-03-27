@@ -1,6 +1,6 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect, useCallback } from 'react';
 import { signOut, useSession } from 'next-auth/react';
 import { useTheme } from 'next-themes';
@@ -11,7 +11,6 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { LanguageToggle } from '@/components/language-toggle';
 import { useI18n } from '@/lib/i18n';
 
 interface Notification {
@@ -44,6 +43,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
   const [unreadCount, setUnreadCount] = useState(0);
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
   const { data: session } = useSession();
   const { theme, setTheme } = useTheme();
   const { t } = useI18n();
@@ -109,6 +109,28 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
     fetch('/api/notifications', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) }).catch(() => {});
   };
 
+  const getNotificationHref = (n: Notification) => {
+    if (n.type === 'ASSIGNMENT') return '/student/assignments';
+    if (n.type === 'QUIZ') return '/student/quizzes';
+    if (n.type === 'ATTENDANCE') return '/student/attendance';
+    if (n.type === 'EXAM_RESULT') return '/student/dashboard';
+
+    // ANNOUNCEMENT/GENERAL fallback using message hints
+    const content = `${n.title} ${n.message}`.toLowerCase();
+    if (content.includes('assignment')) return '/student/assignments';
+    if (content.includes('quiz')) return '/student/quizzes';
+    if (content.includes('video')) return '/student/videos';
+    if (content.includes('live') || content.includes('session') || content.includes('lecture')) return '/student/live';
+    if (content.includes('library') || content.includes('book')) return '/student/library';
+    return '/student/dashboard';
+  };
+
+  const openNotification = (n: Notification) => {
+    markOneRead(n.id);
+    setShowNotifications(false);
+    router.push(getNotificationHref(n));
+  };
+
   const notifIcon: Record<string, string> = {
     QUIZ: 'Q', ASSIGNMENT: 'A', ATTENDANCE: 'C',
     ANNOUNCEMENT: 'N', EXAM_RESULT: 'E', GENERAL: 'G',
@@ -172,7 +194,6 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
             <button onClick={toggleTheme} className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-300">
               {isDark ? <Sun size={20} /> : <Moon size={20} />}
             </button>
-            <LanguageToggle />
             <button className="relative p-2 bg-slate-50 rounded-lg text-slate-600" onClick={() => setShowNotifications(!showNotifications)}>
               <Bell size={20} />
               {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">{unreadCount > 9 ? '9+' : unreadCount}</span>}
@@ -202,10 +223,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
                       notifications.map((n) => (
                         <div
                           key={n.id}
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            markOneRead(n.id);
-                          }}
+                          onClick={() => openNotification(n)}
                           className={`flex gap-3 px-4 py-3 cursor-pointer transition-colors ${
                             n.isRead
                               ? 'bg-white dark:bg-slate-800'
@@ -235,7 +253,6 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
           <button onClick={toggleTheme} className="p-2 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
             {isDark ? <Sun size={20} /> : <Moon size={20} />}
           </button>
-          <LanguageToggle />
           <div className="relative">
             <button className="relative p-2 bg-slate-50 rounded-xl text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors" onClick={() => setShowNotifications(!showNotifications)}>
               <Bell size={22} />
@@ -253,7 +270,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
                   {notifications.length === 0 ? (
                     <p className="text-center text-slate-400 text-sm py-8">No notifications</p>
                   ) : notifications.map((n) => (
-                    <div key={n.id} onMouseDown={(e) => { e.preventDefault(); markOneRead(n.id); }}
+                    <div key={n.id} onClick={() => openNotification(n)}
                       className={`flex gap-3 px-4 py-3 cursor-pointer transition-colors ${n.isRead ? 'bg-white dark:bg-slate-800' : 'bg-indigo-50/50 dark:bg-indigo-900/20 hover:bg-indigo-50'}`}>
                       <span className="text-xl shrink-0">{notifIcon[n.type] || 'N'}</span>
                       <div className="flex-1 min-w-0">

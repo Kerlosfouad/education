@@ -44,39 +44,6 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      if (student) {
-        // Has Student record - generate barcode/QR
-        let barcode = student.barcode;
-        if (!barcode) barcode = await generateUniqueBarcode();
-        const qrCodeDataUrl = await generateStudentQRCode(student.id);
-        await db.student.update({
-          where: { id: student.id },
-          data: { barcode, qrCode: qrCodeDataUrl, approvedAt: new Date(), approvedBy: session.user.id },
-        });
-        const loginUrl = `${process.env.NEXTAUTH_URL}/auth/login`;
-
-        const registrationPdf = await generateStudentRegistrationPdf({
-          title: 'Registration Form',
-          studentName: student.user.name || 'Student',
-          studentCode: student.studentCode,
-          phone: student.phone,
-          email: student.user.email,
-          registeredAt: new Date(),
-          qrCodeDataUrl,
-        });
-
-        await sendStudentApprovalEmail(student.user.email, {
-          name: student.user.name || 'Student',
-          studentCode: student.studentCode,
-          qrCodeDataUrl,
-          loginUrl,
-          registrationPdf: {
-            filename: `registration-${student.studentCode}.pdf`,
-            content: registrationPdf,
-          },
-        });
-      }
-
       await db.user.update({ where: { id: targetUserId }, data: { status: 'ACTIVE' } });
       await db.notification.create({
         data: {
@@ -87,7 +54,54 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      return NextResponse.json({ success: true, message: 'Student approved successfully' });
+      let emailSent = false;
+
+      if (student) {
+        // Has Student record - generate barcode/QR
+        let barcode = student.barcode;
+        if (!barcode) barcode = await generateUniqueBarcode();
+        const qrCodeDataUrl = await generateStudentQRCode(student.id);
+        await db.student.update({
+          where: { id: student.id },
+          data: { barcode, qrCode: qrCodeDataUrl, approvedAt: new Date(), approvedBy: session.user.id },
+        });
+
+        // Email/PDF must not block account approval.
+        try {
+          const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || '';
+          const loginUrl = baseUrl ? `${baseUrl}/auth/login` : '/auth/login';
+
+          const registrationPdf = await generateStudentRegistrationPdf({
+            title: 'Registration Form',
+            studentName: student.user.name || 'Student',
+            studentCode: student.studentCode,
+            phone: student.phone,
+            email: student.user.email,
+            registeredAt: new Date(),
+            qrCodeDataUrl,
+          });
+
+          emailSent = await sendStudentApprovalEmail(student.user.email, {
+            name: student.user.name || 'Student',
+            studentCode: student.studentCode,
+            qrCodeDataUrl,
+            loginUrl,
+            registrationPdf: {
+              filename: `registration-${student.studentCode}.pdf`,
+              content: registrationPdf,
+            },
+          });
+        } catch (mailError) {
+          console.error('Approval email/pdf generation failed:', mailError);
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: emailSent
+          ? 'Student approved successfully'
+          : 'Student approved successfully (email may not have been sent)',
+      });
     } else if (action === 'reject') {
       await db.user.update({ where: { id: targetUserId }, data: { status: 'REJECTED' } });
       await db.notification.create({

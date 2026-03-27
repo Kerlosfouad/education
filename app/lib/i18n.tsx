@@ -161,54 +161,32 @@ const dict: Dict = {
 
 type I18nContextValue = {
   lang: Lang;
-  setLang: (l: Lang) => void;
-  toggleLang: () => void;
   t: (key: keyof typeof dict | string) => string;
-  dir: 'ltr' | 'rtl';
+  dir: 'ltr';
 };
 
 const I18nContext = createContext<I18nContextValue | null>(null);
 
-const STORAGE_KEY = 'app_lang';
-
 export function I18nProvider({ children }: { children: React.ReactNode }) {
-  const [lang, setLangState] = useState<Lang>('en');
-
-  useEffect(() => {
-    try {
-      const saved = (localStorage.getItem(STORAGE_KEY) as Lang | null) ?? null;
-      if (saved === 'en' || saved === 'ar') setLangState(saved);
-    } catch {}
-  }, []);
-
-  const setLang = (l: Lang) => {
-    setLangState(l);
-    try {
-      localStorage.setItem(STORAGE_KEY, l);
-    } catch {}
-  };
-
-  const toggleLang = () => setLang(lang === 'en' ? 'ar' : 'en');
+  const [lang] = useState<Lang>('en');
 
   const value = useMemo<I18nContextValue>(() => {
     return {
       lang,
-      setLang,
-      toggleLang,
       t: (key) => {
         const entry = (dict as Dict)[key];
         if (!entry) return String(key);
-        return lang === 'ar' ? entry.ar : entry.en;
+        return entry.en;
       },
-      dir: lang === 'ar' ? 'rtl' : 'ltr',
+      dir: 'ltr',
     };
   }, [lang]);
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
     document.documentElement.dir = value.dir;
-    document.documentElement.lang = lang;
-  }, [lang, value.dir]);
+    document.documentElement.lang = 'en';
+  }, [value.dir]);
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }

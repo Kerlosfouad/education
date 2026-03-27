@@ -12,7 +12,6 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { LanguageToggle } from '@/components/language-toggle';
 import { useI18n } from '@/lib/i18n';
 
 interface DoctorProfile {
@@ -121,7 +120,6 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
             <button onClick={toggleTheme} className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-300">
               {isDark ? <Sun size={20} /> : <Moon size={20} />}
             </button>
-            <LanguageToggle />
             <button className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-300" onClick={() => setIsSidebarOpen(true)}>
               <Menu size={24} />
             </button>
@@ -134,9 +132,6 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
             className="p-2 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
             {isDark ? <Sun size={20} /> : <Moon size={20} />}
           </button>
-          <div className="ml-2">
-            <LanguageToggle />
-          </div>
         </div>
 
         <div className="p-4 md:p-8 lg:p-10">{children}</div>

@@ -23,7 +23,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import Link from 'next/link';
-import { LanguageToggle } from '@/components/language-toggle';
 import { useI18n } from '@/lib/i18n';
 
 const features = [
@@ -174,7 +173,6 @@ export default function LandingPage() {
                   {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                 </button>
               )}
-              <LanguageToggle />
               <Link href="/auth/login">
                 <Button variant="ghost" size="sm" className="hidden sm:flex">
                   <LogIn className="w-4 h-4 mr-2" />
