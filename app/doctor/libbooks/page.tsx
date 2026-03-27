@@ -61,7 +61,7 @@ export default function LibBooksPage() {
             {filteredFiles.map(file => (
               <div key={file.id} className='bg-white dark:bg-[#0f1f38] p-5 rounded-[2rem] border border-slate-100 dark:border-[#1a2f4a] hover:shadow-xl transition-all flex items-center justify-between shadow-sm'>
                 <div className='flex items-center gap-5 truncate'>
-                  <div className={w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 }>
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 ${file.type === 'PDF' ? 'bg-red-50 text-red-500' : 'bg-indigo-50 text-indigo-500'}`}>
                     {file.type === 'PDF' ? <FileText size={28} /> : <File size={28} />}
                   </div>
                   <div className='truncate'>
@@ -81,3 +81,4 @@ export default function LibBooksPage() {
     </div>
   );
 }
+
