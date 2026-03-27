@@ -26,7 +26,7 @@ interface AssignmentDetail {
   title: string;
   maxScore: number;
   fileUrl: string | null;
-  subject: { name: string };
+  subject: { name: string } | null;
   submissions: Submission[];
 }
 
@@ -222,7 +222,7 @@ export default function AssignmentsPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <h3 className="font-black text-slate-800 dark:text-slate-100 text-lg">{selected.title}</h3>
-                  <p className="text-xs text-slate-400 mt-0.5">{selected.subject.name} &bull; Max score: {selected.maxScore}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">{selected.subject?.name ?? 'General'} &bull; Max score: {selected.maxScore}</p>
                 </div>
                 {selected.fileUrl && (
                   <a href={selected.fileUrl} target="_blank" rel="noopener noreferrer"

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { CalendarCheck2, Plus, Users, Clock, CheckCircle2, XCircle, Loader2, X, Check } from 'lucide-react';
+import { CalendarCheck2, Plus, Users, Clock, CheckCircle2, XCircle, Loader2, X, Check, MoreVertical, Trash2 } from 'lucide-react';
 
 interface AttendanceRecord { studentId: string; verificationMethod: string; }
 interface AttendanceSession {
@@ -22,6 +22,7 @@ export default function AttendancePage() {
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'sessions' | 'table'>('sessions');
   const [form, setForm] = useState({ subjectId: '', title: '', openTime: '', closeTime: '' });
+  const [menuSessionId, setMenuSessionId] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -75,6 +76,18 @@ export default function AttendancePage() {
       body: JSON.stringify({ sessionId: id, isOpen: !isOpen }),
     });
     setSessions(prev => prev.map(s => s.id === id ? { ...s, isOpen: !isOpen } : s));
+    setMenuSessionId(null);
+  };
+
+  const deleteSession = async (id: string) => {
+    if (!confirm('Delete this attendance session permanently?')) return;
+    await fetch('/api/attendance', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId: id }),
+    });
+    setMenuSessionId(null);
+    fetchData();
   };
 
   const openModal = () => {
@@ -128,8 +141,8 @@ export default function AttendancePage() {
               const isActive = s.isOpen && new Date(s.openTime) <= now && new Date(s.closeTime) >= now;
               const presentCount = s.attendances?.filter(a => a.verificationMethod !== 'ABSENT').length ?? 0;
               const absentCount = s.attendances?.filter(a => a.verificationMethod === 'ABSENT').length ?? 0;
-              return (
-                <div key={s.id} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-all">
+                return (
+                  <div key={s.id} className="relative bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-all">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
                       <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isActive ? 'bg-green-100' : 'bg-slate-100'}`}>
@@ -140,10 +153,36 @@ export default function AttendancePage() {
                         <p className="text-xs text-slate-400">{s.subject.name} • {new Date(s.openTime).toLocaleDateString('ar-EG')}</p>
                       </div>
                     </div>
-                    <span className={`text-xs font-bold px-3 py-1 rounded-full ${isActive ? 'bg-green-100 text-green-700 animate-pulse' : 'bg-slate-100 text-slate-500'}`}>
-                      {isActive ? '🟢 مفتوح' : '⚫ مغلق'}
-                    </span>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs font-bold px-3 py-1 rounded-full ${isActive ? 'bg-green-100 text-green-700 animate-pulse' : 'bg-slate-100 text-slate-500'}`}>
+                          {isActive ? '🟢 مفتوح' : '⚫ مغلق'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMenuSessionId(prev => (prev === s.id ? null : s.id));
+                          }}
+                          className="p-2 rounded-xl text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-colors"
+                          aria-label="Session actions"
+                        >
+                          <MoreVertical size={18} />
+                        </button>
+                      </div>
                   </div>
+
+                    {menuSessionId === s.id && (
+                      <div className="absolute top-14 right-4 z-50 w-48 bg-white border border-slate-200 rounded-2xl shadow-lg overflow-hidden">
+                        <button
+                          type="button"
+                          onClick={() => deleteSession(s.id)}
+                          className="w-full text-left px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                          حذف الجلسة
+                        </button>
+                      </div>
+                    )}
+
                   <div className="flex items-center gap-4 text-xs mb-4">
                     <span className="flex items-center gap-1 text-slate-400"><Clock size={12} />{new Date(s.openTime).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })} → {new Date(s.closeTime).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</span>
                     <span className="flex items-center gap-1 text-green-600 font-bold"><Check size={12} /> {presentCount} حضر</span>

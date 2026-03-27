@@ -163,7 +163,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
       {isSidebarOpen && <div className="fixed inset-0 z-40 bg-black/20 lg:hidden" onClick={() => setIsSidebarOpen(false)} />}
 
       <main className="flex-1 min-w-0">
-        <div className="lg:hidden p-4 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700/60 flex justify-between items-center sticky top-0 z-30">
+        <div className="relative lg:hidden p-4 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700/60 flex justify-between items-center sticky top-0 z-30">
           <h1 className="font-bold text-indigo-600">{doctorName}</h1>
           <div className="flex items-center gap-2">
             <button onClick={toggleTheme} className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-300">
@@ -173,6 +173,54 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
               <Bell size={20} />
               {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">{unreadCount > 9 ? '9+' : unreadCount}</span>}
             </button>
+            {showNotifications && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)} />
+                <div className="absolute right-4 top-16 w-80 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 z-50 overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-700">
+                    <span className="font-bold text-slate-800 dark:text-slate-100 text-sm">Notifications</span>
+                    {unreadCount > 0 && (
+                      <button
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          markAllRead();
+                        }}
+                        className="text-xs text-indigo-600 hover:underline font-medium"
+                      >
+                        Mark all read
+                      </button>
+                    )}
+                  </div>
+                  <div className="max-h-80 overflow-y-auto divide-y divide-slate-50 dark:divide-slate-700">
+                    {notifications.length === 0 ? (
+                      <p className="text-center text-slate-400 text-sm py-8">No notifications</p>
+                    ) : (
+                      notifications.map((n) => (
+                        <div
+                          key={n.id}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            markOneRead(n.id);
+                          }}
+                          className={`flex gap-3 px-4 py-3 cursor-pointer transition-colors ${
+                            n.isRead
+                              ? 'bg-white dark:bg-slate-800'
+                              : 'bg-indigo-50/50 dark:bg-indigo-900/20 hover:bg-indigo-50'
+                          }`}
+                        >
+                          <span className="text-xl shrink-0">{notifIcon[n.type] || 'N'}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-sm font-semibold truncate ${n.isRead ? 'text-slate-600' : 'text-slate-800'}`}>{n.title}</p>
+                            <p className="text-xs text-slate-400 truncate">{n.message}</p>
+                          </div>
+                          {!n.isRead && <div className="w-2 h-2 bg-indigo-500 rounded-full shrink-0 mt-1" />}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
             <button className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-300" onClick={() => setIsSidebarOpen(true)}>
               <Menu size={24} />
             </button>

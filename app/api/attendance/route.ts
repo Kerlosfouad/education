@@ -275,3 +275,30 @@ export async function PATCH(req: NextRequest) {
     );
   }
 }
+
+// DELETE /api/attendance - Delete an attendance session (doctor/admin)
+export async function DELETE(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session || (session.user.role !== 'DOCTOR' && session.user.role !== 'ADMIN')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await req.json();
+    const { sessionId } = body;
+
+    if (!sessionId || typeof sessionId !== 'string') {
+      return NextResponse.json({ error: 'Missing sessionId' }, { status: 400 });
+    }
+
+    await db.attendanceSession.delete({ where: { id: sessionId } });
+    return NextResponse.json({ success: true }, { status: 200 });
+  } catch (error: any) {
+    console.error('Error deleting attendance session:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
