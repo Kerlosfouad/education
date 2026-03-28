@@ -115,6 +115,11 @@ export default function StudentQuizzesPage() {
                         {t('deadline')}: {new Date(quiz.endTime).toLocaleString()}
                       </p>
                     )}
+                    {quiz.startTime && new Date(quiz.startTime) > new Date() && (
+                      <p className="text-xs text-yellow-500 mt-1">
+                        Available from: {new Date(quiz.startTime).toLocaleString()}
+                      </p>
+                    )}
 
                     {/* Result if completed */}
                     {attempt && (
