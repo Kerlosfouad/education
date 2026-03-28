@@ -36,6 +36,7 @@ export default function RegisterPage() {
     password: '',
     confirmPassword: '',
     phone: '',
+    studentCode: '',
     departmentId: '',
     academicYear: '',
   });
@@ -100,6 +101,7 @@ export default function RegisterPage() {
           email: formData.email,
           password: formData.password,
           phone: formData.phone,
+          studentCode: formData.studentCode || undefined,
           departmentId: formData.departmentId,
           academicYear: parseInt(formData.academicYear),
         }),
@@ -291,6 +293,21 @@ export default function RegisterPage() {
                 </div>
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="studentCode">Student Code <span className="text-xs text-muted-foreground font-normal">(optional - leave empty to auto-generate)</span></Label>
+                <div className="relative">
+                  <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    id="studentCode"
+                    placeholder="Enter your student code"
+                    value={formData.studentCode}
+                    onChange={(e) => handleChange('studentCode', e.target.value)}
+                    className="pl-10"
+                    disabled={isLoading}
+                  />
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Department *</Label>
@@ -303,9 +320,9 @@ export default function RegisterPage() {
                       <Building2 className="w-4 h-4 mr-2 text-muted-foreground shrink-0" />
                       <SelectValue placeholder="Select" />
                     </SelectTrigger>
-                    <SelectContent className="z-[9999]">
+                    <SelectContent className="z-[9999] bg-slate-900 border-slate-700">
                       {departments.map((dept) => (
-                        <SelectItem key={dept.id} value={dept.id}>
+                        <SelectItem key={dept.id} value={dept.id} className="text-white hover:bg-slate-700 focus:bg-slate-700">
                           {dept.name}
                         </SelectItem>
                       ))}
@@ -324,9 +341,9 @@ export default function RegisterPage() {
                       <GraduationCap className="w-4 h-4 mr-2 text-muted-foreground shrink-0" />
                       <SelectValue placeholder="Select" />
                     </SelectTrigger>
-                    <SelectContent className="z-[9999]">
+                    <SelectContent className="z-[9999] bg-slate-900 border-slate-700">
                       {academicYears.map((year) => (
-                        <SelectItem key={year.value} value={year.value}>
+                        <SelectItem key={year.value} value={year.value} className="text-white hover:bg-slate-700 focus:bg-slate-700">
                           {year.label}
                         </SelectItem>
                       ))}

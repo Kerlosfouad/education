@@ -10,6 +10,7 @@ const registerSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   phone: z.string().optional(),
+  studentCode: z.string().optional(),
   departmentId: z.string().optional(),
   academicYear: z.number().optional(),
 });
@@ -45,7 +46,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { name, email, password, phone, departmentId, academicYear } = result.data;
+    const { name, email, password, phone, studentCode: inputCode, departmentId, academicYear } = result.data;
     const normalizedEmail = email.toLowerCase();
     const isDoctor = isDoctorEmail(normalizedEmail);
 
@@ -80,7 +81,18 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Academic year must be between 1 and 5' }, { status: 400 });
       }
 
-      const studentCode = await generateStudentCode();
+      // Use provided code or generate one
+      let studentCode: string;
+      if (inputCode && inputCode.trim()) {
+        const existing = await db.student.findUnique({ where: { studentCode: inputCode.trim() } });
+        if (existing) {
+          await db.user.delete({ where: { id: user.id } });
+          return NextResponse.json({ error: 'Student code already in use' }, { status: 409 });
+        }
+        studentCode = inputCode.trim();
+      } else {
+        studentCode = await generateStudentCode();
+      }
       const qrCode = await generateQRCode(studentCode);
 
       await db.student.create({
