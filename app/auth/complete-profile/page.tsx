@@ -166,9 +166,9 @@ export default function CompleteProfilePage() {
                     <Building2 className="w-4 h-4 mr-2 text-muted-foreground" />
                     <SelectValue placeholder="Select department" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[9999] bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-700">
                     {departments.map(d => (
-                      <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                      <SelectItem key={d.id} value={d.id} className="dark:text-white dark:focus:bg-slate-700">{d.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -185,9 +185,9 @@ export default function CompleteProfilePage() {
                     <GraduationCap className="w-4 h-4 mr-2 text-muted-foreground" />
                     <SelectValue placeholder="Select year" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[9999] bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-700">
                     {academicYears.map(y => (
-                      <SelectItem key={y.value} value={y.value}>{y.label}</SelectItem>
+                      <SelectItem key={y.value} value={y.value} className="dark:text-white dark:focus:bg-slate-700">{y.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
