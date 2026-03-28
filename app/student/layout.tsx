@@ -318,7 +318,6 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
                 <>
                   <div className="space-y-3">
                     <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
-                      <Hash size={16} className="text-[#00c896] shrink-0" />
                       <div>
                         <p className="text-[10px] text-slate-400 uppercase font-bold">Student Code</p>
                         <p className="font-black text-slate-800 dark:text-slate-100 text-lg tracking-widest">{profile.studentCode}</p>

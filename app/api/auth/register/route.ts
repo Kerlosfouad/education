@@ -20,8 +20,7 @@ async function generateStudentCode(): Promise<string> {
   let code: string;
   let exists = true;
   do {
-    // Random 6-digit number between 100000 and 999999
-    code = String(Math.floor(100000 + Math.random() * 900000));
+    code = String(Math.floor(10000 + Math.random() * 90000));
     const existing = await db.student.findUnique({ where: { studentCode: code } });
     exists = !!existing;
   } while (exists);
