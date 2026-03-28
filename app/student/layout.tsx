@@ -348,21 +348,37 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
                       <button
                         onClick={async () => {
                           try {
-                            const res = await fetch('/api/student/download-pdf');
-                            if (!res.ok) {
-                              const err = await res.json().catch(() => ({}));
-                              alert('Error: ' + (err.error || 'Unknown error - status ' + res.status));
+                            const [res1, res2] = await Promise.all([
+                              fetch('/api/student/download-pdf'),
+                              fetch('/api/student/download-cards'),
+                            ]);
+
+                            if (!res1.ok) {
+                              const err = await res1.json().catch(() => ({}));
+                              alert('Error: ' + (err.error || 'Failed to generate registration PDF'));
                               return;
                             }
-                            const blob = await res.blob();
-                            const url = URL.createObjectURL(blob);
-                            const a = document.createElement('a');
-                            a.href = url;
-                            a.download = `registration-${profile.studentCode}.pdf`;
-                            document.body.appendChild(a);
-                            a.click();
-                            document.body.removeChild(a);
-                            URL.revokeObjectURL(url);
+                            if (!res2.ok) {
+                              const err = await res2.json().catch(() => ({}));
+                              alert('Error: ' + (err.error || 'Failed to generate cards PDF'));
+                              return;
+                            }
+
+                            const [blob1, blob2] = await Promise.all([res1.blob(), res2.blob()]);
+
+                            const download = (blob: Blob, filename: string) => {
+                              const url = URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = filename;
+                              document.body.appendChild(a);
+                              a.click();
+                              document.body.removeChild(a);
+                              URL.revokeObjectURL(url);
+                            };
+
+                            download(blob1, `registration-${profile.studentCode}.pdf`);
+                            setTimeout(() => download(blob2, `cards-${profile.studentCode}.pdf`), 500);
                           } catch (e) {
                             alert('Download failed: ' + String(e));
                           }
