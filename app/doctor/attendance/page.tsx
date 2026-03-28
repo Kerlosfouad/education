@@ -23,7 +23,7 @@ export default function AttendancePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'sessions' | 'table'>('sessions');
-  const [form, setForm] = useState({ subjectId: '', title: '', openTime: '', closeTime: '' });
+  const [form, setForm] = useState({ subjectId: '', title: '', durationHours: '1', durationMinutes: '0' });
   const [menuSessionId, setMenuSessionId] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
@@ -55,17 +55,20 @@ export default function AttendancePage() {
     setError('');
     setSaving(true);
     try {
+      const now = new Date();
+      const durationMs = (parseInt(form.durationHours) * 60 + parseInt(form.durationMinutes)) * 60 * 1000;
+      const closeTime = new Date(now.getTime() + durationMs);
       const res = await fetch('/api/attendance', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: form.title || undefined,
-          openTime: new Date(form.openTime).toISOString(),
-          closeTime: new Date(form.closeTime).toISOString(),
+          openTime: now.toISOString(),
+          closeTime: closeTime.toISOString(),
         }),
       });
       const json = await res.json();
-      if (json.success) { setShowModal(false); setForm({ subjectId: '', title: '', openTime: '', closeTime: '' }); fetchData(); }
+      if (json.success) { setShowModal(false); setForm({ subjectId: '', title: '', durationHours: '1', durationMinutes: '0' }); fetchData(); }
       else setError(json.error || t('errorOccurred'));
     } catch { setError('Network error'); }
     setSaving(false);
@@ -92,10 +95,7 @@ export default function AttendancePage() {
   };
 
   const openModal = () => {
-    const now = new Date();
-    const close = new Date(now.getTime() + 2 * 60 * 60 * 1000);
-    const fmt = (d: Date) => d.toISOString().slice(0, 16);
-    setForm(f => ({ ...f, openTime: fmt(now), closeTime: fmt(close) }));
+    setForm({ subjectId: '', title: '', durationHours: '1', durationMinutes: '0' });
     setError(''); setShowModal(true);
   };
 
@@ -214,11 +214,12 @@ export default function AttendancePage() {
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="bg-slate-50">
-                    <th className="p-4 text-xs font-bold text-slate-500 text-right sticky left-0 bg-slate-50 z-10 border-b border-slate-100 min-w-[160px]">{t('student')}</th>
+                    <th className="p-4 text-xs font-bold text-slate-500 text-left sticky left-0 bg-slate-50 z-10 border-b border-slate-100 min-w-[200px]">Student</th>
+                    <th className="p-4 text-xs font-bold text-slate-500 text-left border-b border-slate-100 min-w-[100px]">Code</th>
                     {sessions.map(s => (
-                      <th key={s.id} className="p-3 text-[10px] font-bold text-slate-400 text-center border-b border-slate-100 min-w-[80px]">
+                      <th key={s.id} className="p-3 text-[10px] font-bold text-slate-400 text-center border-b border-slate-100 min-w-[100px]">
                         <div>{s.title || s.subject?.name || 'Session'}</div>
-                        <div className="text-slate-300 font-normal">{new Date(s.openTime).toLocaleDateString('ar-EG', { month: 'short', day: 'numeric' })}</div>
+                        <div className="text-slate-300 font-normal">{new Date(s.openTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
                       </th>
                     ))}
                     <th className="p-3 text-[10px] font-bold text-slate-400 text-center border-b border-slate-100 min-w-[70px]">{t('percentage')}</th>
@@ -235,17 +236,22 @@ export default function AttendancePage() {
                             <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 font-bold text-xs shrink-0">
                               {student.user.name?.charAt(0) ?? '?'}
                             </div>
-                            <div>
-                              <p className="font-bold text-slate-700 text-sm">{student.user.name}</p>
-                              <p className="text-[10px] text-slate-400">{student.studentCode}</p>
-                            </div>
+                            <p className="font-bold text-slate-700 text-sm">{student.user.name}</p>
                           </div>
                         </td>
+                        <td className="p-4 text-sm font-mono text-slate-500 border-r border-slate-100">{student.studentCode}</td>
                         {sessions.map(s => {
                           const status = getStatus(s, student.id);
+                          const attendance = s.attendances?.find(a => a.studentId === student.id);
                           return (
                             <td key={s.id} className="p-2 text-center border-r border-slate-50">
-                              {status === 'present' && <div className="w-7 h-7 mx-auto rounded-lg bg-green-50 flex items-center justify-center"><CheckCircle2 size={14} className="text-green-600" /></div>}
+                              {status === 'present' && (
+                                <div className="flex flex-col items-center gap-0.5">
+                                  <div className="w-7 h-7 mx-auto rounded-lg bg-green-50 flex items-center justify-center">
+                                    <CheckCircle2 size={14} className="text-green-600" />
+                                  </div>
+                                </div>
+                              )}
                               {status === 'absent' && <div className="w-7 h-7 mx-auto rounded-lg bg-red-50 flex items-center justify-center"><XCircle size={14} className="text-red-500" /></div>}
                               {status === 'unknown' && <div className="w-7 h-7 mx-auto rounded-lg bg-slate-50 flex items-center justify-center"><span className="text-slate-300 text-xs">—</span></div>}
                             </td>
@@ -281,16 +287,23 @@ export default function AttendancePage() {
                   placeholder="e.g. Week 3 lecture"
                   className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-400 uppercase mb-1.5 block">{t('openTime')} *</label>
-                  <input type="datetime-local" required value={form.openTime} onChange={e => setForm(f => ({ ...f, openTime: e.target.value }))}
-                    className="w-full border border-slate-200 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-slate-400 uppercase mb-1.5 block">{t('closeTime')} *</label>
-                  <input type="datetime-local" required value={form.closeTime} onChange={e => setForm(f => ({ ...f, closeTime: e.target.value }))}
-                    className="w-full border border-slate-200 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
+              <div>
+                <label className="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Session Duration *</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-slate-400 mb-1 block">Hours</label>
+                    <select value={form.durationHours} onChange={e => setForm(f => ({ ...f, durationHours: e.target.value }))}
+                      className="w-full border border-slate-200 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+                      {[0,1,2,3,4,5,6].map(h => <option key={h} value={h}>{h}h</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-400 mb-1 block">Minutes</label>
+                    <select value={form.durationMinutes} onChange={e => setForm(f => ({ ...f, durationMinutes: e.target.value }))}
+                      className="w-full border border-slate-200 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+                      {[0,15,30,45].map(m => <option key={m} value={m}>{m}m</option>)}
+                    </select>
+                  </div>
                 </div>
               </div>
               <button type="submit" disabled={saving}

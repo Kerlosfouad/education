@@ -40,9 +40,7 @@ export default function StudentDashboardPage() {
       const json = await res.json();
       if (json.success) {
         setData(json.data);
-        if (json.data.openSession && !json.data.alreadyMarked) {
-          setShowAttendanceModal(true);
-        }
+        // Don't auto-show modal - student will go to attendance page from notification
       }
     } catch {}
     setLoading(false);
