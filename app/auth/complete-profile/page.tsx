@@ -63,8 +63,8 @@ export default function CompleteProfilePage() {
       setError('Please select department, academic year, and enter your student code');
       return;
     }
-    if (!/^\d{6}$/.test(studentCode.trim())) {
-      setError('Student code must be exactly 6 digits');
+    if (!/^\d{5}$/.test(studentCode.trim())) {
+      setError('Student code must be exactly 5 digits');
       return;
     }
     setIsLoading(true);
@@ -144,7 +144,7 @@ export default function CompleteProfilePage() {
             </div>
             <CardTitle className="text-2xl font-bold">Complete Your Profile</CardTitle>
             <CardDescription>
-              Welcome, {session?.user?.name}! Please enter your department, academic year, and your 6-digit student code.
+              Welcome, {session?.user?.name}! Please enter your department, academic year, and your 5-digit student code.
             </CardDescription>
           </CardHeader>
           <CardContent>
