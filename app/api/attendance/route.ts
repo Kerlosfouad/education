@@ -130,29 +130,35 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const attendanceSession = await db.attendanceSession.create({
-        data: {
-          subjectId: body.subjectId || null,
-          title,
-          openTime: new Date(openTime),
-          closeTime: new Date(closeTime),
-          createdBy: session.user.id,
-        },
-      });
-
-      // Notify all students
       try {
-        await notifyAllStudents(
+        const attendanceSession = await db.attendanceSession.create({
+          data: {
+            subjectId: body.subjectId || null,
+            title: title || null,
+            openTime: new Date(openTime),
+            closeTime: new Date(closeTime),
+            createdBy: session.user.id,
+          },
+        });
+
+        // Notify all students (non-blocking)
+        notifyAllStudents(
           '📋 New Attendance Session',
           `A new attendance session "${title || 'Attendance'}" is now open. Please mark your attendance.`,
           'ATTENDANCE'
-        );
-      } catch {}
+        ).catch(() => {});
 
-      return NextResponse.json(
-        { success: true, data: attendanceSession },
-        { status: 201 }
-      );
+        return NextResponse.json(
+          { success: true, data: attendanceSession },
+          { status: 201 }
+        );
+      } catch (createError: any) {
+        console.error('Attendance create error:', createError);
+        return NextResponse.json(
+          { error: createError?.message || 'Failed to create session' },
+          { status: 500 }
+        );
+      }
     }
     if (session.user.role === 'STUDENT') {
       const { sessionId } = body;
