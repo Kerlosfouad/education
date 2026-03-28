@@ -407,8 +407,16 @@ export default function LandingPage() {
               </div>
               <span className="font-semibold">{doctorName} Educational System</span>
             </div>
-            <div className="text-muted-foreground text-sm">
-              © {new Date().getFullYear()} All rights reserved.
+            <div className="text-muted-foreground text-sm flex items-center gap-1">
+              © {new Date().getFullYear()} All rights reserved. Designed by{' '}
+              <a
+                href="https://www.facebook.com/kerlos.foudi?mibextid=ZbWKwL"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-indigo-400 hover:text-indigo-300 transition-colors underline underline-offset-2"
+              >
+                ENG: KERLOS FOUAD
+              </a>
             </div>
             <div className="flex items-center gap-6">
               <Link href="/auth/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Login</Link>
