@@ -138,9 +138,6 @@ export async function POST(req: NextRequest) {
           closeTime: new Date(closeTime),
           createdBy: session.user.id,
         },
-        include: {
-          subject: true,
-        },
       });
 
       // Notify all students
