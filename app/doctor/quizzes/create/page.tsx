@@ -250,7 +250,7 @@ export default function CreateQuizPage() {
           </div>
 
           <div>
-            <label className="text-sm font-medium text-gray-600 mb-1 block">Start Time</label>
+            <label className="text-sm font-medium text-gray-600 mb-1 block">Start Time <span className="text-xs text-gray-400 font-normal">(leave empty to make available immediately)</span></label>
             <input
               type="datetime-local"
               value={form.startTime}
