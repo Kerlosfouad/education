@@ -11,7 +11,7 @@ const schema = z.object({
   studentCode: z
     .string()
     .trim()
-    .regex(/^\d{6}$/, 'Student code must be exactly 6 digits'),
+    .regex(/^\d{5}$/, 'Student code must be exactly 5 digits'),
   phone: z.string().optional(),
 });
 
