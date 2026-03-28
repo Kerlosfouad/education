@@ -320,9 +320,9 @@ export default function RegisterPage() {
                       <Building2 className="w-4 h-4 mr-2 text-muted-foreground shrink-0" />
                       <SelectValue placeholder="Select" />
                     </SelectTrigger>
-                    <SelectContent className="z-[9999] bg-slate-900 border-slate-700">
+                    <SelectContent className="z-[9999] bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-700">
                       {departments.map((dept) => (
-                        <SelectItem key={dept.id} value={dept.id} className="text-white hover:bg-slate-700 focus:bg-slate-700">
+                        <SelectItem key={dept.id} value={dept.id} className="dark:text-white dark:focus:bg-slate-700">
                           {dept.name}
                         </SelectItem>
                       ))}
@@ -341,9 +341,9 @@ export default function RegisterPage() {
                       <GraduationCap className="w-4 h-4 mr-2 text-muted-foreground shrink-0" />
                       <SelectValue placeholder="Select" />
                     </SelectTrigger>
-                    <SelectContent className="z-[9999] bg-slate-900 border-slate-700">
+                    <SelectContent className="z-[9999] bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-700">
                       {academicYears.map((year) => (
-                        <SelectItem key={year.value} value={year.value} className="text-white hover:bg-slate-700 focus:bg-slate-700">
+                        <SelectItem key={year.value} value={year.value} className="dark:text-white dark:focus:bg-slate-700">
                           {year.label}
                         </SelectItem>
                       ))}
