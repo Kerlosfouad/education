@@ -100,7 +100,7 @@ export default function StudentDashboardPage() {
                   <CheckCircle2 className="text-green-500" size={40} />
                 </div>
                 <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100 mb-2">{t('attendanceRecorded')}</h2>
-                <p className="text-slate-500 dark:text-slate-400">{t('attendanceMarkedFor')} {data.openSession.subject.name}</p>
+                <p className="text-slate-500 dark:text-slate-400">{t('attendanceMarkedFor')} {data.openSession.subject?.name || data.openSession.title || 'Session'}</p>
               </>
             ) : (
               <>
@@ -110,7 +110,7 @@ export default function StudentDashboardPage() {
                 <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100 mb-2">{t('markAttendance')}</h2>
                 <p className="text-slate-500 dark:text-slate-400 mb-1">{t('openAttendanceSession')}</p>
                 <p className="text-indigo-600 font-bold text-lg mb-6">
-                  {data.openSession.title || data.openSession.subject.name}
+                  {data.openSession.title || data.openSession.subject?.name || 'Attendance Session'}
                 </p>
                 {attendanceError && (
                   <div className="flex items-center gap-2 bg-red-50 dark:bg-red-900/30 text-red-600 rounded-xl px-4 py-3 mb-4 text-sm">

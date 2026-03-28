@@ -131,6 +131,7 @@ export async function POST(req: NextRequest) {
 
       const attendanceSession = await db.attendanceSession.create({
         data: {
+          subjectId: body.subjectId || null,
           title,
           openTime: new Date(openTime),
           closeTime: new Date(closeTime),

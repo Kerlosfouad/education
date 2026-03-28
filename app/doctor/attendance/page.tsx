@@ -152,8 +152,8 @@ export default function AttendancePage() {
                         <CalendarCheck2 className={isActive ? 'text-green-600' : 'text-slate-400'} size={22} />
                       </div>
                       <div>
-                        <h3 className="font-bold text-slate-800">{s.title || s.subject.name}</h3>
-                        <p className="text-xs text-slate-400">{s.subject.name} • {new Date(s.openTime).toLocaleDateString('ar-EG')}</p>
+                        <h3 className="font-bold text-slate-800">{s.title || s.subject?.name || 'Session'}</h3>
+                        <p className="text-xs text-slate-400">{s.subject?.name || 'General'} • {new Date(s.openTime).toLocaleDateString('ar-EG')}</p>
                       </div>
                     </div>
                       <div className="flex items-center gap-2">
@@ -217,7 +217,7 @@ export default function AttendancePage() {
                     <th className="p-4 text-xs font-bold text-slate-500 text-right sticky left-0 bg-slate-50 z-10 border-b border-slate-100 min-w-[160px]">{t('student')}</th>
                     {sessions.map(s => (
                       <th key={s.id} className="p-3 text-[10px] font-bold text-slate-400 text-center border-b border-slate-100 min-w-[80px]">
-                        <div>{s.title || s.subject.name}</div>
+                        <div>{s.title || s.subject?.name || 'Session'}</div>
                         <div className="text-slate-300 font-normal">{new Date(s.openTime).toLocaleDateString('ar-EG', { month: 'short', day: 'numeric' })}</div>
                       </th>
                     ))}
