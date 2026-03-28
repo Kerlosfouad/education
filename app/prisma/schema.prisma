@@ -197,7 +197,7 @@ model Subject {
 // Attendance session
 model AttendanceSession {
   id          String    @id @default(cuid())
-  subjectId   String
+  subjectId   String?
   title       String?
   openTime    DateTime
   closeTime   DateTime
@@ -206,7 +206,7 @@ model AttendanceSession {
   createdAt   DateTime  @default(now())
   
   // Relations
-  subject     Subject   @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  subject     Subject?  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
   attendances Attendance[]
   
   @@map("attendance_sessions")

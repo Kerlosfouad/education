@@ -59,7 +59,6 @@ export default function AttendancePage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          subjectId: form.subjectId,
           title: form.title || undefined,
           openTime: new Date(form.openTime).toISOString(),
           closeTime: new Date(form.closeTime).toISOString(),
@@ -276,14 +275,6 @@ export default function AttendancePage() {
             </div>
             {error && <div className="bg-red-50 text-red-600 rounded-2xl px-4 py-3 text-sm mb-4">{error}</div>}
             <form onSubmit={handleCreate} className="space-y-4">
-              <div>
-                <label className="text-xs font-bold text-slate-400 uppercase mb-1.5 block">{t('subject')} *</label>
-                <select required value={form.subjectId} onChange={e => setForm(f => ({ ...f, subjectId: e.target.value }))}
-                  className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
-                  <option value="">{t('selectSubject')}</option>
-                  {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
-              </div>
               <div>
                 <label className="text-xs font-bold text-slate-400 uppercase mb-1.5 block">{t('sessionTitleOptional')}</label>
                 <input type="text" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}

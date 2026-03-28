@@ -120,9 +120,9 @@ export async function POST(req: NextRequest) {
 
     // Doctor creating attendance session
     if (session.user.role === 'DOCTOR' || session.user.role === 'ADMIN') {
-      const { subjectId, title, openTime, closeTime } = body;
+      const { title, openTime, closeTime } = body;
 
-      if (!subjectId || !openTime || !closeTime) {
+      if (!openTime || !closeTime) {
         return NextResponse.json(
           { error: 'Missing required fields' },
           { status: 400 }
@@ -131,7 +131,6 @@ export async function POST(req: NextRequest) {
 
       const attendanceSession = await db.attendanceSession.create({
         data: {
-          subjectId,
           title,
           openTime: new Date(openTime),
           closeTime: new Date(closeTime),
