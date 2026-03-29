@@ -105,11 +105,10 @@ export async function GET() {
         page.drawText(idVal, { x: x + cardW - 8 - idValW, y: idY, size: 8, font, color: rgb(0.1, 0.1, 0.1) });
         page.drawLine({ start: { x: x + 8, y: idY - 4 }, end: { x: x + cardW - 8, y: idY - 4 }, thickness: 0.3, color: rgb(0.8, 0.8, 0.8) });
 
-        // QR code - starts right below ID row
-        const qrTopY = idY - 8;
-        const qrSize = qrTopY - y - 6;
+        // QR code - fixed size, right below ID row with small gap
+        const qrSize = Math.min(cardW - 20, cardH - 90);
         const qrX = x + (cardW - qrSize) / 2;
-        const qrY = y + 6;
+        const qrY = idY - 10 - qrSize;
         page.drawImage(qrImg, { x: qrX, y: qrY, width: qrSize, height: qrSize });
       }
     }
