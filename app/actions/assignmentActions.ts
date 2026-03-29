@@ -5,24 +5,24 @@ import { notifyStudentsByFilter } from "@/lib/notifications";
 
 export async function createAssignmentAction(data: {
   title: string;
-  formUrl: string;
   departmentId: string;
   academicYear: number;
+  durationDays: number;
 }) {
   try {
     await db.assignment.create({
       data: {
         title: data.title,
-        fileUrl: data.formUrl,
         departmentId: data.departmentId,
         academicYear: data.academicYear,
-        deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        deadline: new Date(Date.now() + data.durationDays * 24 * 60 * 60 * 1000),
+        allowUpload: true,
       },
     });
 
     await notifyStudentsByFilter(
-      'New Assignment',
-      `A new assignment has been published: ${data.title}`,
+      '📝 New Assignment',
+      `A new assignment has been published: ${data.title}. Please submit your PDF before the deadline.`,
       'ASSIGNMENT',
       data.departmentId,
       data.academicYear
@@ -42,7 +42,6 @@ export async function getAssignmentsAction() {
       orderBy: { createdAt: 'desc' },
       include: {
         _count: { select: { submissions: true } },
-        subject: { select: { name: true, department: { select: { name: true } } } },
       },
     });
   } catch {

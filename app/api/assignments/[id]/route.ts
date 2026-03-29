@@ -64,7 +64,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 }
 
-// POST /api/assignments/[id] - student marks assignment as submitted
+// POST /api/assignments/[id] - student submits assignment with PDF
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions);
@@ -75,14 +75,23 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const student = await db.student.findUnique({ where: { userId: session.user.id } });
     if (!student) return NextResponse.json({ error: 'Student not found' }, { status: 404 });
 
+    const body = await req.json().catch(() => ({}));
+    const fileUrl = body.fileUrl || null;
+
     const existing = await db.assignmentSubmission.findUnique({
       where: { assignmentId_studentId: { assignmentId: params.id, studentId: student.id } },
     });
 
-    if (existing) return NextResponse.json({ success: true, data: existing });
+    if (existing) {
+      const updated = await db.assignmentSubmission.update({
+        where: { id: existing.id },
+        data: { fileUrl, status: 'SUBMITTED', submittedAt: new Date() },
+      });
+      return NextResponse.json({ success: true, data: updated });
+    }
 
     const submission = await db.assignmentSubmission.create({
-      data: { assignmentId: params.id, studentId: student.id, status: 'SUBMITTED' },
+      data: { assignmentId: params.id, studentId: student.id, fileUrl, status: 'SUBMITTED' },
     });
 
     return NextResponse.json({ success: true, data: submission }, { status: 201 });
