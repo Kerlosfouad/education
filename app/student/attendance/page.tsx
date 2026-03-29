@@ -53,7 +53,11 @@ export default function StudentAttendancePage() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => {
+    fetchAll();
+    const interval = setInterval(fetchAll, 10000);
+    return () => clearInterval(interval);
+  }, [fetchAll]);
 
   const markAttendance = async () => {
     if (!openSession) return;

@@ -84,7 +84,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
   useEffect(() => { setMounted(true); }, []);
   useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 30000);
+    const interval = setInterval(fetchNotifications, 10000);
     return () => clearInterval(interval);
   }, [fetchNotifications]);
 

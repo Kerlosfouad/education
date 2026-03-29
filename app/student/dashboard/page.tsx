@@ -46,7 +46,11 @@ export default function StudentDashboardPage() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { fetchDashboard(); }, [fetchDashboard]);
+  useEffect(() => {
+    fetchDashboard();
+    const interval = setInterval(fetchDashboard, 15000);
+    return () => clearInterval(interval);
+  }, [fetchDashboard]);
 
   const markAttendance = async () => {
     if (!data?.openSession) return;
