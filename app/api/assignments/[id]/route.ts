@@ -18,7 +18,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         submissions: {
           include: {
             student: {
-              include: { user: { select: { name: true, email: true } } },
+              include: {
+                user: { select: { name: true, email: true } },
+                department: { select: { name: true } },
+              },
             },
           },
           orderBy: { submittedAt: 'desc' },

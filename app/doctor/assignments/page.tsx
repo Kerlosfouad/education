@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import {
-  Plus, FileText, ExternalLink, Clock, Users, Calendar,
-  History, X, Trash2, ChevronRight, CheckCircle2, Star, Loader2
+  Plus, FileText, ExternalLink, Users,
+  History, X, Trash2, ChevronRight, Loader2, Download
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import {
@@ -18,8 +18,15 @@ interface Submission {
   feedback: string | null;
   status: string;
   submittedAt: string;
+  fileUrl: string | null;
   gradedAt: string | null;
-  student: { id: string; studentCode: string; user: { name: string; email: string } };
+  student: {
+    id: string;
+    studentCode: string;
+    academicYear: number;
+    user: { name: string; email: string };
+    department: { name: string };
+  };
 }
 
 interface AssignmentDetail {
@@ -42,8 +49,6 @@ const [newAssignment, setNewAssignment] = useState({ title: '', departmentId: ''
   // Details panel
   const [selected, setSelected] = useState<AssignmentDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
-  const [grading, setGrading] = useState<Record<string, { score: string; feedback: string }>>({});
-  const [savingId, setSavingId] = useState<string | null>(null);
 
   const academicYearsByDept: Record<string, { value: string; label: string }[]> = {
     PREP: [{ value: '1', label: 'First Year' }],
@@ -74,36 +79,8 @@ const [newAssignment, setNewAssignment] = useState({ title: '', departmentId: ''
     setSelected(null);
     const res = await fetch(`/api/assignments/${id}`);
     const json = await res.json();
-    if (json.success) {
-      setSelected(json.data);
-      // pre-fill grading state
-      const init: Record<string, { score: string; feedback: string }> = {};
-      json.data.submissions.forEach((s: Submission) => {
-        init[s.id] = { score: s.score?.toString() ?? '', feedback: s.feedback ?? '' };
-      });
-      setGrading(init);
-    }
+    if (json.success) setSelected(json.data);
     setDetailLoading(false);
-  };
-
-  const saveGrade = async (submissionId: string, assignmentId: string) => {
-    setSavingId(submissionId);
-    const g = grading[submissionId];
-    const res = await fetch(`/api/assignments/${assignmentId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ submissionId, score: g.score, feedback: g.feedback }),
-    });
-    const json = await res.json();
-    if (json.success) {
-      setSelected(prev => prev ? {
-        ...prev,
-        submissions: prev.submissions.map(s =>
-          s.id === submissionId ? { ...s, score: json.data.score, feedback: json.data.feedback, status: 'GRADED', gradedAt: json.data.gradedAt } : s
-        ),
-      } : prev);
-    }
-    setSavingId(null);
   };
 
   const handleCreateClick = () => {
@@ -256,65 +233,49 @@ setNewAssignment({ title: '', departmentId: '', academicYear: '', durationDays: 
                   <p className="text-sm">{t('noSubmissionsYet')}</p>
                 </div>
               ) : (
-                <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
-                  {selected.submissions.map(sub => {
-                    const g = grading[sub.id] ?? { score: '', feedback: '' };
-                    const isGraded = sub.status === 'GRADED';
-                    return (
-                      <div key={sub.id} className="bg-slate-50 dark:bg-slate-700/40 rounded-2xl p-4 space-y-3">
-                        {/* Student info */}
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 font-bold text-sm">
-                              {sub.student.user.name?.charAt(0)}
+                <div className="space-y-4 max-h-[420px] overflow-y-auto pr-1">
+                  {/* Group by department + year */}
+                  {Object.entries(
+                    selected.submissions.reduce((groups, sub) => {
+                      const key = `${sub.student.department?.name ?? 'General'} - Year ${sub.student.academicYear}`;
+                      if (!groups[key]) groups[key] = [];
+                      groups[key].push(sub);
+                      return groups;
+                    }, {} as Record<string, Submission[]>)
+                  ).map(([groupKey, subs]) => (
+                    <div key={groupKey}>
+                      <p className="text-xs font-black text-slate-400 uppercase mb-2 px-1">{groupKey}</p>
+                      <div className="space-y-2">
+                        {subs.map(sub => (
+                          <div key={sub.id} className="flex items-center justify-between bg-slate-50 dark:bg-slate-700/40 rounded-2xl p-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 font-bold text-xs">
+                                {sub.student.user.name?.charAt(0)}
+                              </div>
+                              <div>
+                                <p className="font-bold text-slate-800 dark:text-slate-100 text-sm">{sub.student.user.name}</p>
+                                <p className="text-xs text-slate-400">{sub.student.studentCode} · {new Date(sub.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="font-bold text-slate-800 dark:text-slate-100 text-sm">{sub.student.user.name}</p>
-                              <p className="text-xs text-slate-400">{sub.student.studentCode}</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {isGraded && (
-                              <span className="text-xs font-black bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-1 rounded-full flex items-center gap-1">
-                                <CheckCircle2 size={11} /> {sub.score}/{selected.maxScore}
-                              </span>
+                            {sub.fileUrl ? (
+                              <div className="flex gap-1.5">
+                                <a href={sub.fileUrl} target="_blank" rel="noopener noreferrer"
+                                  className="flex items-center gap-1 text-xs bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 font-bold px-2.5 py-1.5 rounded-xl hover:bg-indigo-100 transition-colors">
+                                  <ExternalLink size={11} /> View
+                                </a>
+                                <a href={sub.fileUrl} download
+                                  className="flex items-center gap-1 text-xs bg-green-50 dark:bg-green-900/30 text-green-600 font-bold px-2.5 py-1.5 rounded-xl hover:bg-green-100 transition-colors">
+                                  <Download size={11} /> Save
+                                </a>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-slate-400 bg-slate-100 dark:bg-slate-600 px-2 py-1 rounded-full">No file</span>
                             )}
-                            <span className="text-[10px] text-slate-400">
-                              {new Date(sub.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                            </span>
                           </div>
-                        </div>
-
-                        {/* Grading inputs */}
-                        <div className="flex gap-2">
-                          <input
-                            type="number"
-                            min={0}
-                            max={selected.maxScore}
-                            placeholder={`Score / ${selected.maxScore}`}
-                            value={g.score}
-                            onChange={e => setGrading(prev => ({ ...prev, [sub.id]: { ...prev[sub.id], score: e.target.value } }))}
-                            className="w-28 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
-                          />
-                          <input
-                            type="text"
-                            placeholder="Feedback (optional)"
-                            value={g.feedback}
-                            onChange={e => setGrading(prev => ({ ...prev, [sub.id]: { ...prev[sub.id], feedback: e.target.value } }))}
-                            className="flex-1 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
-                          />
-                          <button
-                            onClick={() => saveGrade(sub.id, selected.id)}
-                            disabled={!g.score || savingId === sub.id}
-                            className="flex items-center gap-1 px-3 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition-colors disabled:opacity-40"
-                          >
-                            {savingId === sub.id ? <Loader2 size={13} className="animate-spin" /> : <Star size={13} />}
-                            Save
-                          </button>
-                        </div>
+                        ))}
                       </div>
-                    );
-                  })}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
