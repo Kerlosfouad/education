@@ -35,7 +35,7 @@ export default function AssignmentsPage() {
   const { t } = useI18n();
   const [assignments, setAssignments] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newAssignment, setNewAssignment] = useState({ title: '', formUrl: '', departmentId: '', academicYear: '' });
+const [newAssignment, setNewAssignment] = useState({ title: '', departmentId: '', academicYear: '', durationDays: '7' });
   const [loading, setLoading] = useState(false);
   const [departments, setDepartments] = useState<{ id: string; name: string; code: string }[]>([]);
 
@@ -107,7 +107,6 @@ export default function AssignmentsPage() {
   };
 
   const handleCreateClick = () => {
-    window.open('https://forms.google.com', '_blank');
     setIsModalOpen(true);
   };
 
@@ -120,13 +119,13 @@ export default function AssignmentsPage() {
     setLoading(true);
     const res = await createAssignmentAction({
       title: newAssignment.title,
-      formUrl: newAssignment.formUrl,
       departmentId: newAssignment.departmentId,
       academicYear: parseInt(newAssignment.academicYear),
+      durationDays: parseInt(newAssignment.durationDays),
     });
     if (res.success) {
       setIsModalOpen(false);
-      setNewAssignment({ title: '', formUrl: '', departmentId: '', academicYear: '' });
+setNewAssignment({ title: '', departmentId: '', academicYear: '', durationDays: '7' });
       refreshData();
     } else {
       alert('Error: ' + res.error);
@@ -369,12 +368,12 @@ export default function AssignmentsPage() {
                 </select>
               </div>
               <div>
-                <label className="text-xs font-bold text-slate-400 uppercase mb-2 block">Google Form URL</label>
-                <input required
+                <label className="text-xs font-bold text-slate-400 uppercase mb-2 block">Duration (Days) *</label>
+                <input required type="number" min="1" max="30"
                   className="w-full bg-slate-50 dark:bg-slate-700 dark:text-slate-100 border-none rounded-xl p-4 text-sm focus:ring-2 focus:ring-indigo-200 outline-none"
-                  placeholder="Paste URL here..."
-                  value={newAssignment.formUrl}
-                  onChange={e => setNewAssignment({ ...newAssignment, formUrl: e.target.value })}
+                  placeholder="e.g., 7"
+                  value={newAssignment.durationDays}
+                  onChange={e => setNewAssignment({ ...newAssignment, durationDays: e.target.value })}
                 />
               </div>
               <button type="submit" disabled={loading}
