@@ -18,9 +18,19 @@ export async function GET() {
 
     const qrDataUrl = student.qrCode || await generateStudentQRCode(student.id);
 
-    // A4 page
+    const cols = 3;
+    const rows = 2;
+    const marginX = 30;
+    const marginY = 30;
+    const pageW = 595.28;
+    const cardW = (pageW - marginX * 2 - (cols - 1) * 10) / cols;
+    const qrSize = cardW - 20;
+    const cardH = qrSize + 80;
+    const totalH = rows * cardH + (rows - 1) * 10;
+    const pageH = marginY + 25 + totalH + marginY;
+
     const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([595.28, 841.89]);
+    const page = pdfDoc.addPage([pageW, pageH]);
     const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
     const fontReg = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
@@ -29,17 +39,6 @@ export async function GET() {
     const base64 = commaIdx >= 0 ? qrDataUrl.slice(commaIdx + 1) : qrDataUrl;
     const qrBytes = Uint8Array.from(Buffer.from(base64, 'base64'));
     const qrImg = await pdfDoc.embedPng(qrBytes);
-
-    const cols = 3;
-    const rows = 2;
-    const marginX = 30;
-    const marginY = 40;
-    const pageW = page.getWidth();
-    const pageH = page.getHeight();
-    const cardW = (pageW - marginX * 2 - (cols - 1) * 10) / cols;
-    const qrSize = cardW - 20;
-    const cardH = qrSize + 80; // header(36) + name(16) + id(16) + gap(12) + qr + bottom(8)
-    const totalH = rows * cardH + (rows - 1) * 10;
 
     // Title
     const titleText = '6 Attendance Cards';
