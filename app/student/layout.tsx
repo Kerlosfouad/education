@@ -294,7 +294,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
       {showProfile && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowProfile(false)}>
           <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="bg-gradient-to-br from-[#00c896] to-[#00a87e] p-6 text-white relative">
+            <div className="bg-gradient-to-br from-indigo-600 to-purple-600 dark:from-[#00c896] dark:to-[#00a87e] p-6 text-white relative">
               <button onClick={() => setShowProfile(false)} className="absolute top-4 right-4 p-1.5 bg-white/20 hover:bg-white/30 rounded-lg transition-colors">
                 <X size={16} />
               </button>
@@ -384,7 +384,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
                             alert('Download failed: ' + String(e));
                           }
                         }}
-                        className="mt-2 flex items-center gap-2 w-full justify-center py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-sm rounded-xl transition-colors"
+                        className="mt-2 flex items-center gap-2 w-full justify-center py-2.5 bg-indigo-600 hover:bg-indigo-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white font-bold text-sm rounded-xl transition-colors"
                       >
                         <Download size={16} /> Download Data
                       </button>
