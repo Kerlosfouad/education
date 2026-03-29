@@ -12,14 +12,14 @@ type StudentResult = {
   assignmentSubmissions: {
     score: number;
     status: string;
-    assignment: { title: string; maxScore: number; subject: { name: string } };
+    assignment: { title: string; maxScore: number; subject: { name: string } | null };
   }[];
   quizAttempts: {
     score: number;
     maxScore: number;
     percentage: number;
     status: string;
-    quiz: { title: string; subject: { name: string } };
+    quiz: { title: string; subject: { name: string } | null };
   }[];
   examResults: {
     score: number;
@@ -30,6 +30,11 @@ type StudentResult = {
     semester: number;
     academicYear: number;
     subject: { name: string };
+  }[];
+  attendances: {
+    id: string;
+    timestamp: string;
+    session: { title: string | null; openTime: string } | null;
   }[];
 };
 
@@ -70,70 +75,59 @@ export default function ResultsPage() {
 
   const exportToExcel = () => {
     const wb = XLSX.utils.book_new();
-    const headers = ['', '#', 'Student Name', 'Student Code', 'Quiz Title', 'Subject', 'Score', 'Max', '%', 'Status'];
-    const colWidths = [{ wch: 3 }, { wch: 4 }, { wch: 26 }, { wch: 14 }, { wch: 32 }, { wch: 20 }, { wch: 8 }, { wch: 6 }, { wch: 8 }, { wch: 12 }];
 
-    const wsData: any[][] = [];
-    const merges: XLSX.Range[] = [];
-
-    sortedGroups.forEach(([key, groupStudents], gi) => {
-      const [dept, year] = key.split('||');
-      const groupTitle = `  ★  ${dept.toUpperCase()}  —  ${(yearLabel[Number(year)] || `Year ${year}`).toUpperCase()}`;
-
-      // 2 empty rows before each group (except first)
-      if (gi > 0) {
-        wsData.push(Array(headers.length).fill(''));
-        wsData.push(Array(headers.length).fill(''));
+    // Sheet 1: Quizzes
+    const quizHeaders = ['#', 'Student Name', 'Student Code', 'Department', 'Year', 'Quiz Title', 'Score', 'Max', '%', 'Status'];
+    const quizData: any[][] = [quizHeaders];
+    let qRow = 1;
+    students.forEach(s => {
+      if (s.quizAttempts.length === 0) {
+        quizData.push([qRow++, s.user.name, s.studentCode, s.department.name, yearLabel[s.academicYear] || `Year ${s.academicYear}`, 'No attempts', '—', '—', '—', '—']);
+      } else {
+        s.quizAttempts.forEach(q => {
+          quizData.push([qRow++, s.user.name, s.studentCode, s.department.name, yearLabel[s.academicYear] || `Year ${s.academicYear}`, q.quiz.title, q.score, q.maxScore, Math.round(q.percentage) + '%', q.status]);
+        });
       }
-
-      // ── Title row ──
-      const titleRowIdx = wsData.length;
-      wsData.push([groupTitle, ...Array(headers.length - 1).fill('')]);
-      merges.push({ s: { r: titleRowIdx, c: 0 }, e: { r: titleRowIdx, c: headers.length - 1 } });
-
-      // ── Separator ──
-      wsData.push(Array(headers.length).fill('─────────────────'));
-
-      // ── Header row ──
-      wsData.push(headers);
-
-      // ── Data rows ──
-      let rowNum = 1;
-      groupStudents.forEach(student => {
-        if (student.quizAttempts.length > 0) {
-          student.quizAttempts.forEach(q => {
-            const pct = q.percentage !== null ? Math.round(q.percentage) + '%' : '—';
-            wsData.push([
-              '', rowNum++,
-              student.user.name ?? '—',
-              student.studentCode,
-              q.quiz.title,
-              q.quiz.subject?.name ?? '—',
-              q.score ?? '—',
-              q.maxScore ?? '—',
-              pct,
-              q.status,
-            ]);
-          });
-        } else {
-          wsData.push(['', rowNum++, student.user.name ?? '—', student.studentCode, 'No attempts', '—', '—', '—', '—', '—']);
-        }
-      });
-
-      // ── Total row ──
-      const attempts = groupStudents.flatMap(s => s.quizAttempts);
-      const avgPct = attempts.length
-        ? Math.round(attempts.reduce((a, q) => a + (q.percentage ?? 0), 0) / attempts.length) + '%'
-        : 'N/A';
-      wsData.push(['', '', `  Total: ${groupStudents.length} students`, '', `  ${attempts.length} attempts`, '', '', '', `  Avg: ${avgPct}`, '']);
     });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(quizData), 'Quizzes');
 
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-    ws['!cols'] = colWidths;
-    ws['!merges'] = merges;
+    // Sheet 2: Assignments
+    const assignHeaders = ['#', 'Student Name', 'Student Code', 'Department', 'Year', 'Assignment Title', 'Score', 'Max', 'Status'];
+    const assignData: any[][] = [assignHeaders];
+    let aRow = 1;
+    students.forEach(s => {
+      if (s.assignmentSubmissions.length === 0) {
+        assignData.push([aRow++, s.user.name, s.studentCode, s.department.name, yearLabel[s.academicYear] || `Year ${s.academicYear}`, 'No submissions', '—', '—', '—']);
+      } else {
+        s.assignmentSubmissions.forEach(sub => {
+          assignData.push([aRow++, s.user.name, s.studentCode, s.department.name, yearLabel[s.academicYear] || `Year ${s.academicYear}`, sub.assignment.title, sub.score ?? '—', sub.assignment.maxScore, sub.status]);
+        });
+      }
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(assignData), 'Assignments');
 
-    XLSX.utils.book_append_sheet(wb, ws, 'Student Results');
-    XLSX.writeFile(wb, `quiz-results-${new Date().toISOString().split('T')[0]}.xlsx`);
+    // Sheet 3: Attendance
+    const attHeaders = ['#', 'Student Name', 'Student Code', 'Department', 'Year', 'Session', 'Date', 'Status'];
+    const attData: any[][] = [attHeaders];
+    let attRow = 1;
+    students.forEach(s => {
+      if (!s.attendances || s.attendances.length === 0) {
+        attData.push([attRow++, s.user.name, s.studentCode, s.department.name, yearLabel[s.academicYear] || `Year ${s.academicYear}`, 'No attendance', '—', '—']);
+      } else {
+        s.attendances.forEach(a => {
+          attData.push([
+            attRow++, s.user.name, s.studentCode, s.department.name,
+            yearLabel[s.academicYear] || `Year ${s.academicYear}`,
+            a.session?.title || 'Session',
+            new Date(a.session?.openTime || a.timestamp).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
+            'Present',
+          ]);
+        });
+      }
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(attData), 'Attendance');
+
+    XLSX.writeFile(wb, `student-results-${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   return (
@@ -245,7 +239,19 @@ export default function ResultsPage() {
                                   ))}
                                 </Section>
                               )}
-                              {student.quizAttempts.length === 0 && student.assignmentSubmissions.length === 0 && student.examResults.length === 0 && (
+                              {student.attendances && student.attendances.length > 0 && (
+                                <Section title="Attendance" color="blue">
+                                  {student.attendances.map((a, idx) => (
+                                    <div key={idx} className="flex items-center justify-between text-sm">
+                                      <span className="text-slate-700 dark:text-slate-200">
+                                        {a.session?.title || 'Session'} — {new Date(a.session?.openTime || a.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                      </span>
+                                      <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-0.5 rounded-full font-bold">✓ Present</span>
+                                    </div>
+                                  ))}
+                                </Section>
+                              )}
+                              {student.quizAttempts.length === 0 && student.assignmentSubmissions.length === 0 && student.examResults.length === 0 && (!student.attendances || student.attendances.length === 0) && (
                                 <p className="text-sm text-slate-400 text-center py-2">No results yet</p>
                               )}
                             </div>
@@ -282,6 +288,7 @@ function Section({ title, color, children }: { title: string; color: string; chi
     purple: 'border-purple-300 dark:border-purple-700',
     orange: 'border-orange-300 dark:border-orange-700',
     green:  'border-green-300 dark:border-green-700',
+    blue:   'border-blue-300 dark:border-blue-700',
   };
   return (
     <div className={`border-l-4 pl-4 ${borders[color]}`}>

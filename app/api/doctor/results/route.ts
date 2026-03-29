@@ -41,6 +41,15 @@ export async function GET() {
             subject: { select: { name: true } },
           },
         },
+        attendances: {
+          where: { verificationMethod: { not: 'ABSENT' } },
+          include: {
+            session: {
+              select: { title: true, openTime: true },
+            },
+          },
+          orderBy: { timestamp: 'asc' },
+        },
       },
       orderBy: [
         { department: { name: 'asc' } },
