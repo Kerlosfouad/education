@@ -33,11 +33,13 @@ export async function GET() {
     const cols = 3;
     const rows = 2;
     const marginX = 30;
-    const marginY = 30;
+    const marginY = 40;
     const pageW = page.getWidth();
     const pageH = page.getHeight();
     const cardW = (pageW - marginX * 2 - (cols - 1) * 10) / cols;
-    const cardH = (pageH - marginY * 2 - (rows - 1) * 10) / rows;
+    const qrSize = cardW - 20;
+    const cardH = qrSize + 80; // header(36) + name(16) + id(16) + gap(12) + qr + bottom(8)
+    const totalH = rows * cardH + (rows - 1) * 10;
 
     // Title
     const titleText = '6 Attendance Cards';
@@ -106,9 +108,8 @@ export async function GET() {
         page.drawLine({ start: { x: x + 8, y: idY - 4 }, end: { x: x + cardW - 8, y: idY - 4 }, thickness: 0.3, color: rgb(0.8, 0.8, 0.8) });
 
         // QR code - fixed size, right below ID row with small gap
-        const qrSize = Math.min(cardW - 20, cardH - 90);
         const qrX = x + (cardW - qrSize) / 2;
-        const qrY = idY - 10 - qrSize;
+        const qrY = idY - 8 - qrSize;
         page.drawImage(qrImg, { x: qrX, y: qrY, width: qrSize, height: qrSize });
       }
     }
