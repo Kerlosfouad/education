@@ -76,56 +76,100 @@ export default function ResultsPage() {
   const exportToExcel = () => {
     const wb = XLSX.utils.book_new();
 
-    // Sheet 1: Quizzes
-    const quizHeaders = ['#', 'Student Name', 'Student Code', 'Department', 'Year', 'Quiz Title', 'Score', 'Max', '%', 'Status'];
-    const quizData: any[][] = [quizHeaders];
-    let qRow = 1;
-    students.forEach(s => {
-      if (s.quizAttempts.length === 0) {
-        quizData.push([qRow++, s.user.name, s.studentCode, s.department.name, yearLabel[s.academicYear] || `Year ${s.academicYear}`, 'No attempts', '—', '—', '—', '—']);
-      } else {
-        s.quizAttempts.forEach(q => {
-          quizData.push([qRow++, s.user.name, s.studentCode, s.department.name, yearLabel[s.academicYear] || `Year ${s.academicYear}`, q.quiz.title, q.score, q.maxScore, Math.round(q.percentage) + '%', q.status]);
-        });
-      }
-    });
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(quizData), 'Quizzes');
+    // ── Sheet: Attendance grouped by dept/year ──
+    const attWsData: any[][] = [];
+    const attMerges: XLSX.Range[] = [];
 
-    // Sheet 2: Assignments
-    const assignHeaders = ['#', 'Student Name', 'Student Code', 'Department', 'Year', 'Assignment Title', 'Score', 'Max', 'Status'];
-    const assignData: any[][] = [assignHeaders];
-    let aRow = 1;
+    // Collect all unique session dates across all students
+    const allSessions = new Map<string, string>(); // sessionId -> date label
     students.forEach(s => {
-      if (s.assignmentSubmissions.length === 0) {
-        assignData.push([aRow++, s.user.name, s.studentCode, s.department.name, yearLabel[s.academicYear] || `Year ${s.academicYear}`, 'No submissions', '—', '—', '—']);
-      } else {
-        s.assignmentSubmissions.forEach(sub => {
-          assignData.push([aRow++, s.user.name, s.studentCode, s.department.name, yearLabel[s.academicYear] || `Year ${s.academicYear}`, sub.assignment.title, sub.score ?? '—', sub.assignment.maxScore, sub.status]);
-        });
-      }
+      (s.attendances || []).forEach(a => {
+        const key = a.session?.openTime || a.timestamp;
+        const label = new Date(key).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        allSessions.set(key, label);
+      });
     });
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(assignData), 'Assignments');
+    const sessionDates = Array.from(allSessions.entries()).sort(([a], [b]) => new Date(a).getTime() - new Date(b).getTime());
 
-    // Sheet 3: Attendance
-    const attHeaders = ['#', 'Student Name', 'Student Code', 'Department', 'Year', 'Session', 'Date', 'Status'];
-    const attData: any[][] = [attHeaders];
-    let attRow = 1;
-    students.forEach(s => {
-      if (!s.attendances || s.attendances.length === 0) {
-        attData.push([attRow++, s.user.name, s.studentCode, s.department.name, yearLabel[s.academicYear] || `Year ${s.academicYear}`, 'No attendance', '—', '—']);
-      } else {
-        s.attendances.forEach(a => {
-          attData.push([
-            attRow++, s.user.name, s.studentCode, s.department.name,
-            yearLabel[s.academicYear] || `Year ${s.academicYear}`,
-            a.session?.title || 'Session',
-            new Date(a.session?.openTime || a.timestamp).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
-            'Present',
-          ]);
-        });
+    sortedGroups.forEach(([key, groupStudents], gi) => {
+      const [dept, year] = key.split('||');
+      const groupLabel = `${dept.toUpperCase()} — ${(yearLabel[Number(year)] || `Year ${year}`).toUpperCase()}`;
+
+      if (gi > 0) {
+        attWsData.push([]);
+        attWsData.push([]);
       }
+
+      // Group title row
+      const titleRow = attWsData.length;
+      attWsData.push([`★  ${groupLabel}`, ...Array(sessionDates.length + 2).fill('')]);
+      attMerges.push({ s: { r: titleRow, c: 0 }, e: { r: titleRow, c: sessionDates.length + 2 } });
+
+      // Header: Name | Code | date1 | date2 | ... | Total
+      attWsData.push(['Student Name', 'Code', ...sessionDates.map(([, label]) => label), 'Total Present']);
+
+      // Student rows
+      groupStudents.forEach(s => {
+        const presentDates = new Set(
+          (s.attendances || []).map(a => a.session?.openTime || a.timestamp)
+        );
+        const cells = sessionDates.map(([dateKey]) => presentDates.has(dateKey) ? '✓' : '—');
+        const total = cells.filter(c => c === '✓').length;
+        attWsData.push([s.user.name, s.studentCode, ...cells, total]);
+      });
     });
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(attData), 'Attendance');
+
+    const attWs = XLSX.utils.aoa_to_sheet(attWsData);
+    attWs['!merges'] = attMerges;
+    XLSX.utils.book_append_sheet(wb, attWs, 'Attendance');
+
+    // ── Sheet: Quizzes grouped by dept/year ──
+    const quizWsData: any[][] = [];
+    const quizMerges: XLSX.Range[] = [];
+    sortedGroups.forEach(([key, groupStudents], gi) => {
+      const [dept, year] = key.split('||');
+      if (gi > 0) { quizWsData.push([]); quizWsData.push([]); }
+      const titleRow = quizWsData.length;
+      quizWsData.push([`★  ${dept.toUpperCase()} — ${(yearLabel[Number(year)] || `Year ${year}`).toUpperCase()}`, '', '', '', '', '']);
+      quizMerges.push({ s: { r: titleRow, c: 0 }, e: { r: titleRow, c: 5 } });
+      quizWsData.push(['Student Name', 'Code', 'Quiz Title', 'Score', 'Max', '%']);
+      groupStudents.forEach(s => {
+        if (s.quizAttempts.length === 0) {
+          quizWsData.push([s.user.name, s.studentCode, 'No attempts', '—', '—', '—']);
+        } else {
+          s.quizAttempts.forEach(q => {
+            quizWsData.push([s.user.name, s.studentCode, q.quiz.title, q.score, q.maxScore, Math.round(q.percentage) + '%']);
+          });
+        }
+      });
+    });
+    const quizWs = XLSX.utils.aoa_to_sheet(quizWsData);
+    quizWs['!merges'] = quizMerges;
+    XLSX.utils.book_append_sheet(wb, quizWs, 'Quizzes');
+
+    // ── Sheet: Assignments grouped by dept/year ──
+    const assWsData: any[][] = [];
+    const assMerges: XLSX.Range[] = [];
+    sortedGroups.forEach(([key, groupStudents], gi) => {
+      const [dept, year] = key.split('||');
+      if (gi > 0) { assWsData.push([]); assWsData.push([]); }
+      const titleRow = assWsData.length;
+      assWsData.push([`★  ${dept.toUpperCase()} — ${(yearLabel[Number(year)] || `Year ${year}`).toUpperCase()}`, '', '', '', '']);
+      assMerges.push({ s: { r: titleRow, c: 0 }, e: { r: titleRow, c: 4 } });
+      assWsData.push(['Student Name', 'Code', 'Assignment Title', 'Score', 'Max']);
+      groupStudents.forEach(s => {
+        if (s.assignmentSubmissions.length === 0) {
+          assWsData.push([s.user.name, s.studentCode, 'No submissions', '—', '—']);
+        } else {
+          s.assignmentSubmissions.forEach(sub => {
+            assWsData.push([s.user.name, s.studentCode, sub.assignment.title, sub.score ?? '—', sub.assignment.maxScore]);
+          });
+        }
+      });
+    });
+    const assWs = XLSX.utils.aoa_to_sheet(assWsData);
+    assWs['!merges'] = assMerges;
+    XLSX.utils.book_append_sheet(wb, assWs, 'Assignments');
 
     XLSX.writeFile(wb, `student-results-${new Date().toISOString().split('T')[0]}.xlsx`);
   };
