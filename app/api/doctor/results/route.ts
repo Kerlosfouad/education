@@ -11,6 +11,9 @@ export async function GET() {
     }
 
     const students = await db.student.findMany({
+      where: {
+        user: { status: 'ACTIVE' },
+      },
       include: {
         user: { select: { name: true, email: true } },
         department: { select: { name: true } },
