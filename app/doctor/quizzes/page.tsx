@@ -56,14 +56,14 @@ export default function QuizzesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">{t('quizzes')}</h1>
-          <p className="text-gray-500 mt-1">{t('createManageQuizzes')}</p>
+          <h1 className="text-xl md:text-3xl font-bold text-gray-800">{t('quizzes')}</h1>
+          <p className="text-gray-500 mt-1 text-sm">{t('createManageQuizzes')}</p>
         </div>
         <Link
           href="/doctor/quizzes/create"
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
+          className="flex items-center gap-1.5 px-3 md:px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs md:text-sm font-medium rounded-xl transition-colors whitespace-nowrap"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-3.5 h-3.5 md:w-4 md:h-4" />
           {t('newQuiz')}
         </Link>
       </div>

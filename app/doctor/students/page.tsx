@@ -168,12 +168,12 @@ export default function StudentsPage() {
       {/* Pending Tab */}
       {tab === 'pending' && (
         <div className="bg-white dark:bg-[#0f1f38] rounded-3xl border border-slate-100 dark:border-[#1a2f4a] shadow-sm overflow-hidden">
-          <div className="p-6 border-b border-slate-50 dark:border-[#1a2f4a] flex items-center justify-between bg-blue-50/30 dark:bg-[#00c896]/5">
+          <div className="p-4 border-b border-slate-50 dark:border-[#1a2f4a] flex items-center justify-between bg-blue-50/30 dark:bg-[#00c896]/5">
             <div className="flex items-center gap-2">
-              <Clock className="text-blue-600 dark:text-[#00c896]" size={20} />
-              <h3 className="text-lg font-bold text-slate-800 dark:text-white">Pending Registrations</h3>
+              <Clock className="text-blue-600 dark:text-[#00c896]" size={16} />
+              <h3 className="text-sm md:text-lg font-bold text-slate-800 dark:text-white">Pending Registrations</h3>
             </div>
-            <span className="text-xs font-bold text-blue-600 dark:text-[#00c896] px-3 py-1 bg-white dark:bg-[#0d1e35] rounded-full border border-blue-100 dark:border-[#1a2f4a]">
+            <span className="text-[10px] md:text-xs font-bold text-blue-600 dark:text-[#00c896] px-2 py-0.5 bg-white dark:bg-[#0d1e35] rounded-full border border-blue-100 dark:border-[#1a2f4a] whitespace-nowrap">
               {pending.length} Requests
             </span>
           </div>
@@ -300,14 +300,9 @@ export default function StudentsPage() {
             </div>
           )}
 
-          {/* Analytics Table */}
+          {/* Analytics Table - only show if there are students */}
+          {filteredAnalytics.length > 0 && (
           <div className="bg-white dark:bg-[#0f1f38] rounded-3xl border border-slate-100 dark:border-[#1a2f4a] shadow-sm overflow-hidden">
-          {filteredAnalytics.length === 0 ? (
-            <div className="text-center py-20 text-slate-400">
-              <Users size={48} className="mx-auto mb-3 opacity-30" />
-              <p className="text-sm">{search ? 'No students match your search.' : 'No approved students yet.'}</p>
-            </div>
-          ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
@@ -371,8 +366,8 @@ export default function StudentsPage() {
                 </tbody>
               </table>
             </div>
-          )}
           </div>
+          )}
         </div>
       )}
 
