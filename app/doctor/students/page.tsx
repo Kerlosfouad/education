@@ -100,10 +100,23 @@ export default function StudentsPage() {
 
   const pending = allStudents;
 
-  const filteredAnalytics = analytics.filter(s =>
-    s.name.toLowerCase().includes(search.toLowerCase()) ||
-    s.studentCode.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredAnalytics = activeStudents
+    .filter(s =>
+      s.user.name.toLowerCase().includes(search.toLowerCase()) ||
+      s.studentCode.includes(search)
+    )
+    .map(s => {
+      const analyticsData = analytics.find(a => a.studentCode === s.studentCode);
+      return {
+        id: s.id,
+        name: s.user.name,
+        studentCode: s.studentCode,
+        image: s.user.image,
+        attendanceRate: analyticsData?.attendanceRate ?? 0,
+        avgQuizScore: analyticsData?.avgQuizScore ?? 0,
+        quizRate: analyticsData?.quizRate ?? 0,
+      };
+    });
 
   const getStatus = (rate: number) => {
     if (rate >= 75) return { label: 'Active', cls: 'bg-emerald-50 text-emerald-600' };
@@ -160,7 +173,7 @@ export default function StudentsPage() {
         <button onClick={() => setTab('active')}
           className={`flex-1 md:flex-none px-3 md:px-5 py-2 rounded-xl text-xs md:text-sm font-bold transition-colors flex items-center justify-center gap-1.5 ${tab === 'active' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-[#0d1e35] text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-[#1a2f4a] hover:bg-slate-50 dark:hover:bg-[#132540]'}`}>
           <Users size={13} />
-          <span className="whitespace-nowrap">All Students ({filteredAnalytics.length})</span>
+          <span className="whitespace-nowrap">All Students ({activeStudents.length})</span>
         </button>
       </div>
 
@@ -324,12 +337,9 @@ export default function StudentsPage() {
                         <td className="p-5">
                           <div className="flex items-center gap-3">
                             <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-[#00c896] font-bold text-sm overflow-hidden shrink-0">
-                              {(() => {
-                                const activeS = activeStudents.find(a => a.studentCode === student.studentCode);
-                                return activeS?.user.image
-                                  ? <Image src={activeS.user.image} alt="" width={36} height={36} className="object-cover w-full h-full" />
-                                  : student.name.charAt(0);
-                              })()}
+                              {student.image
+                                ? <Image src={student.image} alt="" width={36} height={36} className="object-cover w-full h-full" />
+                                : student.name.charAt(0)}
                             </div>
                             <div>
                               <p className="font-bold text-slate-800 dark:text-white text-sm">{student.name}</p>
