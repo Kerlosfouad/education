@@ -130,15 +130,15 @@ export default function StudentsPage() {
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight">Student Management</h2>
-          <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">Monitor attendance, quizzes, and registration requests.</p>
+          <h2 className="text-xl md:text-3xl font-black text-slate-800 dark:text-white tracking-tight">Student Management</h2>
+          <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium text-sm">Monitor attendance, quizzes, and registration requests.</p>
         </div>
         <div className="flex gap-2">
-          <div className="relative">
+          <div className="relative flex-1 md:flex-none">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input type="text" placeholder="Search students..." value={search}
               onChange={e => setSearch(e.target.value)}
-              className="pl-10 pr-4 py-2 bg-white dark:bg-[#0d1e35] dark:text-white border border-slate-200 dark:border-[#1a2f4a] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 w-64" />
+              className="pl-10 pr-4 py-2 bg-white dark:bg-[#0d1e35] dark:text-white border border-slate-200 dark:border-[#1a2f4a] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 w-full md:w-64" />
           </div>
           <button className="p-2 bg-white dark:bg-[#0d1e35] border border-slate-200 dark:border-[#1a2f4a] rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#132540]">
             <Filter size={20} />
@@ -149,19 +149,19 @@ export default function StudentsPage() {
       {/* Tabs */}
       <div className="flex gap-2">
         <button onClick={() => setTab('pending')}
-          className={`px-5 py-2 rounded-xl text-sm font-bold transition-colors flex items-center gap-2 ${tab === 'pending' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-[#0d1e35] text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-[#1a2f4a] hover:bg-slate-50 dark:hover:bg-[#132540]'}`}>
-          <Clock size={15} />
-          Pending Registrations
+          className={`flex-1 md:flex-none px-3 md:px-5 py-2 rounded-xl text-xs md:text-sm font-bold transition-colors flex items-center justify-center gap-1.5 ${tab === 'pending' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-[#0d1e35] text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-[#1a2f4a] hover:bg-slate-50 dark:hover:bg-[#132540]'}`}>
+          <Clock size={13} />
+          <span className="whitespace-nowrap">Pending</span>
           {pending.length > 0 && (
-            <span className={`text-[10px] px-2 py-0.5 rounded-full font-black ${tab === 'pending' ? 'bg-white text-blue-600' : 'bg-blue-100 text-blue-600'}`}>
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${tab === 'pending' ? 'bg-white text-blue-600' : 'bg-blue-100 text-blue-600'}`}>
               {pending.length}
             </span>
           )}
         </button>
         <button onClick={() => setTab('active')}
-          className={`px-5 py-2 rounded-xl text-sm font-bold transition-colors flex items-center gap-2 ${tab === 'active' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-[#0d1e35] text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-[#1a2f4a] hover:bg-slate-50 dark:hover:bg-[#132540]'}`}>
-          <Users size={15} />
-          All Students ({analytics.length})
+          className={`flex-1 md:flex-none px-3 md:px-5 py-2 rounded-xl text-xs md:text-sm font-bold transition-colors flex items-center justify-center gap-1.5 ${tab === 'active' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-[#0d1e35] text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-[#1a2f4a] hover:bg-slate-50 dark:hover:bg-[#132540]'}`}>
+          <Users size={13} />
+          <span className="whitespace-nowrap">All Students ({filteredAnalytics.length})</span>
         </button>
       </div>
 

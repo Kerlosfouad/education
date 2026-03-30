@@ -4,6 +4,9 @@ import { NextResponse } from 'next/server';
 export async function GET() {
   try {
     const students = await db.student.findMany({
+      where: {
+        user: { status: 'ACTIVE' },
+      },
       include: {
         user: { select: { name: true } },
         attendances: true,
