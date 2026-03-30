@@ -23,7 +23,7 @@ interface StudentRecord {
   studentCode: string;
   academicYear: number;
   department: { name: string };
-  user: { name: string; email: string; createdAt: string; status: string };
+  user: { name: string; email: string; image: string | null; createdAt: string; status: string };
 }
 
 interface StudentDetail {
@@ -101,9 +101,8 @@ export default function StudentsPage() {
   const pending = allStudents;
 
   const filteredAnalytics = analytics.filter(s =>
-    activeStudents.some(a => a.studentCode === s.studentCode) &&
-    (s.name.toLowerCase().includes(search.toLowerCase()) ||
-    s.studentCode.toLowerCase().includes(search.toLowerCase()))
+    s.name.toLowerCase().includes(search.toLowerCase()) ||
+    s.studentCode.toLowerCase().includes(search.toLowerCase())
   );
 
   const getStatus = (rate: number) => {
@@ -190,8 +189,10 @@ export default function StudentsPage() {
                 return (
                   <div key={s.id} className="flex items-center justify-between p-4 bg-slate-50/50 dark:bg-[#0a1628]/60 rounded-2xl border border-dashed border-slate-200 dark:border-[#1a2f4a]">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-white dark:bg-[#0d1e35] flex items-center justify-center font-bold text-blue-600 dark:text-[#00c896] border border-slate-100 dark:border-[#1a2f4a] shadow-sm">
-                        {s.user.name?.charAt(0) ?? '?'}
+                      <div className="w-10 h-10 rounded-full bg-white dark:bg-[#0d1e35] flex items-center justify-center font-bold text-blue-600 dark:text-[#00c896] border border-slate-100 dark:border-[#1a2f4a] shadow-sm overflow-hidden shrink-0">
+                        {s.user.image
+                          ? <Image src={s.user.image} alt="" width={40} height={40} className="object-cover w-full h-full rounded-full" />
+                          : s.user.name?.charAt(0) ?? '?'}
                       </div>
                       <div>
                         <p className="text-sm font-bold text-slate-800 dark:text-white">{s.user.name}</p>
@@ -355,9 +356,9 @@ export default function StudentsPage() {
                             {status.label}
                           </span>
                         </td>
-                        <td className="p-5 text-center">
-                          <button className="text-slate-400 hover:text-blue-600 transition-colors">
-                            <MoreVertical size={18} />
+                        <td className="p-3 text-center">
+                          <button className="text-slate-400 hover:text-blue-600 transition-colors p-1">
+                            <MoreVertical size={15} />
                           </button>
                         </td>
                       </tr>

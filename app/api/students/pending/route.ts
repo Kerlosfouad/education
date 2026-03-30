@@ -22,6 +22,7 @@ export async function GET() {
         id: true,
         name: true,
         email: true,
+        image: true,
         status: true,
         createdAt: true,
         student: {
@@ -46,6 +47,7 @@ export async function GET() {
       user: {
         name: u.name ?? '',
         email: u.email,
+        image: u.image ?? null,
         status: u.status,
         createdAt: u.createdAt.toISOString(),
       },
