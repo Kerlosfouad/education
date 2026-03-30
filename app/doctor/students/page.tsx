@@ -101,8 +101,9 @@ export default function StudentsPage() {
   const pending = allStudents;
 
   const filteredAnalytics = analytics.filter(s =>
-    s.name.toLowerCase().includes(search.toLowerCase()) ||
-    s.studentCode.toLowerCase().includes(search.toLowerCase())
+    activeStudents.some(a => a.studentCode === s.studentCode) &&
+    (s.name.toLowerCase().includes(search.toLowerCase()) ||
+    s.studentCode.toLowerCase().includes(search.toLowerCase()))
   );
 
   const getStatus = (rate: number) => {
@@ -326,8 +327,13 @@ export default function StudentsPage() {
                       <tr key={student.id} className="hover:bg-slate-50/50 dark:hover:bg-[#132540] transition-colors">
                         <td className="p-5">
                           <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-[#00c896] font-bold text-sm">
-                              {student.name.charAt(0)}
+                            <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-[#00c896] font-bold text-sm overflow-hidden shrink-0">
+                              {(() => {
+                                const activeS = activeStudents.find(a => a.studentCode === student.studentCode);
+                                return activeS?.user.image
+                                  ? <Image src={activeS.user.image} alt="" width={36} height={36} className="object-cover w-full h-full" />
+                                  : student.name.charAt(0);
+                              })()}
                             </div>
                             <div>
                               <p className="font-bold text-slate-800 dark:text-white text-sm">{student.name}</p>
@@ -350,7 +356,7 @@ export default function StudentsPage() {
                           </span>
                         </td>
                         <td className="p-5">
-                          <span className={`px-3 py-1 rounded-full text-[10px] font-bold ${status.cls}`}>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${status.cls}`}>
                             {status.label}
                           </span>
                         </td>
