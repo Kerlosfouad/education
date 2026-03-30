@@ -23,6 +23,8 @@ model User {
   lastLoginAt       DateTime?
   lastLoginIp       String?
   loginCount        Int       @default(0)
+  resetToken        String?
+  resetTokenExpiry  DateTime?
   
   // Relations
   student           Student?
