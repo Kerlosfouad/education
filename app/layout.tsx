@@ -11,6 +11,7 @@ export const metadata: Metadata = {
   description: 'Advanced educational management platform for students and faculty',
   keywords: ['education', 'learning', 'students', 'university', 'e-learning'],
   authors: [{ name: 'Dr. Emad Bayuome' }],
+  manifest: '/manifest.json',
   openGraph: {
     title: 'Dr. Emad Bayuome Educational System',
     description: 'Advanced educational management platform',
@@ -25,6 +26,18 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#4f46e5" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="Dr. Emad Edu" />
+        <script dangerouslySetInnerHTML={{__html: `
+          if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'));
+          }
+        `}} />
+      </head>
       <body className={inter.className}>
         <Providers>
           {children}
