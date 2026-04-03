@@ -161,9 +161,10 @@ model Department {
   createdAt   DateTime  @default(now())
   
   // Relations
-  subjects    Subject[]
-  students    Student[]
-  books       Book[]
+  subjects            Subject[]
+  students            Student[]
+  books               Book[]
+  attendanceSessions  AttendanceSession[]
   
   @@map("departments")
 }
@@ -198,18 +199,20 @@ model Subject {
 
 // Attendance session
 model AttendanceSession {
-  id          String    @id @default(cuid())
-  subjectId   String?
-  title       String?
-  openTime    DateTime
-  closeTime   DateTime
-  isOpen      Boolean   @default(true)
-  createdBy   String
-  createdAt   DateTime  @default(now())
+  id           String    @id @default(cuid())
+  subjectId    String?
+  departmentId String?
+  title        String?
+  openTime     DateTime
+  closeTime    DateTime
+  isOpen       Boolean   @default(true)
+  createdBy    String
+  createdAt    DateTime  @default(now())
   
   // Relations
-  subject     Subject?  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  attendances Attendance[]
+  subject      Subject?    @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  department   Department? @relation(fields: [departmentId], references: [id])
+  attendances  Attendance[]
   
   @@map("attendance_sessions")
 }

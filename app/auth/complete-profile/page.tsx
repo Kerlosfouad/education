@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Loader2, Building2, GraduationCap, Phone, BookOpen, CheckCircle } from 'lucide-react';
+import { Loader2, Building2, GraduationCap, Phone, BookOpen, CheckCircle, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -28,6 +28,7 @@ export default function CompleteProfilePage() {
   const router = useRouter();
 
   const [departments, setDepartments] = useState<{ id: string; name: string; code: string }[]>([]);
+  const [fullName, setFullName] = useState('');
   const [departmentId, setDepartmentId] = useState('');
   const [academicYear, setAcademicYear] = useState('');
   const [studentCode, setStudentCode] = useState('');
@@ -63,6 +64,10 @@ export default function CompleteProfilePage() {
       setError('Please select department, academic year, and enter your student code');
       return;
     }
+    if (!fullName.trim()) {
+      setError('Please enter your full name');
+      return;
+    }
     if (!/^\d{5}$/.test(studentCode.trim())) {
       setError('Student code must be exactly 5 digits');
       return;
@@ -75,6 +80,7 @@ export default function CompleteProfilePage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          fullName: fullName.trim(),
           departmentId,
           academicYear: parseInt(academicYear),
           studentCode: studentCode.trim(),
@@ -155,6 +161,21 @@ export default function CompleteProfilePage() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Full Name (Three Parts) *</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    type="text"
+                    placeholder="e.g. Ahmed Mohamed Ali"
+                    value={fullName}
+                    onChange={e => setFullName(e.target.value)}
+                    className="pl-10"
+                    disabled={isLoading}
+                  />
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label>Department *</Label>
                 <Select

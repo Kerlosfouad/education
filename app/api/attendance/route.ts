@@ -62,6 +62,7 @@ export async function GET(req: NextRequest) {
         where,
         include: {
           subject: true,
+          department: { select: { id: true, name: true, nameAr: true } },
           _count: {
             select: {
               attendances: true,
@@ -121,7 +122,7 @@ export async function POST(req: NextRequest) {
 
     // Doctor creating attendance session
     if (session.user.role === 'DOCTOR' || session.user.role === 'ADMIN') {
-      const { title, openTime, closeTime } = body;
+      const { title, openTime, closeTime, departmentId } = body;
 
       if (!openTime || !closeTime) {
         return NextResponse.json(
@@ -134,6 +135,7 @@ export async function POST(req: NextRequest) {
         const attendanceSession = await db.attendanceSession.create({
           data: {
             subjectId: body.subjectId || null,
+            departmentId: departmentId || null,
             title: title || null,
             openTime: new Date(openTime),
             closeTime: new Date(closeTime),

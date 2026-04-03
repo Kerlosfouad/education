@@ -107,7 +107,8 @@ export const authOptions: NextAuthOptions = {
           }
 
           // Always reset to PENDING if no student record (re-registration case)
-          if (!dbUser.student && dbUser.role === 'STUDENT') {
+          // But don't override REJECTED status
+          if (!dbUser.student && dbUser.role === 'STUDENT' && dbUser.status !== 'REJECTED') {
             await db.user.update({
               where: { id: dbUser.id },
               data: { status: 'PENDING' },
@@ -125,13 +126,22 @@ export const authOptions: NextAuthOptions = {
         // Store minimal data only
         (user as any).id = dbUser.id;
         (user as any).role = dbUser.role;
-        // If student with no profile, keep PENDING. Doctors/Admins keep their status.
-        (user as any).status =
-          dbUser.role === 'STUDENT' && !dbUser.student
-            ? 'PENDING'
-            : dbUser.status;
         (user as any).studentId = dbUser.student?.id ?? null;
         (user as any).hasStudent = !!dbUser.student;
+
+        // For students: status depends on whether they have a student record
+        // Doctors/Admins always use their DB status
+        if (dbUser.role === 'STUDENT') {
+          if (!dbUser.student) {
+            // No student record = must complete profile, force PENDING
+            (user as any).status = 'PENDING';
+          } else {
+            // Has student record, use actual DB status
+            (user as any).status = dbUser.status;
+          }
+        } else {
+          (user as any).status = dbUser.status;
+        }
 
         return true;
       }
@@ -176,7 +186,7 @@ export const authOptions: NextAuthOptions = {
         }
       }
 
-      // Always verify user still exists in DB
+      // Always verify user still exists in DB (skip on first login as user object is already fresh)
       if (!user && token.id) {
         const dbUser = await db.user.findUnique({
           where: { id: token.id as string },
@@ -185,10 +195,15 @@ export const authOptions: NextAuthOptions = {
         // If user was deleted, invalidate token
         if (!dbUser) return {} as any;
         // Sync latest data
-        token.status = dbUser.status;
         token.role = dbUser.role;
         token.studentId = dbUser.student?.id ?? null;
         token.hasStudent = !!dbUser.student;
+        // Students without a profile must always be PENDING regardless of DB status
+        if (dbUser.role === 'STUDENT' && !dbUser.student) {
+          token.status = 'PENDING';
+        } else {
+          token.status = dbUser.status;
+        }
       }
       return token;
     },

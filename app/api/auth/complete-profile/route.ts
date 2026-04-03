@@ -6,6 +6,7 @@ import QRCode from 'qrcode';
 import { z } from 'zod';
 
 const schema = z.object({
+  fullName: z.string().trim().min(1),
   departmentId: z.string().min(1),
   academicYear: z.number().min(1).max(5),
   studentCode: z
@@ -27,7 +28,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: result.error.errors[0].message }, { status: 400 });
   }
 
-  const { departmentId, academicYear, studentCode, phone } = result.data;
+  const { fullName, departmentId, academicYear, studentCode, phone } = result.data;
 
   const user = await db.user.findUnique({
     where: { email: session.user.email },
@@ -56,10 +57,10 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  // Set status to PENDING for approval
+  // Update user name with the provided full name
   await db.user.update({
     where: { id: user.id },
-    data: { role: 'STUDENT', status: 'PENDING' },
+    data: { name: fullName, role: 'STUDENT', status: 'PENDING' },
   });
 
   return NextResponse.json({ success: true });
