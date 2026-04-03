@@ -47,15 +47,12 @@ export async function GET() {
     });
 
     // Attendance rate - based on closed sessions for student's department only
-    const totalSessions = await db.attendanceSession.count({
-      where: {
-        closeTime: { lt: now },
-        OR: [
-          { departmentId: null },
-          { departmentId: student.departmentId },
-        ],
-      },
-    });
+    const totalSessionsRaw = await db.$queryRaw<{count: bigint}[]>`
+      SELECT COUNT(*) as count FROM attendance_sessions
+      WHERE "closeTime" < ${now}
+      AND ("departmentId" IS NULL OR "departmentId" = ${student.departmentId})
+    `;
+    const totalSessions = Number(totalSessionsRaw[0]?.count ?? 0);
     const attendedSessions = await db.attendance.count({
       where: { studentId: student.id, verificationMethod: { not: 'ABSENT' } },
     });
@@ -64,16 +61,11 @@ export async function GET() {
       : 0;
 
     // Auto-mark absent for sessions that have closed and student has no record
-    const closedSessions = await db.attendanceSession.findMany({
-      where: {
-        closeTime: { lt: now },
-        OR: [
-          { departmentId: null },
-          { departmentId: student.departmentId },
-        ],
-      },
-      select: { id: true },
-    });
+    const closedSessions = await db.$queryRaw<{id: string}[]>`
+      SELECT id FROM attendance_sessions
+      WHERE "closeTime" < ${now}
+      AND ("departmentId" IS NULL OR "departmentId" = ${student.departmentId})
+    `;
     if (closedSessions.length > 0) {
       const closedIds = closedSessions.map((s) => s.id);
       const existingRecords = await db.attendance.findMany({
@@ -95,18 +87,23 @@ export async function GET() {
     }
 
     // Open attendance session (for auto-popup) - filtered by student's department
-    const openSession = await db.attendanceSession.findFirst({
-      where: {
-        isOpen: true,
-        openTime: { lte: now },
-        closeTime: { gte: now },
-        OR: [
-          { departmentId: null },
-          { departmentId: student.departmentId },
-        ],
-      },
-      include: { subject: { select: { name: true } } },
-    });
+    const openSessionRaw = await db.$queryRaw<any[]>`
+      SELECT s.id, s.title, s."closeTime",
+             subj.name as subject_name
+      FROM attendance_sessions s
+      LEFT JOIN subjects subj ON s."subjectId" = subj.id
+      WHERE s."isOpen" = true
+        AND s."openTime" <= ${now}
+        AND s."closeTime" >= ${now}
+        AND (s."departmentId" IS NULL OR s."departmentId" = ${student.departmentId})
+      LIMIT 1
+    `;
+    const openSession = openSessionRaw[0] ? {
+      id: openSessionRaw[0].id,
+      title: openSessionRaw[0].title,
+      closeTime: openSessionRaw[0].closeTime,
+      subject: { name: openSessionRaw[0].subject_name || '' },
+    } : null;
 
     // Check if already marked today
     let alreadyMarked = false;
