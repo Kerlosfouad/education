@@ -12,8 +12,8 @@ async function main() {
       where: { code: 'PREP' },
       update: {},
       create: {
-        name: 'Preparatory Engineering',
-        nameAr: 'السنة التحضيرية',
+        name: 'Level 0',
+        nameAr: 'Level 0',
         code: 'PREP',
         description: 'Foundation year for all engineering students',
         level: 0,
