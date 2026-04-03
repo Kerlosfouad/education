@@ -12,18 +12,20 @@ interface AttendanceSession {
 }
 interface Student { id: string; studentCode: string; user: { name: string; email: string }; }
 interface Subject { id: string; name: string; }
+interface Department { id: string; name: string; nameAr?: string; }
 
 export default function AttendancePage() {
   const { t } = useI18n();
   const [sessions, setSessions] = useState<AttendanceSession[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'sessions' | 'table'>('sessions');
-  const [form, setForm] = useState({ subjectId: '', title: '', durationHours: '1', durationMinutes: '0' });
+  const [form, setForm] = useState({ subjectId: '', departmentId: '', title: '', durationHours: '1', durationMinutes: '0' });
   const [menuSessionId, setMenuSessionId] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
@@ -44,6 +46,9 @@ export default function AttendancePage() {
       }
       if (subJson.success) setSubjects(subJson.data);
       if (stuJson.success) setStudents(stuJson.data);
+      const deptRes = await fetch('/api/subjects/departments');
+      const deptJson = await deptRes.json();
+      if (deptJson.success) setDepartments(deptJson.data);
     } catch {}
     setLoading(false);
   }, []);
@@ -63,12 +68,13 @@ export default function AttendancePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: form.title || undefined,
+          departmentId: form.departmentId || undefined,
           openTime: now.toISOString(),
           closeTime: closeTime.toISOString(),
         }),
       });
       const json = await res.json();
-      if (json.success) { setShowModal(false); setForm({ subjectId: '', title: '', durationHours: '1', durationMinutes: '0' }); fetchData(); }
+      if (json.success) { setShowModal(false); setForm({ subjectId: '', departmentId: '', title: '', durationHours: '1', durationMinutes: '0' }); fetchData(); }
       else setError(json.error || t('errorOccurred'));
     } catch { setError('Network error'); }
     setSaving(false);
@@ -95,7 +101,7 @@ export default function AttendancePage() {
   };
 
   const openModal = () => {
-    setForm({ subjectId: '', title: '', durationHours: '1', durationMinutes: '0' });
+    setForm({ subjectId: '', departmentId: '', title: '', durationHours: '1', durationMinutes: '0' });
     setError(''); setShowModal(true);
   };
 
@@ -286,6 +292,14 @@ export default function AttendancePage() {
                 <input type="text" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
                   placeholder="e.g. Week 3 lecture"
                   className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Department</label>
+                <select value={form.departmentId} onChange={e => setForm(f => ({ ...f, departmentId: e.target.value }))}
+                  className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+                  <option value="">All Departments</option>
+                  {departments.map(d => <option key={d.id} value={d.id}>{d.nameAr || d.name}</option>)}
+                </select>
               </div>
               <div>
                 <label className="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Session Duration *</label>
