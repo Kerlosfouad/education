@@ -5,6 +5,7 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // User model with role-based access
@@ -163,7 +164,6 @@ model Department {
   subjects            Subject[]
   students            Student[]
   books               Book[]
-  attendanceSessions  AttendanceSession[]
   
   @@map("departments")
 }
@@ -210,7 +210,6 @@ model AttendanceSession {
   
   // Relations
   subject      Subject?    @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  department   Department? @relation(fields: [departmentId], references: [id])
   attendances  Attendance[]
   
   @@map("attendance_sessions")

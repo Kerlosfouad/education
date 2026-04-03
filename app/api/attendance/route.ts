@@ -62,7 +62,6 @@ export async function GET(req: NextRequest) {
         where,
         include: {
           subject: true,
-          department: { select: { id: true, name: true, nameAr: true } },
           _count: {
             select: {
               attendances: true,
@@ -74,7 +73,19 @@ export async function GET(req: NextRequest) {
         },
       });
 
-      return NextResponse.json({ success: true, data: sessions });
+      // Fetch department info separately for sessions that have departmentId
+      const departmentIds = Array.from(new Set(sessions.map((s: any) => s.departmentId).filter(Boolean)));
+      const departments = departmentIds.length > 0
+        ? await db.department.findMany({ where: { id: { in: departmentIds as string[] } }, select: { id: true, name: true, nameAr: true } })
+        : [];
+      const deptMap = Object.fromEntries(departments.map((d: any) => [d.id, d]));
+
+      const sessionsWithDept = sessions.map((s: any) => ({
+        ...s,
+        department: s.departmentId ? deptMap[s.departmentId] ?? null : null,
+      }));
+
+      return NextResponse.json({ success: true, data: sessionsWithDept });
     }
 
     // For students, get their own attendance
@@ -135,13 +146,17 @@ export async function POST(req: NextRequest) {
         const attendanceSession = await db.attendanceSession.create({
           data: {
             subjectId: body.subjectId || null,
-            departmentId: departmentId || null,
             title: title || null,
             openTime: new Date(openTime),
             closeTime: new Date(closeTime),
             createdBy: session.user.id,
           },
         });
+
+        // Save departmentId via raw update if provided
+        if (departmentId) {
+          await db.$executeRaw`UPDATE attendance_sessions SET "departmentId" = ${departmentId} WHERE id = ${attendanceSession.id}`;
+        }
 
         // Notify all students (non-blocking)
         notifyAllStudents(
