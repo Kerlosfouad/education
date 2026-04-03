@@ -46,9 +46,15 @@ export async function GET() {
       take: 5,
     });
 
-    // Attendance rate - based on closed sessions only
+    // Attendance rate - based on closed sessions for student's department only
     const totalSessions = await db.attendanceSession.count({
-      where: { closeTime: { lt: now } },
+      where: {
+        closeTime: { lt: now },
+        OR: [
+          { departmentId: null },
+          { departmentId: student.departmentId },
+        ],
+      },
     });
     const attendedSessions = await db.attendance.count({
       where: { studentId: student.id, verificationMethod: { not: 'ABSENT' } },
@@ -59,7 +65,13 @@ export async function GET() {
 
     // Auto-mark absent for sessions that have closed and student has no record
     const closedSessions = await db.attendanceSession.findMany({
-      where: { closeTime: { lt: now } },
+      where: {
+        closeTime: { lt: now },
+        OR: [
+          { departmentId: null },
+          { departmentId: student.departmentId },
+        ],
+      },
       select: { id: true },
     });
     if (closedSessions.length > 0) {
@@ -82,9 +94,17 @@ export async function GET() {
       }
     }
 
-    // Open attendance session (for auto-popup)
+    // Open attendance session (for auto-popup) - filtered by student's department
     const openSession = await db.attendanceSession.findFirst({
-      where: { isOpen: true, openTime: { lte: now }, closeTime: { gte: now } },
+      where: {
+        isOpen: true,
+        openTime: { lte: now },
+        closeTime: { gte: now },
+        OR: [
+          { departmentId: null },
+          { departmentId: student.departmentId },
+        ],
+      },
       include: { subject: { select: { name: true } } },
     });
 
