@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { GraduationCap, Download, Loader2, Check, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 
 interface Subject { id: string; name: string; code: string; department: { name: string }; academicYear: number; semester: number; }
 interface StudentGrade { id: string; name: string; studentCode: string; grades: Record<string, number>; subjectId?: string; subjectName?: string; }
@@ -107,19 +107,103 @@ export default function GradesPage() {
   const exportExcel = () => {
     if (!students.length) return;
     const name = subjectInfo?.name || 'All Subjects';
-    const headers = ['#', 'Student Name', 'Code', ...(selectedSubject === 'all' ? ['Subject'] : []),
-      ...examTypes.map(t => `${t.label} (/${t.max})`), 'Total'];
-    const rows = students.map((s, i) => [
-      i + 1, s.name, s.studentCode,
-      ...(selectedSubject === 'all' ? [s.subjectName || ''] : []),
-      ...examTypes.map(t => s.grades[t.key] ?? 0),
-      getTotal(s.grades),
-    ]);
-    const ws = XLSX.utils.aoa_to_sheet([[`Grade Sheet - ${name}`], [], headers, ...rows, [], [`Total Students: ${students.length}`]]);
-    ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: headers.length - 1 } }];
-    ws['!cols'] = headers.map((_, i) => ({ wch: i === 1 ? 30 : 15 }));
+
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, name.slice(0, 31));
+
+    const exportSubject = (list: StudentGrade[], sheetName: string, subjName: string) => {
+      const colCount = 4 + examTypes.length + 1; // #, Name, Code, ...exams, Total
+
+      const aoa: any[][] = [];
+
+      // Row 0: Title
+      aoa.push([`Grade Sheet - ${subjName}`, ...Array(colCount - 1).fill('')]);
+
+      // Row 1: empty
+      aoa.push(Array(colCount).fill(''));
+
+      // Row 2: Headers
+      aoa.push(['#', 'Student Name', 'Code', ...examTypes.map(t => `${t.label} (/${t.max})`), 'Total']);
+
+      // Rows 3+: Data
+      list.forEach((s, i) => {
+        const total = getTotal(s.grades);
+        const graded = hasGrades(s);
+        aoa.push([
+          i + 1,
+          s.name,
+          s.studentCode,
+          ...examTypes.map(t => s.grades[t.key] ?? 0),
+          graded ? `${total} / ${maxTotal}` : `0 / ${maxTotal}`,
+        ]);
+      });
+
+      // Empty row
+      aoa.push(Array(colCount).fill(''));
+
+      // Total students row
+      const totalRow = Array(colCount).fill('');
+      totalRow[colCount - 2] = `Total Students: ${list.length}`;
+      aoa.push(totalRow);
+
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+      // Column widths
+      ws['!cols'] = [
+        { wch: 4 },  // #
+        { wch: 28 }, // Name
+        { wch: 10 }, // Code
+        ...examTypes.map(() => ({ wch: 14 })),
+        { wch: 12 }, // Total
+      ];
+
+      // Merge title row
+      ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: colCount - 1 } }];
+
+      // Style helper
+      const titleStyle = { font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 14 }, fill: { fgColor: { rgb: '1F3864' } }, alignment: { horizontal: 'center', vertical: 'center' } };
+      const headerStyle = { font: { bold: true, color: { rgb: 'FFFFFF' } }, fill: { fgColor: { rgb: '2E4DA0' } }, alignment: { horizontal: 'center' }, border: { bottom: { style: 'thin', color: { rgb: 'FFFFFF' } } } };
+      const cellStyle = { alignment: { horizontal: 'center' }, border: { top: { style: 'thin', color: { rgb: 'D0D0D0' } }, bottom: { style: 'thin', color: { rgb: 'D0D0D0' } } } };
+      const greenStyle = { font: { bold: true, color: { rgb: '00A651' } }, alignment: { horizontal: 'center' } };
+      const grayStyle = { font: { color: { rgb: '999999' } }, alignment: { horizontal: 'center' } };
+
+      const setCellStyle = (r: number, c: number, style: any) => {
+        const addr = XLSX.utils.encode_cell({ r, c });
+        if (!ws[addr]) ws[addr] = { v: '', t: 's' };
+        ws[addr].s = style;
+      };
+
+      // Apply title style
+      for (let c = 0; c < colCount; c++) setCellStyle(0, c, titleStyle);
+
+      // Apply header style
+      for (let c = 0; c < colCount; c++) setCellStyle(2, c, headerStyle);
+
+      // Apply data row styles
+      list.forEach((s, i) => {
+        const r = 3 + i;
+        const total = getTotal(s.grades);
+        const graded = hasGrades(s);
+        for (let c = 0; c < colCount; c++) {
+          if (c === colCount - 1) {
+            setCellStyle(r, c, graded ? greenStyle : grayStyle);
+          } else {
+            setCellStyle(r, c, cellStyle);
+          }
+        }
+      });
+
+      XLSX.utils.book_append_sheet(wb, ws, sheetName.slice(0, 31));
+    };
+
+    if (selectedSubject === 'all') {
+      subjects.forEach(subj => {
+        const list = students.filter(s => s.subjectId === subj.id);
+        if (list.length > 0) exportSubject(list, subj.name.slice(0, 31), subj.name);
+      });
+    } else {
+      exportSubject(students, name.slice(0, 31), name);
+    }
+
     XLSX.writeFile(wb, `grades-${name}-${Date.now()}.xlsx`);
   };
 

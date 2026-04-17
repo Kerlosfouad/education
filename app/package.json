@@ -50,6 +50,7 @@
     "ua-parser-js": "^1.0.37",
     "uploadthing": "^7.7.4",
     "xlsx": "^0.18.5",
+    "xlsx-js-style": "^1.2.0",
     "zod": "^3.22.0",
     "zustand": "^4.4.0"
   },
