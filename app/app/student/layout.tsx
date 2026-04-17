@@ -248,7 +248,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
                       <BookOpen size={16} className="text-[#00c896] shrink-0" />
                       <div>
                         <p className="text-[10px] text-slate-400 uppercase font-bold">Academic Year</p>
-                        <p className="font-semibold text-slate-800 dark:text-slate-100 text-sm">{yearLabels[profile.academicYear] || `Year ${profile.academicYear}`}</p>
+                        <p className="font-semibold text-slate-800 dark:text-slate-100 text-sm">{`Level ${profile.academicYear}`}</p>
                       </div>
                     </div>
                   </div>
