@@ -13,7 +13,7 @@ interface Subject {
 
 const YEARS = [1, 2, 3, 4];
 const SEMESTERS = [1, 2];
-const YEAR_LABELS: Record<number, string> = { 1: 'Year 1', 2: 'Year 2', 3: 'Year 3', 4: 'Year 4' };
+const YEAR_LABELS: Record<number, string> = { 1: 'Level 1', 2: 'Level 2', 3: 'Level 3', 4: 'Level 4' };
 const SEM_LABELS: Record<number, string> = { 1: 'Semester 1', 2: 'Semester 2' };
 
 const emptyForm = { name: '', code: '', departmentId: '', academicYear: 1, semester: 1 };
