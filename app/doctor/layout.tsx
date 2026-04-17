@@ -51,7 +51,7 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
     { icon: Calendar,        label: t('attendance'),    path: '/doctor/attendance' },
     { icon: ClipboardList,   label: t('assignments'),   path: '/doctor/assignments' },
     { icon: HelpCircle,      label: t('quizzes'),       path: '/doctor/quizzes' },
-    { icon: GraduationCap,   label: 'مواد',             path: '/doctor/subjects' },
+    { icon: GraduationCap,   label: 'Subjects',          path: '/doctor/subjects' },
     { icon: Video,           label: t('videos'),        path: '/doctor/videos' },
     { icon: Library,         label: t('eLibrary'),      path: '/doctor/libbooks' },
     { icon: BarChart3,       label: t('analytics'),     path: '/doctor/analytics' },
