@@ -225,7 +225,7 @@ export default function QuizPage() {
           <AlertCircle className="w-8 h-8 text-blue-500" />
         </div>
         <h2 className="text-xl font-bold text-gray-800">{quiz.title}</h2>
-        <p className="text-gray-400 text-sm">{quiz.subject?.name ?? `Year ${quiz.academicYear}`}</p>
+        <p className="text-gray-400 text-sm">{quiz.subject?.name ?? `Level ${quiz.academicYear}`}</p>
 
         <div className="grid grid-cols-3 gap-3 py-4">
           <div className="bg-blue-50 rounded-xl p-3">

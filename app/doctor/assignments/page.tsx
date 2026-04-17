@@ -237,7 +237,7 @@ setNewAssignment({ title: '', departmentId: '', academicYear: '', durationDays: 
                   {/* Group by department + year */}
                   {Object.entries(
                     selected.submissions.reduce((groups, sub) => {
-                      const key = `${sub.student.department?.name ?? 'General'} - Year ${sub.student.academicYear}`;
+                      const key = `${sub.student.department?.name ?? 'General'} - Level ${sub.student.academicYear}`;
                       if (!groups[key]) groups[key] = [];
                       groups[key].push(sub);
                       return groups;

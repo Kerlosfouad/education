@@ -93,7 +93,7 @@ export default function ResultsPage() {
 
     sortedGroups.forEach(([key, groupStudents], gi) => {
       const [dept, year] = key.split('||');
-      const groupLabel = `${dept.toUpperCase()} — ${(yearLabel[Number(year)] || `Year ${year}`).toUpperCase()}`;
+      const groupLabel = `${dept.toUpperCase()} — ${(yearLabel[Number(year)] || `Level ${year}`).toUpperCase()}`;
 
       if (gi > 0) {
         attWsData.push([]);
@@ -130,7 +130,7 @@ export default function ResultsPage() {
       const [dept, year] = key.split('||');
       if (gi > 0) { quizWsData.push([]); quizWsData.push([]); }
       const titleRow = quizWsData.length;
-      quizWsData.push([`★  ${dept.toUpperCase()} — ${(yearLabel[Number(year)] || `Year ${year}`).toUpperCase()}`, '', '', '', '', '']);
+      quizWsData.push([`★  ${dept.toUpperCase()} — ${(yearLabel[Number(year)] || `Level ${year}`).toUpperCase()}`, '', '', '', '', '']);
       quizMerges.push({ s: { r: titleRow, c: 0 }, e: { r: titleRow, c: 5 } });
       quizWsData.push(['Student Name', 'Code', 'Quiz Title', 'Score', 'Max', '%']);
       groupStudents.forEach(s => {
@@ -154,7 +154,7 @@ export default function ResultsPage() {
       const [dept, year] = key.split('||');
       if (gi > 0) { assWsData.push([]); assWsData.push([]); }
       const titleRow = assWsData.length;
-      assWsData.push([`★  ${dept.toUpperCase()} — ${(yearLabel[Number(year)] || `Year ${year}`).toUpperCase()}`, '', '', '', '']);
+      assWsData.push([`★  ${dept.toUpperCase()} — ${(yearLabel[Number(year)] || `Level ${year}`).toUpperCase()}`, '', '', '', '']);
       assMerges.push({ s: { r: titleRow, c: 0 }, e: { r: titleRow, c: 4 } });
       assWsData.push(['Student Name', 'Code', 'Assignment Title', 'Score', 'Max']);
       groupStudents.forEach(s => {
@@ -221,7 +221,7 @@ export default function ResultsPage() {
                 <div className="flex items-center gap-3 mb-4">
                   <div className="h-px flex-1 bg-slate-200 dark:bg-[#1a2f4a]" />
                   <span className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest px-3 py-1 bg-slate-100 dark:bg-[#0f1f38] rounded-full">
-                    {dept} — {yearLabel[Number(year)] || `Year ${year}`}
+                    {dept} — {yearLabel[Number(year)] || `Level ${year}`}
                   </span>
                   <div className="h-px flex-1 bg-slate-200 dark:bg-[#1a2f4a]" />
                 </div>

@@ -338,9 +338,9 @@ export default function DoctorDashboardPage() {
               <div className="flex items-center gap-3 p-2.5 bg-slate-50 dark:bg-[#0a1628]/60 rounded-xl">
                 <GraduationCap size={15} className="text-indigo-500 dark:text-[#00c896] shrink-0" />
                 <div>
-                  <p className="text-[10px] text-slate-400 uppercase font-bold">Academic Year</p>
+                  <p className="text-[10px] text-slate-400 uppercase font-bold">Level</p>
                   <p className="font-semibold text-slate-800 dark:text-white text-sm">
-                    {['', 'First', 'Second', 'Third', 'Fourth', 'Fifth'][selectedStudent.academicYear] || selectedStudent.academicYear} Year
+                    Level {selectedStudent.academicYear}
                   </p>
                 </div>
               </div>

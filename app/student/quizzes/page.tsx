@@ -93,7 +93,7 @@ export default function StudentQuizzesPage() {
                       <StatusBadge status={status} />
                     </div>
                     <p className="text-sm text-gray-400 mb-3">
-                      {quiz.subject?.name ?? `Year ${quiz.academicYear}`}
+                      {quiz.subject?.name ?? `Level ${quiz.academicYear}`}
                     </p>
 
                     <div className="flex flex-wrap gap-4 text-sm text-gray-500">

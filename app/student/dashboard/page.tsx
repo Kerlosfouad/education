@@ -157,7 +157,7 @@ export default function StudentDashboardPage() {
             {t('welcome')}, {data?.student.name?.split(' ')[0]} 👋
           </h2>
           <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">
-            {data?.student.department} &bull; {academicYearLabel[data?.student.academicYear ?? 0] || `Year ${data?.student.academicYear}`}
+            {data?.student.department} &bull; {academicYearLabel[data?.student.academicYear ?? 0] || `Level ${data?.student.academicYear}`}
           </p>
         </div>
 
