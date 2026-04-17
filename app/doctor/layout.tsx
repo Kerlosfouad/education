@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Users, Calendar, ClipboardList,
   HelpCircle, Video, Library, GraduationCap,
   BarChart3, Settings, Menu, LogOut, MonitorPlay, Sun, Moon,
-  X, Phone, MessageCircle, Facebook, Instagram, Twitter,
+  X, Phone, MessageCircle, Facebook, Instagram, Twitter, Award,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -51,7 +51,8 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
     { icon: Calendar,        label: t('attendance'),    path: '/doctor/attendance' },
     { icon: ClipboardList,   label: t('assignments'),   path: '/doctor/assignments' },
     { icon: HelpCircle,      label: t('quizzes'),       path: '/doctor/quizzes' },
-    { icon: GraduationCap,   label: 'Subjects',          path: '/doctor/subjects' },
+    { icon: GraduationCap,   label: 'Subjects',         path: '/doctor/subjects' },
+    { icon: Award,           label: 'Grades',           path: '/doctor/grades' },
     { icon: Video,           label: t('videos'),        path: '/doctor/videos' },
     { icon: Library,         label: t('eLibrary'),      path: '/doctor/libbooks' },
     { icon: BarChart3,       label: t('analytics'),     path: '/doctor/analytics' },
