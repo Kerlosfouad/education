@@ -36,6 +36,8 @@ export default function CompleteProfilePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [isDone, setIsDone] = useState(false);
+  const [subjects, setSubjects] = useState<{ id: string; name: string }[]>([]);
+  const [loadingSubjects, setLoadingSubjects] = useState(false);
 
   const selectedDept = departments.find(d => d.id === departmentId);
   const academicYears = selectedDept?.code === 'PREP'
@@ -57,6 +59,17 @@ export default function CompleteProfilePage() {
       .then(json => { if (json.success) setDepartments(json.data); })
       .catch(() => {});
   }, [status, session, router]);
+
+  // Fetch subjects when department + year selected
+  useEffect(() => {
+    if (!departmentId || !academicYear) { setSubjects([]); return; }
+    setLoadingSubjects(true);
+    fetch(`/api/subjects?departmentId=${departmentId}&academicYear=${academicYear}`)
+      .then(r => r.json())
+      .then(json => setSubjects(json.success ? json.data : []))
+      .catch(() => setSubjects([]))
+      .finally(() => setLoadingSubjects(false));
+  }, [departmentId, academicYear]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -214,9 +227,35 @@ export default function CompleteProfilePage() {
                 </Select>
               </div>
 
+              {/* Subjects preview */}
+              {departmentId && academicYear && (
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1.5">
+                    <BookOpen className="w-4 h-4 text-indigo-500" />
+                    Your Subjects
+                  </Label>
+                  {loadingSubjects ? (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                      <Loader2 className="w-4 h-4 animate-spin" /> Loading subjects...
+                    </div>
+                  ) : subjects.length === 0 ? (
+                    <p className="text-sm text-muted-foreground bg-slate-50 rounded-xl px-4 py-3">
+                      No subjects assigned yet for this level.
+                    </p>
+                  ) : (
+                    <div className="bg-indigo-50 rounded-xl px-4 py-3 flex flex-wrap gap-2">
+                      {subjects.map(s => (
+                        <span key={s.id} className="text-xs font-semibold bg-white text-indigo-700 border border-indigo-200 px-3 py-1 rounded-full">
+                          {s.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="space-y-2">
-                <Label>Student Code *</Label>
-                <Input
+                <Label>Student Code *</Label>                <Input
                   type="tel"
                   inputMode="numeric"
                   placeholder="e.g. 971304"

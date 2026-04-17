@@ -48,6 +48,8 @@ export default function RegisterPage() {
   
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [subjects, setSubjects] = useState<{ id: string; name: string }[]>([]);
+  const [loadingSubjects, setLoadingSubjects] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [error, setError] = useState('');
@@ -64,6 +66,17 @@ export default function RegisterPage() {
       .then(json => { if (json.success) setDepartments(json.data); })
       .catch(() => {});
   }, []);
+
+  // Fetch subjects when department + year selected
+  useEffect(() => {
+    if (!formData.departmentId || !formData.academicYear) { setSubjects([]); return; }
+    setLoadingSubjects(true);
+    fetch(`/api/subjects?departmentId=${formData.departmentId}&academicYear=${formData.academicYear}`)
+      .then(r => r.json())
+      .then(json => setSubjects(json.success ? json.data : []))
+      .catch(() => setSubjects([]))
+      .finally(() => setLoadingSubjects(false));
+  }, [formData.departmentId, formData.academicYear]);
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({
@@ -352,12 +365,38 @@ export default function RegisterPage() {
                 </div>
               </div>
 
+              {/* Subjects preview */}
+              {formData.departmentId && formData.academicYear && (
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1.5">
+                    <BookOpen className="w-4 h-4 text-indigo-500" />
+                    Your Subjects
+                  </Label>
+                  {loadingSubjects ? (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                      <Loader2 className="w-4 h-4 animate-spin" /> Loading subjects...
+                    </div>
+                  ) : subjects.length === 0 ? (
+                    <p className="text-sm text-muted-foreground bg-slate-50 rounded-xl px-4 py-3">
+                      No subjects assigned yet for this level.
+                    </p>
+                  ) : (
+                    <div className="bg-indigo-50 rounded-xl px-4 py-3 flex flex-wrap gap-2">
+                      {subjects.map(s => (
+                        <span key={s.id} className="text-xs font-semibold bg-white text-indigo-700 border border-indigo-200 px-3 py-1 rounded-full">
+                          {s.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <Button
                 type="submit"
                 className="w-full bg-gradient-to-r from-primary to-purple-600 mt-2"
                 disabled={isLoading}
-              >
-                {isLoading ? (
+              >                {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     Creating account...
