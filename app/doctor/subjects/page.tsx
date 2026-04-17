@@ -39,6 +39,11 @@ export default function SubjectsPage() {
 
   useEffect(() => { load(); }, []);
 
+  const generateCode = (name: string) => {
+    const ts = Date.now().toString().slice(-4);
+    return name.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6) + ts;
+  };
+
   const openAdd = () => { setEditId(null); setForm(emptyForm); setShowForm(true); };
   const openEdit = (s: Subject) => {
     setEditId(s.id);
@@ -47,12 +52,13 @@ export default function SubjectsPage() {
   };
 
   const handleSave = async () => {
-    if (!form.name || !form.code || !form.departmentId) { toast.error('Please fill all required fields'); return; }
+    if (!form.name || !form.departmentId) { toast.error('Please fill all required fields'); return; }
+    const finalForm = { ...form, code: form.code || generateCode(form.name) };
     setSaving(true);
     try {
       const url = editId ? `/api/doctor/subjects/${editId}` : '/api/doctor/subjects';
       const method = editId ? 'PATCH' : 'POST';
-      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(finalForm) });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error);
       toast.success(editId ? 'Subject updated' : 'Subject added');
@@ -189,12 +195,7 @@ export default function SubjectsPage() {
                   placeholder="e.g. Physics 1"
                   className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-slate-50 dark:bg-slate-700 dark:text-slate-100" />
               </div>
-              <div>
-                <label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">Subject Code *</label>
-                <input value={form.code} onChange={e => setForm(p => ({ ...p, code: e.target.value.toUpperCase() }))}
-                  placeholder="e.g. PHYS101"
-                  className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-slate-50 dark:bg-slate-700 dark:text-slate-100" />
-              </div>
+
               <div>
                 <label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">Department *</label>
                 <select value={form.departmentId} onChange={e => setForm(p => ({ ...p, departmentId: e.target.value }))}
