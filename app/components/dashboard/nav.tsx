@@ -21,6 +21,7 @@ import {
   ChevronLeft,
   ChevronRight,
   BookOpen as Logo,
+  GraduationCap,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -54,6 +55,7 @@ const doctorNavItems = [
   { href: '/doctor', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/doctor/students', label: 'Students', icon: User },
   { href: '/doctor/attendance', label: 'Attendance', icon: Calendar },
+  { href: '/doctor/subjects', label: 'مواد', icon: GraduationCap },
   { href: '/doctor/assignments', label: 'Assignments', icon: FileText },
   { href: '/doctor/quizzes', label: 'Quizzes', icon: HelpCircle },
   { href: '/doctor/lectures', label: 'Lectures', icon: Video },
