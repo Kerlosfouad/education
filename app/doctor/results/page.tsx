@@ -39,7 +39,7 @@ type StudentResult = {
 };
 
 const yearLabel: Record<number, string> = {
-  1: 'First Year', 2: 'Second Year', 3: 'Third Year', 4: 'Fourth Year', 5: 'Fifth Year',
+  1: 'Level 1', 2: 'Level 2', 3: 'Level 3', 4: 'Level 4', 5: 'Level 5',
 };
 
 export default function ResultsPage() {

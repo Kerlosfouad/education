@@ -101,7 +101,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
   const studentEmail = session?.user?.email || '';
   const initials = studentName.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
   const yearLabels: Record<number, string> = {
-    1: 'First Year', 2: 'Second Year', 3: 'Third Year', 4: 'Fourth Year', 5: 'Fifth Year',
+    1: 'Level 1', 2: 'Level 2', 3: 'Level 3', 4: 'Level 4', 5: 'Level 5',
   };
 
   return (

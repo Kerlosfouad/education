@@ -88,7 +88,7 @@ export default function StudentDashboardPage() {
     </div>
   );
 
-  const academicYearLabel = ['', 'First Year', 'Second Year', 'Third Year', 'Fourth Year', 'Fifth Year', 'Sixth Year'];
+  const academicYearLabel = ['', 'Level 1', 'Level 2', 'Level 3', 'Level 4', 'Level 5', 'Level 6'];
 
   return (
     <>

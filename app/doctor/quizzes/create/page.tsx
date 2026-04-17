@@ -17,12 +17,12 @@ type Question = {
 type Subject = { id: string; name: string };
 
 const academicYearsByDept: Record<string, { value: number; label: string }[]> = {
-  PREP: [{ value: 1, label: 'First Year' }],
+  PREP: [{ value: 1, label: 'Level 1' }],
   default: [
-    { value: 2, label: 'Second Year' },
-    { value: 3, label: 'Third Year' },
-    { value: 4, label: 'Fourth Year' },
-    { value: 5, label: 'Fifth Year' },
+    { value: 2, label: 'Level 2' },
+    { value: 3, label: 'Level 3' },
+    { value: 4, label: 'Level 4' },
+    { value: 5, label: 'Level 5' },
   ],
 };
 
