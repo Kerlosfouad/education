@@ -93,6 +93,24 @@ export default function LandingPage() {
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
   const [doctorName, setDoctorName] = useState<string>('Dr. Kerlos Fouad');
   const { theme, setTheme } = useTheme();
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    const handler = (e: Event) => { e.preventDefault(); setDeferredPrompt(e); };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstall = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
+      setDeferredPrompt(null);
+    } else {
+      // Fallback: guide user to install manually
+      alert('To install: open browser menu → "Add to Home Screen" or "Install App"');
+    }
+  };
   const { data: session, status: authStatus } = useSession();
   const { t } = useI18n();
 
@@ -388,9 +406,9 @@ export default function LandingPage() {
                   <ChevronRight className="w-5 h-5 ml-2" />
                 </Button>
               </Link>
-              <Button size="lg" variant="outline">
+              <Button size="lg" variant="outline" onClick={handleInstall}>
                 <Download className="w-5 h-5 mr-2" />
-                Download App
+                {deferredPrompt ? 'Install App' : 'Download App'}
               </Button>
             </div>
           </div>
