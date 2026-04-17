@@ -39,6 +39,12 @@ export default function GradesPage() {
       .then(j => { if (j.success) setSubjects(j.subjects); });
   }, []);
 
+  // Auto-load on mount with 'all'
+  useEffect(() => {
+    loadStudents('all');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const loadStudents = async (subjectId: string) => {
     setLoading(true);
     setStudents([]);
