@@ -24,8 +24,6 @@ export default function GradesPage() {
   const [editingStudent, setEditingStudent] = useState<StudentGrade | null>(null);
   const [editGrades, setEditGrades] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
-
-  // Editable max scores per exam type
   const [examMaxes, setExamMaxes] = useState<Record<string, number>>(() =>
     Object.fromEntries(DEFAULT_EXAM_TYPES.map(t => [t.key, t.max]))
   );
@@ -45,9 +43,7 @@ export default function GradesPage() {
     setLoading(true);
     setStudents([]);
     setSubjectInfo(null);
-
     if (subjectId === 'all') {
-      // Load all subjects and merge students
       const res = await fetch('/api/doctor/subjects');
       const json = await res.json();
       if (!json.success) { setLoading(false); return; }
@@ -55,11 +51,9 @@ export default function GradesPage() {
       for (const subj of json.subjects) {
         const r = await fetch(`/api/doctor/grades?subjectId=${subj.id}`);
         const d = await r.json();
-        if (d.success) {
-          d.students.forEach((s: StudentGrade) => {
-            allStudents.push({ ...s, subjectId: subj.id, subjectName: subj.name });
-          });
-        }
+        if (d.success) d.students.forEach((s: StudentGrade) =>
+          allStudents.push({ ...s, subjectId: subj.id, subjectName: subj.name })
+        );
       }
       setStudents(allStudents);
     } else {
@@ -101,9 +95,7 @@ export default function GradesPage() {
     setSaving(false);
   };
 
-  const getTotal = (grades: Record<string, number>) =>
-    examTypes.reduce((sum, t) => sum + (grades[t.key] ?? 0), 0);
-
+  const getTotal = (grades: Record<string, number>) => examTypes.reduce((sum, t) => sum + (grades[t.key] ?? 0), 0);
   const hasGrades = (s: StudentGrade) => examTypes.some(t => s.grades[t.key] !== undefined);
 
   const exportExcel = () => {
@@ -117,17 +109,49 @@ export default function GradesPage() {
       ...examTypes.map(t => s.grades[t.key] ?? 0),
       getTotal(s.grades),
     ]);
-    const ws = XLSX.utils.aoa_to_sheet([
-      [`Grade Sheet - ${name}`], [],
-      headers, ...rows, [],
-      [`Total Students: ${students.length}`],
-    ]);
+    const ws = XLSX.utils.aoa_to_sheet([[`Grade Sheet - ${name}`], [], headers, ...rows, [], [`Total Students: ${students.length}`]]);
     ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: headers.length - 1 } }];
     ws['!cols'] = headers.map((_, i) => ({ wch: i === 1 ? 30 : 15 }));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, name.slice(0, 31));
     XLSX.writeFile(wb, `grades-${name}-${Date.now()}.xlsx`);
   };
+
+  // Reusable student table
+  const StudentTable = ({ list, subjId }: { list: StudentGrade[]; subjId?: string }) => (
+    <div className="divide-y divide-slate-50 dark:divide-slate-700/50">
+      {list.map(s => {
+        const total = getTotal(s.grades);
+        const graded = hasGrades(s);
+        return (
+          <div key={`${s.id}-${subjId}`} className={`grid grid-cols-[2fr_1fr_repeat(4,1fr)_1fr_auto] gap-2 items-center px-6 py-4 transition-colors ${graded ? 'bg-green-50/30 dark:bg-green-900/10' : 'hover:bg-slate-50 dark:hover:bg-slate-700/20'}`}>
+            <span className="font-semibold text-slate-800 dark:text-slate-100 text-sm truncate">{s.name}</span>
+            <span className="text-xs text-slate-400">{s.studentCode}</span>
+            {examTypes.map(t => (
+              <span key={t.key} className={`text-sm font-bold ${s.grades[t.key] !== undefined ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-300'}`}>
+                {s.grades[t.key] !== undefined ? s.grades[t.key] : '—'}
+              </span>
+            ))}
+            <span className={`text-sm font-black ${graded ? 'text-green-600' : 'text-slate-300'}`}>
+              {graded ? `${total}/${maxTotal}` : '—'}
+            </span>
+            <button onClick={() => openEdit(s)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${graded ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 hover:bg-indigo-200' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}>
+              {graded ? <><Pencil size={12} /> Edit</> : <><Check size={12} /> Set</>}
+            </button>
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  const TableHeader = () => (
+    <div className="grid grid-cols-[2fr_1fr_repeat(4,1fr)_1fr_auto] gap-2 px-6 py-3 bg-slate-50 dark:bg-slate-700/30 text-xs font-bold text-slate-400 uppercase border-b border-slate-100 dark:border-slate-700">
+      <span>Student</span><span>Code</span>
+      {examTypes.map(t => <span key={t.key}>{t.label}</span>)}
+      <span>Total</span><span></span>
+    </div>
+  );
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in duration-500">
@@ -167,14 +191,9 @@ export default function GradesPage() {
           <div key={t.key} className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl px-3 py-2 text-sm shadow-sm">
             <span className="font-bold text-slate-700 dark:text-slate-200">{t.label}</span>
             {editingMax === t.key ? (
-              <input autoFocus type="number" min={1} max={200}
-                value={tempMax}
+              <input autoFocus type="number" min={1} max={200} value={tempMax}
                 onChange={e => setTempMax(e.target.value)}
-                onBlur={() => {
-                  const v = Number(tempMax);
-                  if (v > 0) setExamMaxes(p => ({ ...p, [t.key]: v }));
-                  setEditingMax(null);
-                }}
+                onBlur={() => { const v = Number(tempMax); if (v > 0) setExamMaxes(p => ({ ...p, [t.key]: v })); setEditingMax(null); }}
                 onKeyDown={e => {
                   if (e.key === 'Enter') { const v = Number(tempMax); if (v > 0) setExamMaxes(p => ({ ...p, [t.key]: v })); setEditingMax(null); }
                   if (e.key === 'Escape') setEditingMax(null);
@@ -184,8 +203,7 @@ export default function GradesPage() {
             ) : (
               <span className="text-slate-400">/ {t.max}</span>
             )}
-            <button onClick={() => { setEditingMax(t.key); setTempMax(String(t.max)); }}
-              className="text-slate-300 hover:text-indigo-500 transition-colors">
+            <button onClick={() => { setEditingMax(t.key); setTempMax(String(t.max)); }} className="text-slate-300 hover:text-indigo-500 transition-colors">
               <Pencil size={12} />
             </button>
           </div>
@@ -201,53 +219,41 @@ export default function GradesPage() {
         <div className="flex items-center justify-center py-20">
           <Loader2 className="animate-spin text-indigo-600" size={36} />
         </div>
+      ) : selectedSubject === 'all' ? (
+        // Separate table per subject
+        <div className="space-y-6">
+          {subjects.map(subj => {
+            const list = students.filter(s => s.subjectId === subj.id);
+            if (list.length === 0) return null;
+            return (
+              <div key={subj.id} className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 bg-indigo-50 dark:bg-indigo-900/20 border-b border-indigo-100 dark:border-indigo-800 flex items-center justify-between">
+                  <div>
+                    <span className="font-black text-indigo-700 dark:text-indigo-300">{subj.name}</span>
+                    <span className="ml-2 text-xs text-indigo-400">{subj.department?.name} · Level {subj.academicYear}</span>
+                  </div>
+                  <span className="text-xs text-indigo-400 bg-indigo-100 dark:bg-indigo-900/40 px-2 py-0.5 rounded-full">{list.length} students</span>
+                </div>
+                <TableHeader />
+                <StudentTable list={list} subjId={subj.id} />
+              </div>
+            );
+          })}
+          {students.length === 0 && !loading && (
+            <div className="text-center py-16 text-slate-400">
+              <GraduationCap size={48} className="mx-auto mb-3 opacity-30" />
+              <p className="font-medium">No students found across all subjects</p>
+            </div>
+          )}
+        </div>
       ) : students.length > 0 ? (
         <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden">
           <div className="px-6 py-4 bg-indigo-50 dark:bg-indigo-900/20 border-b border-indigo-100 dark:border-indigo-800 flex items-center justify-between">
-            <span className="font-black text-indigo-700 dark:text-indigo-300">
-              {selectedSubject === 'all' ? 'All Subjects' : subjectInfo?.name}
-            </span>
+            <span className="font-black text-indigo-700 dark:text-indigo-300">{subjectInfo?.name}</span>
             <span className="text-xs text-indigo-400 bg-indigo-100 dark:bg-indigo-900/40 px-2 py-0.5 rounded-full">{students.length} students</span>
           </div>
-
-          {/* Table header */}
-          <div className={`grid gap-2 px-6 py-3 bg-slate-50 dark:bg-slate-700/30 text-xs font-bold text-slate-400 uppercase border-b border-slate-100 dark:border-slate-700 ${selectedSubject === 'all' ? 'grid-cols-[2fr_1fr_1fr_repeat(4,1fr)_1fr_auto]' : 'grid-cols-[2fr_1fr_repeat(4,1fr)_1fr_auto]'}`}>
-            <span>Student</span>
-            <span>Code</span>
-            {selectedSubject === 'all' && <span>Subject</span>}
-            {examTypes.map(t => <span key={t.key}>{t.label}</span>)}
-            <span>Total</span>
-            <span></span>
-          </div>
-
-          <div className="divide-y divide-slate-50 dark:divide-slate-700/50">
-            {students.map(s => {
-              const total = getTotal(s.grades);
-              const graded = hasGrades(s);
-              const cols = selectedSubject === 'all'
-                ? 'grid-cols-[2fr_1fr_1fr_repeat(4,1fr)_1fr_auto]'
-                : 'grid-cols-[2fr_1fr_repeat(4,1fr)_1fr_auto]';
-              return (
-                <div key={`${s.id}-${s.subjectId}`} className={`grid ${cols} gap-2 items-center px-6 py-4 transition-colors ${graded ? 'bg-green-50/30 dark:bg-green-900/10' : 'hover:bg-slate-50 dark:hover:bg-slate-700/20'}`}>
-                  <span className="font-semibold text-slate-800 dark:text-slate-100 text-sm truncate">{s.name}</span>
-                  <span className="text-xs text-slate-400">{s.studentCode}</span>
-                  {selectedSubject === 'all' && <span className="text-xs text-slate-500 truncate">{s.subjectName}</span>}
-                  {examTypes.map(t => (
-                    <span key={t.key} className={`text-sm font-bold ${s.grades[t.key] !== undefined ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-300'}`}>
-                      {s.grades[t.key] !== undefined ? s.grades[t.key] : '—'}
-                    </span>
-                  ))}
-                  <span className={`text-sm font-black ${graded ? 'text-green-600' : 'text-slate-300'}`}>
-                    {graded ? `${total}/${maxTotal}` : '—'}
-                  </span>
-                  <button onClick={() => openEdit(s)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${graded ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 hover:bg-indigo-200' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}>
-                    {graded ? <><Pencil size={12} /> Edit</> : <><Check size={12} /> Set</>}
-                  </button>
-                </div>
-              );
-            })}
-          </div>
+          <TableHeader />
+          <StudentTable list={students} />
         </div>
       ) : (
         <div className="text-center py-16 text-slate-400">
@@ -262,19 +268,15 @@ export default function GradesPage() {
           <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-md p-6 space-y-5">
             <div>
               <h3 className="font-black text-slate-800 dark:text-slate-100 text-lg">{editingStudent.name}</h3>
-              <p className="text-xs text-slate-400 mt-0.5">
-                {editingStudent.studentCode} · {editingStudent.subjectName || subjectInfo?.name}
-              </p>
+              <p className="text-xs text-slate-400 mt-0.5">{editingStudent.studentCode} · {editingStudent.subjectName || subjectInfo?.name}</p>
             </div>
-
             <div className="space-y-3">
               {examTypes.map(t => (
                 <div key={t.key} className="flex items-center gap-4">
                   <div className="flex-1">
                     <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">{t.label}</label>
                     <div className="relative">
-                      <input type="number" min={0} max={t.max}
-                        value={editGrades[t.key]}
+                      <input type="number" min={0} max={t.max} value={editGrades[t.key]}
                         onChange={e => setEditGrades(p => ({ ...p, [t.key]: e.target.value }))}
                         placeholder="—"
                         className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-slate-50 dark:bg-slate-700 dark:text-slate-100"
@@ -291,14 +293,12 @@ export default function GradesPage() {
                 </div>
               ))}
             </div>
-
             <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl p-4 flex items-center justify-between">
               <span className="font-bold text-slate-600 dark:text-slate-300 text-sm">Total</span>
               <span className="font-black text-indigo-600 dark:text-indigo-400 text-xl">
                 {examTypes.reduce((s, t) => s + (Number(editGrades[t.key]) || 0), 0)} / {maxTotal}
               </span>
             </div>
-
             <div className="flex gap-3">
               <button onClick={() => setEditingStudent(null)}
                 className="flex-1 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
