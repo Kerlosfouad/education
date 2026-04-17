@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { GraduationCap, Download, Loader2, Check, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 
 interface Subject { id: string; name: string; code: string; department: { name: string }; academicYear: number; semester: number; }
 interface StudentGrade { id: string; name: string; studentCode: string; grades: Record<string, number>; subjectId?: string; subjectName?: string; }
@@ -111,25 +111,32 @@ export default function GradesPage() {
 
     const exportSubject = (list: StudentGrade[], sheetName: string, subjName: string) => {
       const headers = ['#', 'Student Name', 'Code', ...examTypes.map(t => `${t.label} (/${t.max})`), 'Total'];
+      const colCount = headers.length;
+
       const aoa: any[][] = [
-        [`Grade Sheet - ${subjName}`],
-        [],
-        headers,
+        [{ v: `Grade Sheet - ${subjName}`, s: { font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 14 }, fill: { fgColor: { rgb: '1F3864' } }, alignment: { horizontal: 'center', vertical: 'center' } } }, ...Array(colCount - 1).fill({ v: '', s: { fill: { fgColor: { rgb: '1F3864' } } } })],
+        Array(colCount).fill({ v: '' }),
+        headers.map(h => ({ v: h, s: { font: { bold: true, color: { rgb: 'FFFFFF' } }, fill: { fgColor: { rgb: '2E4DA0' } }, alignment: { horizontal: 'center' } } })),
         ...list.map((s, i) => {
           const total = getTotal(s.grades);
           const graded = hasGrades(s);
+          const rowStyle = { alignment: { horizontal: 'center' }, border: { bottom: { style: 'thin', color: { rgb: 'E2E8F0' } } } };
           return [
-            i + 1, s.name, s.studentCode,
-            ...examTypes.map(t => s.grades[t.key] ?? 0),
-            graded ? `${total} / ${maxTotal}` : `0 / ${maxTotal}`,
+            { v: i + 1, s: rowStyle },
+            { v: s.name, s: { ...rowStyle, alignment: { horizontal: 'left' } } },
+            { v: s.studentCode, s: rowStyle },
+            ...examTypes.map(t => ({ v: s.grades[t.key] ?? 0, s: rowStyle })),
+            { v: graded ? `${total} / ${maxTotal}` : `0 / ${maxTotal}`, s: { font: { bold: true, color: { rgb: graded ? '00A651' : '999999' } }, alignment: { horizontal: 'center' } } },
           ];
         }),
-        [],
-        [...Array(headers.length - 2).fill(''), `Total Students: ${list.length}`, ''],
+        Array(colCount).fill({ v: '' }),
+        [...Array(colCount - 2).fill({ v: '' }), { v: `Total Students: ${list.length}`, s: { font: { bold: true }, fill: { fgColor: { rgb: 'EEF2FF' } }, alignment: { horizontal: 'right' } } }, { v: '', s: { fill: { fgColor: { rgb: 'EEF2FF' } } } }],
       ];
+
       const ws = XLSX.utils.aoa_to_sheet(aoa);
-      ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: headers.length - 1 } }];
+      ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: colCount - 1 } }];
       ws['!cols'] = [{ wch: 4 }, { wch: 28 }, { wch: 10 }, ...examTypes.map(() => ({ wch: 14 })), { wch: 12 }];
+      ws['!rows'] = [{ hpt: 30 }, {}, { hpt: 22 }];
       XLSX.utils.book_append_sheet(wb, ws, sheetName.slice(0, 31));
     };
 
