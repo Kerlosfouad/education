@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { GraduationCap, Download, Loader2, Check, Pencil, Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
+import * as XLSX from 'xlsx';
 
 interface Subject { id: string; name: string; code: string; department: { name: string }; academicYear: number; semester: number; }
 interface StudentGrade { id: string; name: string; studentCode: string; grades: Record<string, number>; subjectId?: string; subjectName?: string; }
@@ -113,24 +114,37 @@ export default function GradesPage() {
   const exportExcel = async () => {
     if (!students.length) return;
     const name = subjectInfo?.name || 'All Subjects';
-    const res = await fetch('/api/doctor/grades/export', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        subjectId: selectedSubject,
-        examTypes,
-        students,
-        subjectName: name,
-      }),
-    });
-    if (!res.ok) return;
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `grades-${name}-${Date.now()}.xlsx`;
-    a.click();
-    URL.revokeObjectURL(url);
+
+    const buildSheet = (wb: XLSX.WorkBook, list: StudentGrade[], sheetName: string, subjName: string) => {
+      const headers = ['#', 'Student Name', 'Code', ...examTypes.map(t => `${t.label} (/${t.max})`), 'Total'];
+      const aoa: any[][] = [
+        [`Grade Sheet - ${subjName}`],
+        [],
+        headers,
+        ...list.map((s, i) => {
+          const total = getTotal(s.grades);
+          const graded = hasGrades(s);
+          return [i + 1, s.name, s.studentCode, ...examTypes.map(t => s.grades[t.key] ?? 0), graded ? `${total} / ${maxTotal}` : `0 / ${maxTotal}`];
+        }),
+        [],
+        [...Array(headers.length - 2).fill(''), `Total Students: ${list.length}`, ''],
+      ];
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: headers.length - 1 } }];
+      ws['!cols'] = [{ wch: 4 }, { wch: 28 }, { wch: 12 }, ...examTypes.map(() => ({ wch: 16 })), { wch: 14 }];
+      XLSX.utils.book_append_sheet(wb, ws, sheetName.slice(0, 31));
+    };
+
+    const wb = XLSX.utils.book_new();
+    if (selectedSubject === 'all') {
+      subjects.forEach(subj => {
+        const list = students.filter(s => s.subjectId === subj.id);
+        if (list.length > 0) buildSheet(wb, list, subj.name.slice(0, 31), subj.name);
+      });
+    } else {
+      buildSheet(wb, students, name.slice(0, 31), name);
+    }
+    XLSX.writeFile(wb, `grades-${name}-${Date.now()}.xlsx`);
   };
 
   // Reusable student table
