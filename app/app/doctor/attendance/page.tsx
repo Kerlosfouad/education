@@ -16,19 +16,21 @@ export default function AttendancePage() {
   const [sessions, setSessions] = useState<AttendanceSession[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
+  const LEVELS = [1, 2, 3, 4];
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'sessions' | 'table'>('sessions');
-  const [form, setForm] = useState({ subjectId: '', title: '', openTime: '', closeTime: '' });
+  const [form, setForm] = useState({ subjectId: '', title: '', openTime: '', closeTime: '', departmentId: '', academicYear: '' });
 
   const fetchData = useCallback(async () => {
     try {
-      const [sessRes, subRes, stuRes] = await Promise.all([
-        fetch('/api/attendance'), fetch('/api/subjects'), fetch('/api/students'),
+      const [sessRes, subRes, stuRes, deptRes] = await Promise.all([
+        fetch('/api/attendance'), fetch('/api/subjects'), fetch('/api/students'), fetch('/api/subjects/departments'),
       ]);
-      const [sessJson, subJson, stuJson] = await Promise.all([sessRes.json(), subRes.json(), stuRes.json()]);
+      const [sessJson, subJson, stuJson, deptJson] = await Promise.all([sessRes.json(), subRes.json(), stuRes.json(), deptRes.json()]);
       if (sessJson.success) {
         const sessionsWithRecords = await Promise.all(
           sessJson.data.map(async (s: AttendanceSession) => {
@@ -41,6 +43,7 @@ export default function AttendancePage() {
       }
       if (subJson.success) setSubjects(subJson.data);
       if (stuJson.success) setStudents(stuJson.data);
+      if (deptJson.success) setDepartments(deptJson.data);
     } catch {}
     setLoading(false);
   }, []);
@@ -56,16 +59,18 @@ export default function AttendancePage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          subjectId: form.subjectId,
+          subjectId: form.subjectId || undefined,
           title: form.title || undefined,
           openTime: new Date(form.openTime).toISOString(),
           closeTime: new Date(form.closeTime).toISOString(),
+          departmentId: form.departmentId || undefined,
+          academicYear: form.academicYear ? Number(form.academicYear) : undefined,
         }),
       });
       const json = await res.json();
       if (json.success) {
         setShowModal(false);
-        setForm({ subjectId: '', title: '', openTime: '', closeTime: '' });
+        setForm({ subjectId: '', title: '', openTime: '', closeTime: '', departmentId: '', academicYear: '' });
         fetchData();
       } else {
         setError(json.error || 'An error occurred');
@@ -252,11 +257,37 @@ export default function AttendancePage() {
             <form onSubmit={handleCreate} className="space-y-4">
               <div>
                 <label className="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Subject *</label>
-                <select required value={form.subjectId} onChange={e => setForm(f => ({ ...f, subjectId: e.target.value }))}
+                <select required value={form.subjectId} onChange={e => {
+                  const subj = subjects.find(s => s.id === e.target.value);
+                  setForm(f => ({
+                    ...f,
+                    subjectId: e.target.value,
+                    departmentId: (subj as any)?.departmentId || f.departmentId,
+                    academicYear: (subj as any)?.academicYear ? String((subj as any).academicYear) : f.academicYear,
+                  }));
+                }}
                   className="w-full border border-slate-200 dark:border-[#1a2f4a] dark:bg-[#132540] dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
                   <option value="">Select subject</option>
                   {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Department</label>
+                  <select value={form.departmentId} onChange={e => setForm(f => ({ ...f, departmentId: e.target.value }))}
+                    className="w-full border border-slate-200 dark:border-[#1a2f4a] dark:bg-[#132540] dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
+                    <option value="">All Departments</option>
+                    {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Level</label>
+                  <select value={form.academicYear} onChange={e => setForm(f => ({ ...f, academicYear: e.target.value }))}
+                    className="w-full border border-slate-200 dark:border-[#1a2f4a] dark:bg-[#132540] dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
+                    <option value="">All Levels</option>
+                    {LEVELS.map(l => <option key={l} value={l}>Level {l}</option>)}
+                  </select>
+                </div>
               </div>
               <div>
                 <label className="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Session Title (optional)</label>

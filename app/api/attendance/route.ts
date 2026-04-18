@@ -158,8 +158,16 @@ export async function POST(req: NextRequest) {
           await db.$executeRaw`UPDATE attendance_sessions SET "departmentId" = ${departmentId} WHERE id = ${attendanceSession.id}`;
         }
 
+        const academicYear = body.academicYear ? Number(body.academicYear) : null;
+
         // Notify students - filtered by department if provided, else all
-        if (departmentId) {
+        if (departmentId && academicYear) {
+          await notifyStudentsByFilter(
+            '📋 New Attendance Session',
+            `A new attendance session "${title || 'Attendance'}" is now open. Please mark your attendance.`,
+            'ATTENDANCE', departmentId, academicYear
+          );
+        } else if (departmentId) {
           const deptStudents = await db.student.findMany({
             where: { departmentId, user: { status: 'ACTIVE' } },
             select: { userId: true },
