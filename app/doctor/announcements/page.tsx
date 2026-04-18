@@ -17,7 +17,17 @@ export default function AnnouncementsPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ title: '', message: '', departmentId: '', academicYear: '', imageUrl: '' });
+  const [form, setForm] = useState({ title: '', message: '', departmentId: '', academicYear: '', imageUrl: '', targetPage: '' });
+
+  const PAGES = [
+    { value: 'dashboard', label: 'Dashboard' },
+    { value: 'attendance', label: 'Attendance' },
+    { value: 'assignments', label: 'Assignments' },
+    { value: 'quizzes', label: 'Quizzes' },
+    { value: 'videos', label: 'Videos' },
+    { value: 'library', label: 'E-Library' },
+    { value: 'live', label: 'Live Sessions' },
+  ];
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState('');
 
@@ -60,13 +70,14 @@ export default function AnnouncementsPage() {
           ...form,
           academicYear: form.academicYear ? Number(form.academicYear) : null,
           departmentId: form.departmentId || null,
+          targetPage: form.targetPage || null,
         }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error);
       toast.success('Announcement published');
       setShowForm(false);
-      setForm({ title: '', message: '', departmentId: '', academicYear: '', imageUrl: '' });
+      setForm({ title: '', message: '', departmentId: '', academicYear: '', imageUrl: '', targetPage: '' });
       setImagePreview('');
       load();
     } catch (e: any) { toast.error(e.message || 'Failed'); }
@@ -126,6 +137,9 @@ export default function AnnouncementsPage() {
                     )}
                     {!a.departmentId && !a.academicYear && (
                       <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-2 py-0.5 rounded-full font-bold">All Students</span>
+                    )}
+                    {a.targetPage && (
+                      <span className="text-xs bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full font-bold capitalize">📍 {a.targetPage}</span>
                     )}
                     <span className="text-xs text-slate-400">{new Date(a.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                   </div>
@@ -202,6 +216,14 @@ export default function AnnouncementsPage() {
                     {[1,2,3,4].map(l => <option key={l} value={l}>Level {l}</option>)}
                   </select>
                 </div>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">Show on Page</label>
+                <select value={form.targetPage} onChange={e => setForm(p => ({ ...p, targetPage: e.target.value }))}
+                  className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-slate-50 dark:bg-slate-700 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+                  <option value="">All Pages (Dashboard)</option>
+                  {PAGES.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+                </select>
               </div>
             </div>
 

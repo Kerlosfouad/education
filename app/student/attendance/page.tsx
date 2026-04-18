@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { CalendarCheck2, CheckCircle2, XCircle, Clock, Loader2, AlertCircle } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
+import { AnnouncementBanner } from '@/components/AnnouncementBanner';
 
 interface AttendanceRecord {
   id: string;
@@ -93,7 +94,7 @@ export default function StudentAttendancePage() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
-      <div>
+      <AnnouncementBanner page="attendance" />      <div>
         <h2 className="text-3xl font-black text-slate-800">{t('attendance')}</h2>
         <p className="text-slate-500 mt-1">{t('trackYourAttendanceAcrossAllLectures')}</p>
       </div>

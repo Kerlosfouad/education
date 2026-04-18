@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Library, FileText, File, ExternalLink, Loader2, Download } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
+import { AnnouncementBanner } from '@/components/AnnouncementBanner';
 
 interface LibraryItem {
   id: string;
@@ -40,7 +41,7 @@ export default function StudentLibraryPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
-      <div>
+      <AnnouncementBanner page="library" />      <div>
         <h2 className="text-3xl font-black text-slate-800">{t('eLibrary')}</h2>
         <p className="text-slate-500 mt-1">{t('booksReferences')}</p>
       </div>

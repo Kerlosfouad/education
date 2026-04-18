@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { BookOpen, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useI18n } from '@/lib/i18n';
+import { AnnouncementBanner } from '@/components/AnnouncementBanner';
 
 type Quiz = {
   id: string;
@@ -56,7 +57,7 @@ export default function StudentQuizzesPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <div>
+      <AnnouncementBanner page="quizzes" />      <div>
         <h1 className="text-3xl font-bold text-gray-800">{t('myQuizzes')}</h1>
         <p className="text-gray-500 mt-1">{t('takeQuizzesBeforeDeadline')}</p>
       </div>

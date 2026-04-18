@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Video, Play, Loader2 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
+import { AnnouncementBanner } from '@/components/AnnouncementBanner';
 
 interface VideoItem {
   id: string;
@@ -33,7 +34,7 @@ export default function StudentVideosPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
-      <div>
+      <AnnouncementBanner page="videos" />      <div>
         <h2 className="text-3xl font-black text-slate-800">{t('videos')}</h2>
         <p className="text-slate-500 mt-1">{t('allLectureVideos')}</p>
       </div>

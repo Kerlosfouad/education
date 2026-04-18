@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { FileText, Clock, CheckCircle2, Loader2, Upload, X } from 'lucide-react';
 import { useUploadThing } from '@/lib/uploadthing';
+import { AnnouncementBanner } from '@/components/AnnouncementBanner';
 
 interface Assignment {
   id: string;
@@ -73,6 +74,7 @@ export default function StudentAssignmentsPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
+      <AnnouncementBanner page="assignments" />
       <div>
         <h2 className="text-3xl font-black text-slate-800 dark:text-slate-100">Assignments</h2>
         <p className="text-slate-500 dark:text-slate-400 mt-1">Upload your PDF and submit before the deadline.</p>
