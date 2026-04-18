@@ -310,6 +310,7 @@ export default function AttendancePage() {
                   {[1,2,3,4].map(l => <option key={l} value={l}>Level {l}</option>)}
                 </select>
               </div>
+              <div>
                 <label className="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Session Duration *</label>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
