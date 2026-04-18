@@ -16,7 +16,8 @@ export async function GET() {
     });
     if (!student) return NextResponse.json({ error: 'Student not found' }, { status: 404 });
 
-    const qrDataUrl = student.qrCode || await generateStudentQRCode(student.id);
+    // Always generate fresh QR to ensure PNG format
+    const qrDataUrl = await generateStudentQRCode(student.id);
 
     const cols = 3;
     const rows = 2;

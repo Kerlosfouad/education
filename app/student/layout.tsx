@@ -32,6 +32,61 @@ interface DoctorInfo {
   phone: string; whatsapp: string; facebook: string; instagram: string; twitter: string;
 }
 
+function DownloadButton({ studentCode }: { studentCode: string }) {
+  const [loading, setLoading] = useState(false);
+
+  const handleDownload = async () => {
+    setLoading(true);
+    try {
+      const res1 = await fetch('/api/student/download-pdf');
+      if (!res1.ok) {
+        const err = await res1.json().catch(() => ({}));
+        alert('Error: ' + (err.error || 'Failed to generate registration PDF'));
+        setLoading(false);
+        return;
+      }
+      const blob1 = await res1.blob();
+      const url1 = URL.createObjectURL(blob1);
+      const a1 = document.createElement('a');
+      a1.href = url1; a1.download = `registration-${studentCode}.pdf`;
+      document.body.appendChild(a1); a1.click();
+      document.body.removeChild(a1); URL.revokeObjectURL(url1);
+
+      await new Promise(r => setTimeout(r, 800));
+
+      const res2 = await fetch('/api/student/download-cards');
+      if (!res2.ok) {
+        const err = await res2.json().catch(() => ({}));
+        alert('Error: ' + (err.error || 'Failed to generate cards PDF'));
+        setLoading(false);
+        return;
+      }
+      const blob2 = await res2.blob();
+      const url2 = URL.createObjectURL(blob2);
+      const a2 = document.createElement('a');
+      a2.href = url2; a2.download = `cards-${studentCode}.pdf`;
+      document.body.appendChild(a2); a2.click();
+      document.body.removeChild(a2); URL.revokeObjectURL(url2);
+    } catch (e) {
+      alert('Download failed: ' + String(e));
+    }
+    setLoading(false);
+  };
+
+  return (
+    <button
+      onClick={handleDownload}
+      disabled={loading}
+      className="mt-2 flex items-center gap-2 w-full justify-center py-2.5 bg-indigo-600 hover:bg-indigo-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white font-bold text-sm rounded-xl transition-colors disabled:opacity-60"
+    >
+      {loading
+        ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Downloading...</>
+        : <><Download size={16} /> Download Data</>
+      }
+    </button>
+  );
+}
+
 export default function StudentLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -346,52 +401,9 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
                       </div>
                       <img src={profile.qrCode} alt="QR Code" className="w-36 h-36 rounded-xl" />
                       <p className="text-[10px] text-slate-400">Scan to verify student identity</p>
-                      <button
-                        onClick={async () => {
-                          try {
-                            const res1 = await fetch('/api/student/download-pdf');
-                            if (!res1.ok) {
-                              const err = await res1.json().catch(() => ({}));
-                              alert('Error: ' + (err.error || 'Failed to generate registration PDF'));
-                              return;
-                            }
-                            const blob1 = await res1.blob();
-                            const url1 = URL.createObjectURL(blob1);
-                            const a1 = document.createElement('a');
-                            a1.href = url1;
-                            a1.download = `registration-${profile.studentCode}.pdf`;
-                            document.body.appendChild(a1);
-                            a1.click();
-                            document.body.removeChild(a1);
-                            URL.revokeObjectURL(url1);
-
-                            await new Promise(r => setTimeout(r, 800));
-
-                            const res2 = await fetch('/api/student/download-cards');
-                            if (!res2.ok) {
-                              const err = await res2.json().catch(() => ({}));
-                              alert('Error: ' + (err.error || 'Failed to generate cards PDF'));
-                              return;
-                            }
-                            const blob2 = await res2.blob();
-                            const url2 = URL.createObjectURL(blob2);
-                            const a2 = document.createElement('a');
-                            a2.href = url2;
-                            a2.download = `cards-${profile.studentCode}.pdf`;
-                            document.body.appendChild(a2);
-                            a2.click();
-                            document.body.removeChild(a2);
-                            URL.revokeObjectURL(url2);
-                          } catch (e) {
-                            alert('Download failed: ' + String(e));
-                          }
-                        }}
-                        className="mt-2 flex items-center gap-2 w-full justify-center py-2.5 bg-indigo-600 hover:bg-indigo-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white font-bold text-sm rounded-xl transition-colors"
-                      >
-                        <Download size={16} /> Download Data
-                      </button>
                     </div>
                   )}
+                  <DownloadButton studentCode={profile.studentCode} />
                 </>
               )}
             </div>
