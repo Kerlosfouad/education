@@ -5,6 +5,27 @@ import { db } from '@/lib/db';
 import { generateStudentQRCode } from '@/lib/codes';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 
+function toSafeText(text: string): string {
+  const arabicMap: Record<string, string> = {
+    'ا': 'a', 'أ': 'a', 'إ': 'i', 'آ': 'aa', 'ب': 'b', 'ت': 't', 'ث': 'th',
+    'ج': 'j', 'ح': 'h', 'خ': 'kh', 'د': 'd', 'ذ': 'dh', 'ر': 'r', 'ز': 'z',
+    'س': 's', 'ش': 'sh', 'ص': 's', 'ض': 'd', 'ط': 't', 'ظ': 'z', 'ع': 'a',
+    'غ': 'gh', 'ف': 'f', 'ق': 'q', 'ك': 'k', 'ل': 'l', 'م': 'm', 'ن': 'n',
+    'ه': 'h', 'ة': 'h', 'و': 'w', 'ي': 'y', 'ى': 'a', 'ئ': 'y', 'ء': '',
+    'ؤ': 'w', '\u0640': '',
+    '\u064B': '', '\u064C': '', '\u064D': '', '\u064E': '', '\u064F': '',
+    '\u0650': '', '\u0651': '', '\u0652': '',
+  };
+  let result = '';
+  for (const char of text) {
+    const code = char.charCodeAt(0);
+    if (arabicMap[char] !== undefined) result += arabicMap[char];
+    else if (code > 127) result += '?';
+    else result += char;
+  }
+  return result;
+}
+
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
@@ -94,7 +115,7 @@ export async function GET() {
         // Name row
         const nameY = y + cardH - 50;
         page.drawText('Name', { x: x + 8, y: nameY, size: 7, font, color: rgb(0.4, 0.4, 0.4) });
-        const nameVal = student.user.name || 'Student';
+        const nameVal = toSafeText(student.user.name || 'Student');
         const nameValW = fontReg.widthOfTextAtSize(nameVal, 8);
         page.drawText(nameVal, { x: x + cardW - 8 - nameValW, y: nameY, size: 8, font: fontReg, color: rgb(0.1, 0.1, 0.1) });
         page.drawLine({ start: { x: x + 8, y: nameY - 4 }, end: { x: x + cardW - 8, y: nameY - 4 }, thickness: 0.3, color: rgb(0.8, 0.8, 0.8) });

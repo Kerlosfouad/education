@@ -1,5 +1,34 @@
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 
+// Transliterate Arabic/non-WinAnsi characters to safe ASCII
+function toSafeText(text: string): string {
+  const arabicMap: Record<string, string> = {
+    'ا': 'a', 'أ': 'a', 'إ': 'i', 'آ': 'aa', 'ب': 'b', 'ت': 't', 'ث': 'th',
+    'ج': 'j', 'ح': 'h', 'خ': 'kh', 'د': 'd', 'ذ': 'dh', 'ر': 'r', 'ز': 'z',
+    'س': 's', 'ش': 'sh', 'ص': 's', 'ض': 'd', 'ط': 't', 'ظ': 'z', 'ع': 'a',
+    'غ': 'gh', 'ف': 'f', 'ق': 'q', 'ك': 'k', 'ل': 'l', 'م': 'm', 'ن': 'n',
+    'ه': 'h', 'ة': 'h', 'و': 'w', 'ي': 'y', 'ى': 'a', 'ئ': 'y', 'ء': '',
+    'ؤ': 'w', 'لا': 'la', 'ال': 'al-', '\u0640': '', // tatweel
+    '\u064B': '', '\u064C': '', '\u064D': '', '\u064E': '', '\u064F': '',
+    '\u0650': '', '\u0651': '', '\u0652': '', // harakat
+  };
+
+  let result = '';
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    const code = char.charCodeAt(0);
+    if (arabicMap[char] !== undefined) {
+      result += arabicMap[char];
+    } else if (code > 127) {
+      // Replace any other non-ASCII with '?'
+      result += '?';
+    } else {
+      result += char;
+    }
+  }
+  return result;
+}
+
 export async function generateStudentRegistrationPdf(input: {
   title?: string;
   studentName: string;
@@ -52,10 +81,10 @@ export async function generateStudentRegistrationPdf(input: {
 
   // Table
   const rows = [
-    { label: 'Student Name', value: input.studentName },
-    { label: 'Student Code', value: input.studentCode },
-    { label: 'Phone', value: input.phone?.trim() || '-' },
-    { label: 'Email', value: input.email },
+    { label: 'Student Name', value: toSafeText(input.studentName) },
+    { label: 'Student Code', value: toSafeText(input.studentCode) },
+    { label: 'Phone', value: toSafeText(input.phone?.trim() || '-') },
+    { label: 'Email', value: toSafeText(input.email) },
     { label: 'Registration Date', value: input.registeredAt.toISOString().slice(0, 10) },
   ];
 
