@@ -38,9 +38,35 @@ function DownloadButton({ studentCode }: { studentCode: string }) {
   const handleDownload = async () => {
     setLoading(true);
     try {
-      window.open('/api/student/download-pdf', '_blank');
+      const res1 = await fetch('/api/student/download-pdf');
+      if (!res1.ok) {
+        const err = await res1.json().catch(() => ({}));
+        alert('Error: ' + (err.error || 'Failed to generate registration PDF'));
+        setLoading(false);
+        return;
+      }
+      const blob1 = await res1.blob();
+      const url1 = URL.createObjectURL(blob1);
+      const a1 = document.createElement('a');
+      a1.href = url1; a1.download = `registration-${studentCode}.pdf`;
+      document.body.appendChild(a1); a1.click();
+      document.body.removeChild(a1); URL.revokeObjectURL(url1);
+
       await new Promise(r => setTimeout(r, 800));
-      window.open('/api/student/download-cards', '_blank');
+
+      const res2 = await fetch('/api/student/download-cards');
+      if (!res2.ok) {
+        const err = await res2.json().catch(() => ({}));
+        alert('Error: ' + (err.error || 'Failed to generate cards PDF'));
+        setLoading(false);
+        return;
+      }
+      const blob2 = await res2.blob();
+      const url2 = URL.createObjectURL(blob2);
+      const a2 = document.createElement('a');
+      a2.href = url2; a2.download = `cards-${studentCode}.pdf`;
+      document.body.appendChild(a2); a2.click();
+      document.body.removeChild(a2); URL.revokeObjectURL(url2);
     } catch (e) {
       alert('Download failed: ' + String(e));
     }
