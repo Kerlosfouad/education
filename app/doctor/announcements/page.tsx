@@ -9,6 +9,7 @@ interface Announcement {
   id: string; title: string; message: string;
   imageUrl: string | null; departmentId: string | null;
   academicYear: number | null; createdAt: string;
+  targetPage: string | null;
 }
 
 export default function AnnouncementsPage() {
