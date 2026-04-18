@@ -1,20 +1,19 @@
-import { PDFDocument, rgb } from 'pdf-lib';
+import { PDFDocument, rgb, StandardFonts, PDFFont } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import { NOTO_ARABIC_REGULAR_B64, NOTO_ARABIC_BOLD_B64 } from './arabicFonts';
 
-function getArabicFont(bold = false): Uint8Array {
+function getArabicFontBytes(bold = false): Uint8Array {
   const b64 = bold ? NOTO_ARABIC_BOLD_B64 : NOTO_ARABIC_REGULAR_B64;
   return Uint8Array.from(Buffer.from(b64, 'base64'));
 }
 
-// Arabic text needs to be reversed for RTL rendering in pdf-lib
-function prepareArabic(text: string): string {
-  // Reverse the string for RTL display
-  return text.split('').reverse().join('');
-}
-
 function hasArabic(text: string): boolean {
   return /[\u0600-\u06FF]/.test(text);
+}
+
+// Reverse Arabic text for RTL rendering in pdf-lib
+function prepareArabic(text: string): string {
+  return text.split('').reverse().join('');
 }
 
 export async function generateStudentRegistrationPdf(input: {
@@ -29,57 +28,55 @@ export async function generateStudentRegistrationPdf(input: {
   const pdfDoc = await PDFDocument.create();
   pdfDoc.registerFontkit(fontkit);
 
-  const arabicFontBytes = getArabicFont(false);
-  const arabicFontBoldBytes = getArabicFont(true);
+  // Latin fonts (Helvetica - built-in, no encoding issues)
+  const latinFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const latinFontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-  const arabicFont = await pdfDoc.embedFont(arabicFontBytes);
-  const arabicFontBold = await pdfDoc.embedFont(arabicFontBoldBytes);
+  // Arabic fonts (NotoSansArabic - embedded as base64)
+  const arabicFont = await pdfDoc.embedFont(getArabicFontBytes(false));
+  const arabicFontBold = await pdfDoc.embedFont(getArabicFontBytes(true));
 
   const page = pdfDoc.addPage([595.28, 841.89]);
   const margin = 40;
   const pageWidth = page.getWidth();
   const pageHeight = page.getHeight();
 
-  // Helper: draw text supporting Arabic (RTL) or Latin
+  // Pick correct font based on content
+  const pickFont = (text: string, bold: boolean): PDFFont =>
+    hasArabic(text) ? (bold ? arabicFontBold : arabicFont) : (bold ? latinFontBold : latinFont);
+
   const drawText = (text: string, x: number, y: number, size: number, bold = false, color = rgb(0.1, 0.1, 0.1)) => {
-    const font = bold ? arabicFontBold : arabicFont;
+    const font = pickFont(text, bold);
     const isAr = hasArabic(text);
     const displayText = isAr ? prepareArabic(text) : text;
     const textWidth = font.widthOfTextAtSize(displayText, size);
+    // RTL: align to right side of value column
     const drawX = isAr ? (pageWidth - margin - textWidth - (x - margin)) : x;
     page.drawText(displayText, { x: drawX, y, size, font, color });
   };
 
   const drawCenteredText = (text: string, y: number, size: number, bold = false, color = rgb(0.1, 0.1, 0.1)) => {
-    const font = bold ? arabicFontBold : arabicFont;
+    const font = pickFont(text, bold);
     const displayText = hasArabic(text) ? prepareArabic(text) : text;
     const textWidth = font.widthOfTextAtSize(displayText, size);
     page.drawText(displayText, { x: (pageWidth - textWidth) / 2, y, size, font, color });
   };
 
   // Title
-  const title = input.title ?? 'Registration Form';
-  drawCenteredText(title, pageHeight - margin - 30, 22, true, rgb(0.1, 0.1, 0.1));
-
-  const sub = 'Dr. Emad Bayoume Educational System';
-  drawCenteredText(sub, pageHeight - margin - 54, 12, false, rgb(0.4, 0.4, 0.4));
+  drawCenteredText(input.title ?? 'Registration Form', pageHeight - margin - 30, 22, true, rgb(0.1, 0.1, 0.1));
+  drawCenteredText('Dr. Emad Bayoume Educational System', pageHeight - margin - 54, 12, false, rgb(0.4, 0.4, 0.4));
 
   // Divider
   const dividerY = pageHeight - margin - 72;
-  page.drawLine({
-    start: { x: margin, y: dividerY },
-    end: { x: pageWidth - margin, y: dividerY },
-    thickness: 1.5,
-    color: rgb(0.2, 0.2, 0.2),
-  });
+  page.drawLine({ start: { x: margin, y: dividerY }, end: { x: pageWidth - margin, y: dividerY }, thickness: 1.5, color: rgb(0.2, 0.2, 0.2) });
 
-  // Table rows
+  // Table
   const rows = [
     { label: 'Student Name', value: input.studentName },
     { label: 'Student Code', value: input.studentCode },
-    { label: 'Phone', value: input.phone?.trim() || '-' },
-    { label: 'Email', value: input.email },
-    { label: 'Registration Date', value: input.registeredAt.toISOString().slice(0, 10) },
+    { label: 'Phone',        value: input.phone?.trim() || '-' },
+    { label: 'Email',        value: input.email },
+    { label: 'Registered',   value: input.registeredAt.toISOString().slice(0, 10) },
   ];
 
   const tableTop = dividerY - 20;
@@ -88,28 +85,13 @@ export async function generateStudentRegistrationPdf(input: {
   const tableWidth = pageWidth - margin * 2;
   const tableHeight = rows.length * rowHeight;
 
-  page.drawRectangle({
-    x: margin, y: tableTop - tableHeight,
-    width: tableWidth, height: tableHeight,
-    borderWidth: 1, borderColor: rgb(0.75, 0.75, 0.75),
-  });
-
-  page.drawLine({
-    start: { x: margin + labelColWidth, y: tableTop },
-    end: { x: margin + labelColWidth, y: tableTop - tableHeight },
-    thickness: 1, color: rgb(0.75, 0.75, 0.75),
-  });
+  page.drawRectangle({ x: margin, y: tableTop - tableHeight, width: tableWidth, height: tableHeight, borderWidth: 1, borderColor: rgb(0.75, 0.75, 0.75) });
+  page.drawLine({ start: { x: margin + labelColWidth, y: tableTop }, end: { x: margin + labelColWidth, y: tableTop - tableHeight }, thickness: 1, color: rgb(0.75, 0.75, 0.75) });
 
   rows.forEach((r, idx) => {
     const yTop = tableTop - idx * rowHeight;
     const textY = yTop - rowHeight + 13;
-    if (idx > 0) {
-      page.drawLine({
-        start: { x: margin, y: yTop },
-        end: { x: margin + tableWidth, y: yTop },
-        thickness: 0.5, color: rgb(0.85, 0.85, 0.85),
-      });
-    }
+    if (idx > 0) page.drawLine({ start: { x: margin, y: yTop }, end: { x: margin + tableWidth, y: yTop }, thickness: 0.5, color: rgb(0.85, 0.85, 0.85) });
     drawText(r.label, margin + 10, textY, 11, true, rgb(0.2, 0.2, 0.2));
     drawText(r.value, margin + labelColWidth + 10, textY, 11, false, rgb(0.1, 0.1, 0.1));
   });
@@ -119,8 +101,7 @@ export async function generateStudentRegistrationPdf(input: {
   try {
     const commaIdx = input.qrCodeDataUrl.indexOf(',');
     const base64 = commaIdx >= 0 ? input.qrCodeDataUrl.slice(commaIdx + 1) : input.qrCodeDataUrl;
-    const qrBytes = Uint8Array.from(Buffer.from(base64, 'base64'));
-    const qrImg = await pdfDoc.embedPng(qrBytes);
+    const qrImg = await pdfDoc.embedPng(Uint8Array.from(Buffer.from(base64, 'base64')));
     const qrSize = 130;
     const qrX = (pageWidth - qrSize) / 2;
     const qrY = qrAreaTop - qrSize;
@@ -131,6 +112,5 @@ export async function generateStudentRegistrationPdf(input: {
     drawCenteredText('Please print this form and submit it to your professor.', qrAreaTop - 20, 10, false, rgb(0.5, 0.5, 0.5));
   }
 
-  const bytes = await pdfDoc.save();
-  return Buffer.from(bytes);
+  return Buffer.from(await pdfDoc.save());
 }

@@ -3,17 +3,21 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { generateStudentQRCode } from '@/lib/codes';
-import { PDFDocument, rgb } from 'pdf-lib';
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import { NOTO_ARABIC_REGULAR_B64, NOTO_ARABIC_BOLD_B64 } from '@/lib/arabicFonts';
 
-function getArabicFont(bold = false): Uint8Array {
+function getArabicFontBytes(bold = false): Uint8Array {
   const b64 = bold ? NOTO_ARABIC_BOLD_B64 : NOTO_ARABIC_REGULAR_B64;
   return Uint8Array.from(Buffer.from(b64, 'base64'));
 }
 
+function hasArabic(text: string): boolean {
+  return /[\u0600-\u06FF]/.test(text);
+}
+
 function prepareArabic(text: string): string {
-  return /[\u0600-\u06FF]/.test(text) ? text.split('').reverse().join('') : text;
+  return hasArabic(text) ? text.split('').reverse().join('') : text;
 }
 
 export async function GET() {
@@ -44,10 +48,14 @@ export async function GET() {
     const pdfDoc = await PDFDocument.create();
     pdfDoc.registerFontkit(fontkit);
 
-    const arabicFontBytes = getArabicFont(false);
-    const arabicFontBoldBytes = getArabicFont(true);
-    const font = await pdfDoc.embedFont(arabicFontBoldBytes);
-    const fontReg = await pdfDoc.embedFont(arabicFontBytes);
+    // Latin fonts for labels, Arabic font for names
+    const latinFontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const latinFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const arabicFontBold = await pdfDoc.embedFont(getArabicFontBytes(true));
+    const arabicFont = await pdfDoc.embedFont(getArabicFontBytes(false));
+
+    const font = latinFontBold;
+    const fontReg = latinFont;
 
     const page = pdfDoc.addPage([pageW, pageH]);
 
@@ -110,9 +118,11 @@ export async function GET() {
         // Name row
         const nameY = y + cardH - 50;
         page.drawText('Name', { x: x + 8, y: nameY, size: 7, font, color: rgb(0.4, 0.4, 0.4) });
-        const nameVal = prepareArabic(student.user.name || 'Student');
-        const nameValW = fontReg.widthOfTextAtSize(nameVal, 8);
-        page.drawText(nameVal, { x: x + cardW - 8 - nameValW, y: nameY, size: 8, font: fontReg, color: rgb(0.1, 0.1, 0.1) });
+        const rawName = student.user.name || 'Student';
+        const nameVal = prepareArabic(rawName);
+        const nameFont = hasArabic(rawName) ? arabicFont : fontReg;
+        const nameValW = nameFont.widthOfTextAtSize(nameVal, 8);
+        page.drawText(nameVal, { x: x + cardW - 8 - nameValW, y: nameY, size: 8, font: nameFont, color: rgb(0.1, 0.1, 0.1) });
         page.drawLine({ start: { x: x + 8, y: nameY - 4 }, end: { x: x + cardW - 8, y: nameY - 4 }, thickness: 0.3, color: rgb(0.8, 0.8, 0.8) });
 
         // ID row
