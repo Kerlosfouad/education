@@ -21,10 +21,9 @@ export async function GET(req: NextRequest) {
     // Filter by dept/year
     if (a.departmentId && a.departmentId !== student?.departmentId) return false;
     if (a.academicYear && a.academicYear !== student?.academicYear) return false;
-    // Filter by target page: show if no targetPage (dashboard) or matches current page
-    if (a.targetPage && a.targetPage !== page) return false;
-    if (!a.targetPage && page !== 'dashboard') return false;
-    return true;
+    // Filter by target page
+    const target = a.targetPage || 'dashboard';
+    return target === page;
   });
 
   return NextResponse.json({ success: true, data: filtered });

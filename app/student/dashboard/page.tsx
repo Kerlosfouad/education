@@ -28,7 +28,9 @@ interface DashboardData {
 function AnnouncementsBanner({ studentDeptId }: { studentDeptId?: string }) {
   const [announcements, setAnnouncements] = useState<any[]>([]);
   useEffect(() => {
-    fetch('/api/student/announcements').then(r => r.json()).then(j => { if (j.success) setAnnouncements(j.data); });
+    fetch(`/api/student/announcements?page=dashboard`)
+      .then(r => r.json())
+      .then(j => { if (j.success) setAnnouncements(j.data); });
   }, []);
   if (!announcements.length) return null;
   return (
