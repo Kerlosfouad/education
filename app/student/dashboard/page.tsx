@@ -25,8 +25,32 @@ interface DashboardData {
   unreadCount: number;
 }
 
-export default function StudentDashboardPage() {
-  const { t } = useI18n();
+function AnnouncementsBanner({ studentDeptId }: { studentDeptId?: string }) {
+  const [announcements, setAnnouncements] = useState<any[]>([]);
+  useEffect(() => {
+    fetch('/api/student/announcements').then(r => r.json()).then(j => { if (j.success) setAnnouncements(j.data); });
+  }, []);
+  if (!announcements.length) return null;
+  return (
+    <div className="space-y-3">
+      {announcements.map((a: any) => (
+        <div key={a.id} className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl overflow-hidden">
+          {a.imageUrl && <img src={a.imageUrl} alt="" className="w-full h-40 object-cover" />}
+          <div className="p-4 flex items-start gap-3">
+            <span className="text-2xl flex-shrink-0">📢</span>
+            <div>
+              <p className="font-black text-slate-800 dark:text-slate-100">{a.title}</p>
+              <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">{a.message}</p>
+              <p className="text-xs text-slate-400 mt-1">{new Date(a.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export default function StudentDashboardPage() {  const { t } = useI18n();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAttendanceModal, setShowAttendanceModal] = useState(false);
@@ -160,6 +184,9 @@ export default function StudentDashboardPage() {
             {data?.student.department} &bull; {academicYearLabel[data?.student.academicYear ?? 0] || `Level ${data?.student.academicYear}`}
           </p>
         </div>
+
+        {/* Announcements */}
+        <AnnouncementsBanner studentDeptId={data?.student?.id} />
 
         {/* Doctor Info Card */}
         {data?.doctor && (

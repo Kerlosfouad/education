@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Users, Calendar, ClipboardList,
   HelpCircle, Video, Library, GraduationCap,
   BarChart3, Settings, Menu, LogOut, MonitorPlay, Sun, Moon,
-  X, Phone, MessageCircle, Facebook, Instagram, Twitter, Award,
+  X, Phone, MessageCircle, Facebook, Instagram, Twitter, Award, Megaphone,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -48,6 +48,7 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
   const menuItems = [
     { icon: LayoutDashboard, label: t('dashboard'),     path: '/doctor' },
     { icon: Users,           label: t('students'),      path: '/doctor/students' },
+    { icon: Megaphone,       label: 'Announcements',    path: '/doctor/announcements' },
     { icon: Calendar,        label: t('attendance'),    path: '/doctor/attendance' },
     { icon: ClipboardList,   label: t('assignments'),   path: '/doctor/assignments' },
     { icon: HelpCircle,      label: t('quizzes'),       path: '/doctor/quizzes' },
