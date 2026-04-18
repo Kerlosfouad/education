@@ -1,11 +1,19 @@
 import { PDFDocument, rgb } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
-import fs from 'fs';
 import path from 'path';
+import fs from 'fs';
 
-function loadFont(filename: string): Uint8Array {
-  const fontPath = path.join(process.cwd(), 'public', 'fonts', filename);
-  return new Uint8Array(fs.readFileSync(fontPath));
+async function loadFontBytes(filename: string): Promise<Uint8Array> {
+  // Try filesystem first (local dev), then fetch from public URL (Vercel)
+  try {
+    const fontPath = path.join(process.cwd(), 'public', 'fonts', filename);
+    return new Uint8Array(fs.readFileSync(fontPath));
+  } catch {
+    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+    const res = await fetch(`${baseUrl}/fonts/${filename}`);
+    if (!res.ok) throw new Error(`Failed to fetch font: ${filename}`);
+    return new Uint8Array(await res.arrayBuffer());
+  }
 }
 
 // Arabic text needs to be reversed for RTL rendering in pdf-lib
@@ -30,8 +38,8 @@ export async function generateStudentRegistrationPdf(input: {
   const pdfDoc = await PDFDocument.create();
   pdfDoc.registerFontkit(fontkit);
 
-  const arabicFontBytes = loadFont('NotoSansArabic-Regular.ttf');
-  const arabicFontBoldBytes = loadFont('NotoSansArabic-Bold.ttf');
+  const arabicFontBytes = await loadFontBytes('NotoSansArabic-Regular.ttf');
+  const arabicFontBoldBytes = await loadFontBytes('NotoSansArabic-Bold.ttf');
 
   const arabicFont = await pdfDoc.embedFont(arabicFontBytes);
   const arabicFontBold = await pdfDoc.embedFont(arabicFontBoldBytes);

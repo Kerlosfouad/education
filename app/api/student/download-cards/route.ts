@@ -5,11 +5,19 @@ import { db } from '@/lib/db';
 import { generateStudentQRCode } from '@/lib/codes';
 import { PDFDocument, rgb } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
-import fs from 'fs';
 import path from 'path';
+import fs from 'fs';
 
-function loadFont(filename: string): Uint8Array {
-  return new Uint8Array(fs.readFileSync(path.join(process.cwd(), 'public', 'fonts', filename)));
+async function loadFontBytes(filename: string): Promise<Uint8Array> {
+  try {
+    const fontPath = path.join(process.cwd(), 'public', 'fonts', filename);
+    return new Uint8Array(fs.readFileSync(fontPath));
+  } catch {
+    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+    const res = await fetch(`${baseUrl}/fonts/${filename}`);
+    if (!res.ok) throw new Error(`Failed to fetch font: ${filename}`);
+    return new Uint8Array(await res.arrayBuffer());
+  }
 }
 
 function prepareArabic(text: string): string {
@@ -44,8 +52,8 @@ export async function GET() {
     const pdfDoc = await PDFDocument.create();
     pdfDoc.registerFontkit(fontkit);
 
-    const arabicFontBytes = loadFont('NotoSansArabic-Regular.ttf');
-    const arabicFontBoldBytes = loadFont('NotoSansArabic-Bold.ttf');
+    const arabicFontBytes = await loadFontBytes('NotoSansArabic-Regular.ttf');
+    const arabicFontBoldBytes = await loadFontBytes('NotoSansArabic-Bold.ttf');
     const font = await pdfDoc.embedFont(arabicFontBoldBytes);
     const fontReg = await pdfDoc.embedFont(arabicFontBytes);
 
