@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { GraduationCap, Download, Loader2, Check, Pencil, Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
-import * as XLSX from 'xlsx';
 
 interface Subject { id: string; name: string; code: string; department: { name: string }; academicYear: number; semester: number; }
 interface StudentGrade { id: string; name: string; studentCode: string; grades: Record<string, number>; subjectId?: string; subjectName?: string; }
@@ -115,36 +114,50 @@ export default function GradesPage() {
     if (!students.length) return;
     const name = subjectInfo?.name || 'All Subjects';
 
-    const buildSheet = (wb: XLSX.WorkBook, list: StudentGrade[], sheetName: string, subjName: string) => {
+    const border = 'border:1px solid #2E4DA0';
+    const buildHtmlTable = (list: StudentGrade[], subjName: string) => {
       const headers = ['#', 'Student Name', 'Code', ...examTypes.map(t => `${t.label} (/${t.max})`), 'Total'];
-      const aoa: any[][] = [
-        [`Grade Sheet - ${subjName}`],
-        [],
-        headers,
-        ...list.map((s, i) => {
-          const total = getTotal(s.grades);
-          const graded = hasGrades(s);
-          return [i + 1, s.name, s.studentCode, ...examTypes.map(t => s.grades[t.key] ?? 0), graded ? `${total} / ${maxTotal}` : `0 / ${maxTotal}`];
-        }),
-        [],
-        [...Array(headers.length - 2).fill(''), `Total Students: ${list.length}`, ''],
-      ];
-      const ws = XLSX.utils.aoa_to_sheet(aoa);
-      ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: headers.length - 1 } }];
-      ws['!cols'] = [{ wch: 4 }, { wch: 28 }, { wch: 12 }, ...examTypes.map(() => ({ wch: 16 })), { wch: 14 }];
-      XLSX.utils.book_append_sheet(wb, ws, sheetName.slice(0, 31));
+      const colCount = headers.length;
+      const rows = list.map((s, i) => {
+        const total = getTotal(s.grades);
+        const graded = hasGrades(s);
+        const totalColor = graded ? '#00A651' : '#999999';
+        const bg = i % 2 === 0 ? '#FFFFFF' : '#F8F9FF';
+        return `<tr style="background:${bg}">
+          <td style="text-align:center;${border};padding:5px">${i + 1}</td>
+          <td style="${border};padding:5px 8px">${s.name}</td>
+          <td style="text-align:center;${border};padding:5px">${s.studentCode}</td>
+          ${examTypes.map(t => `<td style="text-align:center;${border};padding:5px;font-weight:bold">${s.grades[t.key] ?? 0}</td>`).join('')}
+          <td style="text-align:center;${border};padding:5px;font-weight:bold;color:${totalColor}">${graded ? `${total} / ${maxTotal}` : `0 / ${maxTotal}`}</td>
+        </tr>`;
+      }).join('');
+      return `<table style="border-collapse:collapse;width:100%">
+        <tr><td colspan="${colCount}" style="background:#1F3864;color:white;font-size:14pt;font-weight:bold;text-align:center;padding:10px;${border}">Grade Sheet - ${subjName}</td></tr>
+        <tr><td colspan="${colCount}" style="padding:4px"></td></tr>
+        <tr>${headers.map(h => `<th style="background:#2E4DA0;color:white;font-weight:bold;text-align:center;${border};padding:7px">${h}</th>`).join('')}</tr>
+        ${rows}
+        <tr><td colspan="${colCount}" style="padding:4px"></td></tr>
+        <tr>${Array(colCount - 2).fill(`<td style="${border}"></td>`).join('')}<td colspan="2" style="background:#EEF2FF;font-weight:bold;text-align:right;padding:6px 10px;${border}">Total Students: ${list.length}</td></tr>
+      </table>`;
     };
 
-    const wb = XLSX.utils.book_new();
+    let html = '';
     if (selectedSubject === 'all') {
-      subjects.forEach(subj => {
+      html = subjects.map(subj => {
         const list = students.filter(s => s.subjectId === subj.id);
-        if (list.length > 0) buildSheet(wb, list, subj.name.slice(0, 31), subj.name);
-      });
+        return list.length ? buildHtmlTable(list, subj.name) : '';
+      }).filter(Boolean).join('<br/><br/>');
     } else {
-      buildSheet(wb, students, name.slice(0, 31), name);
+      html = buildHtmlTable(students, name);
     }
-    XLSX.writeFile(wb, `grades-${name}-${Date.now()}.xlsx`);
+
+    const blob = new Blob([`<html><head><meta charset="utf-8"></head><body>${html}</body></html>`], { type: 'application/vnd.ms-excel;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `grades-${name}-${Date.now()}.xls`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   // Reusable student table
