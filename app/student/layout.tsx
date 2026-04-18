@@ -349,44 +349,54 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
                       <button
                         onClick={async () => {
                           try {
-                            const [res1, res2] = await Promise.all([
-                              fetch('/api/student/download-pdf'),
-                              fetch('/api/student/download-cards'),
-                            ]);
-
-                            if (!res1.ok) {
-                              const err = await res1.json().catch(() => ({}));
-                              alert('Error: ' + (err.error || 'Failed to generate registration PDF'));
+                            const res = await fetch('/api/student/download-pdf');
+                            if (!res.ok) {
+                              const err = await res.json().catch(() => ({}));
+                              alert('Error: ' + (err.error || 'Failed to generate PDF'));
                               return;
                             }
-                            if (!res2.ok) {
-                              const err = await res2.json().catch(() => ({}));
-                              alert('Error: ' + (err.error || 'Failed to generate cards PDF'));
-                              return;
-                            }
-
-                            const [blob1, blob2] = await Promise.all([res1.blob(), res2.blob()]);
-
-                            const download = (blob: Blob, filename: string) => {
-                              const url = URL.createObjectURL(blob);
-                              const a = document.createElement('a');
-                              a.href = url;
-                              a.download = filename;
-                              document.body.appendChild(a);
-                              a.click();
-                              document.body.removeChild(a);
-                              URL.revokeObjectURL(url);
-                            };
-
-                            download(blob1, `registration-${profile.studentCode}.pdf`);
-                            setTimeout(() => download(blob2, `cards-${profile.studentCode}.pdf`), 500);
+                            const blob = await res.blob();
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `registration-${profile.studentCode}.pdf`;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(url);
                           } catch (e) {
                             alert('Download failed: ' + String(e));
                           }
                         }}
                         className="mt-2 flex items-center gap-2 w-full justify-center py-2.5 bg-indigo-600 hover:bg-indigo-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white font-bold text-sm rounded-xl transition-colors"
                       >
-                        <Download size={16} /> Download Data
+                        <Download size={16} /> Download Registration
+                      </button>
+                      <button
+                        onClick={async () => {
+                          try {
+                            const res = await fetch('/api/student/download-cards');
+                            if (!res.ok) {
+                              const err = await res.json().catch(() => ({}));
+                              alert('Error: ' + (err.error || 'Failed to generate cards'));
+                              return;
+                            }
+                            const blob = await res.blob();
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `cards-${profile.studentCode}.pdf`;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(url);
+                          } catch (e) {
+                            alert('Download failed: ' + String(e));
+                          }
+                        }}
+                        className="flex items-center gap-2 w-full justify-center py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold text-sm rounded-xl transition-colors"
+                      >
+                        <Download size={16} /> Download Cards
                       </button>
                     </div>
                   )}
