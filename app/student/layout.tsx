@@ -38,19 +38,8 @@ function DownloadButton({ studentCode }: { studentCode: string }) {
   const handleDownload = async () => {
     setLoading(true);
     try {
-      const res1 = await fetch('/api/student/download-pdf');
-      if (!res1.ok) {
-        const err = await res1.json().catch(() => ({}));
-        alert('Error: ' + (err.error || 'Failed to generate registration PDF'));
-        setLoading(false);
-        return;
-      }
-      const blob1 = await res1.blob();
-      const url1 = URL.createObjectURL(blob1);
-      const a1 = document.createElement('a');
-      a1.href = url1; a1.download = `registration-${studentCode}.pdf`;
-      document.body.appendChild(a1); a1.click();
-      document.body.removeChild(a1); URL.revokeObjectURL(url1);
+      // Open registration form in new tab (HTML with print dialog)
+      window.open('/api/student/download-pdf', '_blank');
 
       await new Promise(r => setTimeout(r, 800));
 
