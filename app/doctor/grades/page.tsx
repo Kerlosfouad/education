@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { GraduationCap, Download, Loader2, Check, Pencil, Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
-import * as XLSX from 'xlsx';
 
 interface Subject { id: string; name: string; code: string; department: { name: string }; academicYear: number; semester: number; }
 interface StudentGrade { id: string; name: string; studentCode: string; grades: Record<string, number>; subjectId?: string; subjectName?: string; }
@@ -111,55 +110,27 @@ export default function GradesPage() {
   const getTotal = (grades: Record<string, number>) => examTypes.reduce((sum, t) => sum + (grades[t.key] ?? 0), 0);
   const hasGrades = (s: StudentGrade) => examTypes.some(t => s.grades[t.key] !== undefined);
 
-  const exportExcel = () => {
+  const exportExcel = async () => {
     if (!students.length) return;
     const name = subjectInfo?.name || 'All Subjects';
-
-    const buildHtmlTable = (list: StudentGrade[], subjName: string) => {
-      const headers = ['#', 'Student Name', 'Code', ...examTypes.map(t => `${t.label} (/${t.max})`), 'Total'];
-      const colCount = headers.length;
-
-      const rows = list.map((s, i) => {
-        const total = getTotal(s.grades);
-        const graded = hasGrades(s);
-        const totalColor = graded ? '#00A651' : '#999999';
-        return `<tr>
-          <td style="text-align:center;border:1px solid #ddd">${i + 1}</td>
-          <td style="border:1px solid #ddd;padding:4px 8px">${s.name}</td>
-          <td style="text-align:center;border:1px solid #ddd">${s.studentCode}</td>
-          ${examTypes.map(t => `<td style="text-align:center;border:1px solid #ddd">${s.grades[t.key] ?? 0}</td>`).join('')}
-          <td style="text-align:center;border:1px solid #ddd;font-weight:bold;color:${totalColor}">${graded ? `${total} / ${maxTotal}` : `0 / ${maxTotal}`}</td>
-        </tr>`;
-      }).join('');
-
-      return `<table>
-        <tr><td colspan="${colCount}" style="background:#1F3864;color:white;font-size:14pt;font-weight:bold;text-align:center;padding:8px">Grade Sheet - ${subjName}</td></tr>
-        <tr><td colspan="${colCount}"></td></tr>
-        <tr>${headers.map(h => `<th style="background:#2E4DA0;color:white;font-weight:bold;text-align:center;border:1px solid #1a3a8a;padding:6px">${h}</th>`).join('')}</tr>
-        ${rows}
-        <tr><td colspan="${colCount}"></td></tr>
-        <tr>${Array(colCount - 2).fill('<td></td>').join('')}<td colspan="2" style="background:#EEF2FF;font-weight:bold;text-align:right;padding:4px 8px">Total Students: ${list.length}</td></tr>
-      </table>`;
-    };
-
-    if (selectedSubject === 'all') {
-      // Multiple sheets via separate downloads or single HTML
-      const allHtml = subjects
-        .map(subj => {
-          const list = students.filter(s => s.subjectId === subj.id);
-          if (!list.length) return '';
-          return buildHtmlTable(list, subj.name);
-        })
-        .filter(Boolean)
-        .join('<br/><br/>');
-
-      const wb = XLSX.read(`<html><body>${allHtml}</body></html>`, { type: 'string' });
-      XLSX.writeFile(wb, `grades-All-${Date.now()}.xls`);
-    } else {
-      const html = buildHtmlTable(students, name);
-      const wb = XLSX.read(`<html><body>${html}</body></html>`, { type: 'string' });
-      XLSX.writeFile(wb, `grades-${name}-${Date.now()}.xls`);
-    }
+    const res = await fetch('/api/doctor/grades/export', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        subjectId: selectedSubject,
+        examTypes,
+        students,
+        subjectName: name,
+      }),
+    });
+    if (!res.ok) return;
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `grades-${name}-${Date.now()}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   // Reusable student table
