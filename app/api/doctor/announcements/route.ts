@@ -35,36 +35,6 @@ export async function POST(req: NextRequest) {
     create: { key: 'announcements', value: list, updatedBy: session.user.id },
   });
 
-  // Send notifications filtered by dept+year or all
-  if (departmentId && academicYear) {
-    const students = await db.student.findMany({
-      where: { departmentId, academicYear: Number(academicYear), user: { status: 'ACTIVE' } },
-      select: { userId: true },
-    });
-    if (students.length > 0) {
-      await db.notification.createMany({
-        data: students.map(s => ({ userId: s.userId, title, message, type: 'ANNOUNCEMENT' as const })),
-      });
-    }
-  } else if (departmentId) {
-    const students = await db.student.findMany({
-      where: { departmentId, user: { status: 'ACTIVE' } },
-      select: { userId: true },
-    });
-    if (students.length > 0) {
-      await db.notification.createMany({
-        data: students.map(s => ({ userId: s.userId, title, message, type: 'ANNOUNCEMENT' as const })),
-      });
-    }
-  } else {
-    const students = await db.user.findMany({ where: { role: 'STUDENT', status: 'ACTIVE' }, select: { id: true } });
-    if (students.length > 0) {
-      await db.notification.createMany({
-        data: students.map(s => ({ userId: s.id, title, message, type: 'ANNOUNCEMENT' as const })),
-      });
-    }
-  }
-
   return NextResponse.json({ success: true, data: newAnn });
 }
 
