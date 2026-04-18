@@ -3,9 +3,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
   CalendarCheck2, FileText, HelpCircle,
-  Video, Library, MonitorPlay, CheckCircle2, Clock,
+  Video, Library, CheckCircle2, Clock,
   BookOpen, ExternalLink, AlertCircle, Loader2,
-  Phone, MessageCircle, Facebook, Instagram, Twitter,
+  Phone, MessageCircle, Facebook, Instagram, Twitter, GraduationCap,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -324,35 +324,22 @@ export default function StudentDashboardPage() {  const { t } = useI18n();
             </div>
           </div>
 
-          {/* Live Sessions */}
+          {/* Grades */}
           <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm">
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2">
-                <MonitorPlay className="text-red-500" size={20} />
-                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Live Sessions</h3>
+                <GraduationCap className="text-indigo-500" size={20} />
+                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">My Grades</h3>
               </div>
-              <Link href="/student/live" className="text-xs text-indigo-600 font-bold hover:underline">View all</Link>
+              <Link href="/student/grades" className="text-xs text-indigo-600 font-bold hover:underline">View all</Link>
             </div>
-            <div className="space-y-3">
-              {data?.liveSessions.length === 0 ? (
-                <p className="text-slate-400 text-sm text-center py-6">No upcoming sessions</p>
-              ) : data?.liveSessions.map((ls) => (
-                <div key={ls.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700/50 rounded-2xl">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-red-100 dark:bg-red-900/40 rounded-xl flex items-center justify-center">
-                      <MonitorPlay className="text-red-600" size={18} />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-slate-800 dark:text-slate-200 text-sm">{ls.title}</p>
-                      <p className="text-xs text-slate-400">{ls.subject?.name} &bull; {new Date(ls.scheduledAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
-                    </div>
-                  </div>
-                  <a href={ls.meetingUrl} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-xs bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 font-bold px-3 py-1 rounded-full hover:bg-red-200 transition-colors">
-                    <ExternalLink size={12} /> Join
-                  </a>
-                </div>
-              ))}
+            <div className="flex flex-col items-center justify-center py-8 text-slate-400 gap-2">
+              <GraduationCap size={36} className="opacity-30" />
+              <p className="text-sm">Check your grades page for detailed results</p>
+              <Link href="/student/grades"
+                className="mt-2 px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl hover:bg-indigo-700 transition-colors">
+                View Grades
+              </Link>
             </div>
           </div>
 

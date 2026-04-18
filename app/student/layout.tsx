@@ -56,7 +56,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
     { icon: CalendarCheck2,  label: t('attendance'),    path: '/student/attendance' },
     { icon: FileText,        label: t('assignments'),   path: '/student/assignments' },
     { icon: HelpCircle,      label: t('quizzes'),       path: '/student/quizzes' },
-    { icon: MonitorPlay,     label: t('liveSessions'),  path: '/student/live' },
+    { icon: GraduationCap,   label: 'Grades',           path: '/student/grades' },
     { icon: Video,           label: t('videos'),        path: '/student/videos' },
     { icon: Library,         label: t('eLibrary'),      path: '/student/library' },
   ];
