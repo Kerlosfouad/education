@@ -94,7 +94,6 @@ export default function LandingPage() {
   const [doctorName, setDoctorName] = useState<string>('Dr. Kerlos Fouad');
   const { theme, setTheme } = useTheme();
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [showInstallGuide, setShowInstallGuide] = useState(false);
 
   useEffect(() => {
     const handler = (e: Event) => { e.preventDefault(); setDeferredPrompt(e); };
@@ -108,8 +107,7 @@ export default function LandingPage() {
       await deferredPrompt.userChoice;
       setDeferredPrompt(null);
     } else {
-      // Fallback: show install instructions in a non-blocking way
-      setShowInstallGuide(true);
+      // PWA install not available in this browser/context
     }
   };
   const { data: session, status: authStatus } = useSession();
@@ -407,10 +405,12 @@ export default function LandingPage() {
                   <ChevronRight className="w-5 h-5 ml-2" />
                 </Button>
               </Link>
-              <Button size="lg" variant="outline" onClick={handleInstall}>
-                <Download className="w-5 h-5 mr-2" />
-                {deferredPrompt ? 'Install App' : 'Download App'}
-              </Button>
+              {deferredPrompt && (
+                <Button size="lg" variant="outline" onClick={handleInstall}>
+                  <Download className="w-5 h-5 mr-2" />
+                  Install App
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -445,22 +445,6 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
-
-      {/* Install Guide Modal */}
-      {showInstallGuide && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowInstallGuide(false)}>
-          <div className="bg-background rounded-xl shadow-xl p-6 max-w-sm mx-4 w-full" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold mb-3">Install the App</h3>
-            <p className="text-muted-foreground text-sm mb-4">To install the app on your device:</p>
-            <ul className="text-sm space-y-2 mb-5">
-              <li className="flex items-start gap-2"><span className="font-medium">Android:</span> Open browser menu → "Add to Home Screen"</li>
-              <li className="flex items-start gap-2"><span className="font-medium">iPhone:</span> Tap Share → "Add to Home Screen"</li>
-              <li className="flex items-start gap-2"><span className="font-medium">Desktop:</span> Click the install icon in the address bar</li>
-            </ul>
-            <Button className="w-full" onClick={() => setShowInstallGuide(false)}>Got it</Button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
