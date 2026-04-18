@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { GraduationCap, Download, Loader2, Check, Pencil } from 'lucide-react';
+import { GraduationCap, Download, Loader2, Check, Pencil, Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 
@@ -29,8 +29,14 @@ export default function GradesPage() {
   );
   const [editingMax, setEditingMax] = useState<string | null>(null);
   const [tempMax, setTempMax] = useState('');
+  const [customTypes, setCustomTypes] = useState<{ key: string; label: string; max: number }[]>([]);
+  const [newTypeName, setNewTypeName] = useState('');
+  const [newTypeMax, setNewTypeMax] = useState('');
 
-  const examTypes = DEFAULT_EXAM_TYPES.map(t => ({ ...t, max: examMaxes[t.key] }));
+  const examTypes = [
+    ...DEFAULT_EXAM_TYPES.map(t => ({ ...t, max: examMaxes[t.key] })),
+    ...customTypes,
+  ];
   const maxTotal = examTypes.reduce((s, t) => s + t.max, 0);
 
   useEffect(() => {
@@ -224,31 +230,67 @@ export default function GradesPage() {
       </div>
 
       {/* Grade type legend — editable max */}
-      <div className="flex flex-wrap gap-3">
-        {examTypes.map(t => (
-          <div key={t.key} className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl px-3 py-2 text-sm shadow-sm">
-            <span className="font-bold text-slate-700 dark:text-slate-200">{t.label}</span>
-            {editingMax === t.key ? (
-              <input autoFocus type="number" min={1} max={200} value={tempMax}
-                onChange={e => setTempMax(e.target.value)}
-                onBlur={() => { const v = Number(tempMax); if (v > 0) setExamMaxes(p => ({ ...p, [t.key]: v })); setEditingMax(null); }}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') { const v = Number(tempMax); if (v > 0) setExamMaxes(p => ({ ...p, [t.key]: v })); setEditingMax(null); }
-                  if (e.key === 'Escape') setEditingMax(null);
-                }}
-                className="w-14 text-center border border-indigo-300 rounded-lg px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400"
-              />
-            ) : (
-              <span className="text-slate-400">/ {t.max}</span>
-            )}
-            <button onClick={() => { setEditingMax(t.key); setTempMax(String(t.max)); }} className="text-slate-300 hover:text-indigo-500 transition-colors">
-              <Pencil size={12} />
-            </button>
-          </div>
-        ))}
+      <div className="flex flex-wrap gap-3 items-center">
+        {examTypes.map(t => {
+          const isDefault = DEFAULT_EXAM_TYPES.some(d => d.key === t.key);
+          return (
+            <div key={t.key} className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl px-3 py-2 text-sm shadow-sm">
+              <span className="font-bold text-slate-700 dark:text-slate-200">{t.label}</span>
+              {editingMax === t.key ? (
+                <input autoFocus type="number" min={1} max={200} value={tempMax}
+                  onChange={e => setTempMax(e.target.value)}
+                  onBlur={() => { const v = Number(tempMax); if (v > 0) setExamMaxes(p => ({ ...p, [t.key]: v })); setEditingMax(null); }}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') { const v = Number(tempMax); if (v > 0) setExamMaxes(p => ({ ...p, [t.key]: v })); setEditingMax(null); }
+                    if (e.key === 'Escape') setEditingMax(null);
+                  }}
+                  className="w-14 text-center border border-indigo-300 rounded-lg px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                />
+              ) : (
+                <span className="text-slate-400">/ {t.max}</span>
+              )}
+              <button onClick={() => { setEditingMax(t.key); setTempMax(String(t.max)); }} className="text-slate-300 hover:text-indigo-500 transition-colors">
+                <Pencil size={12} />
+              </button>
+              {!isDefault && (
+                <button onClick={() => setCustomTypes(p => p.filter(c => c.key !== t.key))}
+                  className="text-slate-300 hover:text-red-500 transition-colors ml-1">
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+          );
+        })}
         <div className="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 rounded-xl px-4 py-2 text-sm shadow-sm">
           <span className="font-bold text-indigo-700 dark:text-indigo-300">Total</span>
           <span className="text-indigo-400">/ {maxTotal}</span>
+        </div>
+
+        {/* Add new type */}
+        <div className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-600 rounded-xl px-3 py-2 shadow-sm">
+          <input value={newTypeName} onChange={e => setNewTypeName(e.target.value)}
+            placeholder="Name"
+            className="w-20 text-xs border-none outline-none bg-transparent text-slate-700 dark:text-slate-200 placeholder-slate-400"
+          />
+          <span className="text-slate-300">/</span>
+          <input value={newTypeMax} onChange={e => setNewTypeMax(e.target.value)}
+            placeholder="Max" type="number" min={1}
+            className="w-12 text-xs border-none outline-none bg-transparent text-slate-700 dark:text-slate-200 placeholder-slate-400"
+          />
+          <button
+            onClick={() => {
+              const label = newTypeName.trim();
+              const max = Number(newTypeMax);
+              if (!label || !max) return;
+              const key = `CUSTOM_${label.toUpperCase().replace(/\s+/g, '_')}_${Date.now()}`;
+              setCustomTypes(p => [...p, { key, label, max }]);
+              setExamMaxes(p => ({ ...p, [key]: max }));
+              setNewTypeName('');
+              setNewTypeMax('');
+            }}
+            className="w-6 h-6 bg-indigo-600 text-white rounded-full flex items-center justify-center hover:bg-indigo-700 transition-colors flex-shrink-0">
+            <Plus size={12} />
+          </button>
         </div>
       </div>
 
