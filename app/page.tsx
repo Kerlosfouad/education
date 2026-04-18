@@ -107,7 +107,7 @@ export default function LandingPage() {
       await deferredPrompt.userChoice;
       setDeferredPrompt(null);
     } else {
-      // PWA install not available in this browser/context
+      return;
     }
   };
   const { data: session, status: authStatus } = useSession();
@@ -405,12 +405,10 @@ export default function LandingPage() {
                   <ChevronRight className="w-5 h-5 ml-2" />
                 </Button>
               </Link>
-              {deferredPrompt && (
-                <Button size="lg" variant="outline" onClick={handleInstall}>
-                  <Download className="w-5 h-5 mr-2" />
-                  Install App
-                </Button>
-              )}
+              <Button size="lg" variant="outline" onClick={handleInstall}>
+                <Download className="w-5 h-5 mr-2" />
+                Download App
+              </Button>
             </div>
           </div>
         </div>
