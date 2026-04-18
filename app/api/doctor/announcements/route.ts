@@ -68,6 +68,23 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ success: true, data: newAnn });
 }
 
+// PATCH: update announcement by id
+export async function PATCH(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user || !['DOCTOR', 'ADMIN'].includes(session.user.role))
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const { id, title, message, imageUrl, departmentId, academicYear, targetPage } = await req.json();
+  const existing = await db.systemConfig.findUnique({ where: { key: 'announcements' } });
+  if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
+  const list = (existing.value as any[]).map(a =>
+    a.id === id ? { ...a, title, message, imageUrl: imageUrl || null, departmentId: departmentId || null, academicYear: academicYear || null, targetPage: targetPage || null } : a
+  );
+  await db.systemConfig.update({ where: { key: 'announcements' }, data: { value: list } });
+  return NextResponse.json({ success: true });
+}
+
 // DELETE: remove announcement by id
 export async function DELETE(req: NextRequest) {
   const session = await getServerSession(authOptions);

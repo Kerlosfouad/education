@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Megaphone, Plus, Trash2, Loader2, X, Check, Image as ImageIcon } from 'lucide-react';
+import { Megaphone, Plus, Trash2, Loader2, X, Check, Image as ImageIcon, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { useUploadThing } from '@/lib/uploadthing';
 
@@ -17,6 +17,7 @@ export default function AnnouncementsPage() {
   const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ title: '', message: '', departmentId: '', academicYear: '', imageUrl: '', targetPage: '' });
 
@@ -60,14 +61,23 @@ export default function AnnouncementsPage() {
     await startUpload([file]);
   };
 
+  const openEdit = (a: Announcement) => {
+    setEditingId(a.id);
+    setForm({ title: a.title, message: a.message, departmentId: a.departmentId || '', academicYear: a.academicYear ? String(a.academicYear) : '', imageUrl: a.imageUrl || '', targetPage: a.targetPage || '' });
+    setImagePreview(a.imageUrl || '');
+    setShowForm(true);
+  };
+
   const handleSave = async () => {
     if (!form.title || !form.message) { toast.error('Title and message are required'); return; }
     setSaving(true);
     try {
+      const method = editingId ? 'PATCH' : 'POST';
       const res = await fetch('/api/doctor/announcements', {
-        method: 'POST',
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          id: editingId,
           ...form,
           academicYear: form.academicYear ? Number(form.academicYear) : null,
           departmentId: form.departmentId || null,
@@ -76,8 +86,9 @@ export default function AnnouncementsPage() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error);
-      toast.success('Announcement published');
+      toast.success(editingId ? 'Announcement updated' : 'Announcement published');
       setShowForm(false);
+      setEditingId(null);
       setForm({ title: '', message: '', departmentId: '', academicYear: '', imageUrl: '', targetPage: '' });
       setImagePreview('');
       load();
@@ -145,10 +156,16 @@ export default function AnnouncementsPage() {
                     <span className="text-xs text-slate-400">{new Date(a.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                   </div>
                 </div>
-                <button onClick={() => handleDelete(a.id)}
-                  className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-red-100 hover:text-red-600 flex items-center justify-center transition-colors flex-shrink-0">
-                  <Trash2 size={14} />
-                </button>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <button onClick={() => openEdit(a)}
+                    className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-indigo-100 hover:text-indigo-600 flex items-center justify-center transition-colors">
+                    <Pencil size={14} />
+                  </button>
+                  <button onClick={() => handleDelete(a.id)}
+                    className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-red-100 hover:text-red-600 flex items-center justify-center transition-colors flex-shrink-0">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -160,8 +177,8 @@ export default function AnnouncementsPage() {
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-lg p-6 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
-              <h3 className="font-black text-slate-800 dark:text-slate-100 text-lg">New Announcement</h3>
-              <button onClick={() => setShowForm(false)} className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 flex items-center justify-center">
+              <h3 className="font-black text-slate-800 dark:text-slate-100 text-lg">{editingId ? 'Edit Announcement' : 'New Announcement'}</h3>
+              <button onClick={() => { setShowForm(false); setEditingId(null); }} className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 flex items-center justify-center">
                 <X size={16} />
               </button>
             </div>
@@ -229,14 +246,14 @@ export default function AnnouncementsPage() {
             </div>
 
             <div className="flex gap-3 pt-2">
-              <button onClick={() => setShowForm(false)}
+              <button onClick={() => { setShowForm(false); setEditingId(null); }}
                 className="flex-1 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
                 Cancel
               </button>
               <button onClick={handleSave} disabled={saving || isUploading}
                 className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
                 {saving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-                {saving ? 'Publishing...' : 'Publish'}
+                {saving ? 'Saving...' : editingId ? 'Update' : 'Publish'}
               </button>
             </div>
           </div>
