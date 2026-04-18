@@ -96,12 +96,13 @@ export default function StudentPdfDownloader({ studentCode }: Props) {
   const handleDownload = async () => {
     setLoading(true);
     try {
-      const [dataRes, jsPDFModule, html2canvas] = await Promise.all([
+      const [dataRes, jsPDFModule, html2canvasModule] = await Promise.all([
         fetch('/api/student/pdf-data').then(r => r.json()),
         import('jspdf'),
-        import('html2canvas').then(m => m.default),
+        import('html2canvas'),
       ]);
       const jsPDF = jsPDFModule.jsPDF;
+      const html2canvas = html2canvasModule.default ?? html2canvasModule;
 
       if (!dataRes.success) {
         alert('Error: ' + (dataRes.error || 'Failed to load student data'));
