@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
-import ExcelJS from 'exceljs';
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -11,11 +10,11 @@ export async function POST(req: NextRequest) {
 
   const { subjectId, examTypes, students, subjectName } = await req.json();
 
+  const ExcelJS = (await import('exceljs')).default;
   const wb = new ExcelJS.Workbook();
 
   const buildSheet = (list: any[], sheetName: string, subjName: string) => {
-    const ws = wb.addWorksheet(sheetName.slice(0, 31));
-    const colCount = 3 + examTypes.length + 1; // #, Name, Code, ...exams, Total
+    const ws = wb.addWorksheet(sheetName.slice(0, 31));    const colCount = 3 + examTypes.length + 1; // #, Name, Code, ...exams, Total
 
     // Row 1: Title
     ws.mergeCells(1, 1, 1, colCount);
