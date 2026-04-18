@@ -5,19 +5,35 @@ import { db } from '@/lib/db';
 import { generateStudentQRCode } from '@/lib/codes';
 import { PDFDocument, rgb } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
-import path from 'path';
-import fs from 'fs';
 
-async function loadFontBytes(filename: string): Promise<Uint8Array> {
+let cachedRegular: Uint8Array | null = null;
+let cachedBold: Uint8Array | null = null;
+
+async function loadArabicFont(bold = false): Promise<Uint8Array> {
+  if (bold && cachedBold) return cachedBold;
+  if (!bold && cachedRegular) return cachedRegular;
   try {
-    const fontPath = path.join(process.cwd(), 'public', 'fonts', filename);
-    return new Uint8Array(fs.readFileSync(fontPath));
-  } catch {
-    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
-    const res = await fetch(`${baseUrl}/fonts/${filename}`);
-    if (!res.ok) throw new Error(`Failed to fetch font: ${filename}`);
-    return new Uint8Array(await res.arrayBuffer());
-  }
+    const { default: fs } = await import('fs');
+    const { default: path } = await import('path');
+    const filename = bold ? 'NotoSansArabic-Bold.ttf' : 'NotoSansArabic-Regular.ttf';
+    const candidates = [
+      path.join(process.cwd(), 'public', 'fonts', filename),
+      path.join('/var/task', 'public', 'fonts', filename),
+    ];
+    for (const p of candidates) {
+      if (fs.existsSync(p)) {
+        const bytes = new Uint8Array(fs.readFileSync(p));
+        if (bold) cachedBold = bytes; else cachedRegular = bytes;
+        return bytes;
+      }
+    }
+  } catch {}
+  const url = 'https://fonts.gstatic.com/s/notosansarabic/v18/nwpxtLGrOAZMl5nJ_wfgRg3DrWFZWsnVBJ_sS6tlqHHFlhQ5l3sQWIHPqzCfyGyvu3CBFQLaig.woff2';
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Failed to fetch font from CDN');
+  const bytes = new Uint8Array(await res.arrayBuffer());
+  if (bold) cachedBold = bytes; else cachedRegular = bytes;
+  return bytes;
 }
 
 function prepareArabic(text: string): string {
@@ -52,8 +68,8 @@ export async function GET() {
     const pdfDoc = await PDFDocument.create();
     pdfDoc.registerFontkit(fontkit);
 
-    const arabicFontBytes = await loadFontBytes('NotoSansArabic-Regular.ttf');
-    const arabicFontBoldBytes = await loadFontBytes('NotoSansArabic-Bold.ttf');
+    const arabicFontBytes = await loadArabicFont(false);
+    const arabicFontBoldBytes = await loadArabicFont(true);
     const font = await pdfDoc.embedFont(arabicFontBoldBytes);
     const fontReg = await pdfDoc.embedFont(arabicFontBytes);
 
