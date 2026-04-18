@@ -38,24 +38,9 @@ function DownloadButton({ studentCode }: { studentCode: string }) {
   const handleDownload = async () => {
     setLoading(true);
     try {
-      // Open registration form in new tab (HTML with print dialog)
       window.open('/api/student/download-pdf', '_blank');
-
       await new Promise(r => setTimeout(r, 800));
-
-      const res2 = await fetch('/api/student/download-cards');
-      if (!res2.ok) {
-        const err = await res2.json().catch(() => ({}));
-        alert('Error: ' + (err.error || 'Failed to generate cards PDF'));
-        setLoading(false);
-        return;
-      }
-      const blob2 = await res2.blob();
-      const url2 = URL.createObjectURL(blob2);
-      const a2 = document.createElement('a');
-      a2.href = url2; a2.download = `cards-${studentCode}.pdf`;
-      document.body.appendChild(a2); a2.click();
-      document.body.removeChild(a2); URL.revokeObjectURL(url2);
+      window.open('/api/student/download-cards', '_blank');
     } catch (e) {
       alert('Download failed: ' + String(e));
     }
