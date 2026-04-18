@@ -8,8 +8,16 @@ import { saveBookAction, getBooksAction, deleteBookAction } from '../../actions/
 export default function LibBooksPage() {
   const [files, setFiles] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [departments, setDepartments] = useState<{ id: string; name: string; code: string }[]>([]);
+  const [selectedDept, setSelectedDept] = useState('');
+  const [selectedYear, setSelectedYear] = useState('');
 
-  useEffect(() => { refreshBooks(); }, []);
+  const LEVELS = [1, 2, 3, 4];
+
+  useEffect(() => {
+    refreshBooks();
+    fetch('/api/subjects/departments').then(r => r.json()).then(j => { if (j.success) setDepartments(j.data); });
+  }, []);
 
   const refreshBooks = async () => {
     const data = await getBooksAction();
@@ -37,13 +45,35 @@ export default function LibBooksPage() {
             <div className='w-20 h-20 bg-indigo-50 rounded-[2rem] flex items-center justify-center text-indigo-600 mb-6'>
               <UploadCloud size={40} />
             </div>
-            <h3 className='text-xl font-bold text-slate-800 dark:text-white'>New Upload</h3>
-            <div className='w-full mt-8'>
+            <h3 className='text-xl font-bold text-slate-800 dark:text-white mb-4'>New Upload</h3>
+
+            {/* Department & Level selectors */}
+            <div className='w-full space-y-3 mb-4'>
+              <select value={selectedDept} onChange={e => setSelectedDept(e.target.value)}
+                className='w-full px-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-slate-50 dark:bg-slate-700 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20'>
+                <option value=''>All Departments</option>
+                {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+              </select>
+              <select value={selectedYear} onChange={e => setSelectedYear(e.target.value)}
+                className='w-full px-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-slate-50 dark:bg-slate-700 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20'>
+                <option value=''>All Levels</option>
+                {LEVELS.map(l => <option key={l} value={l}>Level {l}</option>)}
+              </select>
+            </div>
+
+            <div className='w-full'>
               <UploadButton
                 endpoint='pdfUploader'
                 onClientUploadComplete={async (res) => {
                   if (res) {
-                    await saveBookAction({ name: res[0].name, type: res[0].name.endsWith('.pdf') ? 'PDF' : 'WORD', size: (res[0].size / (1024 * 1024)).toFixed(1) + ' MB', url: res[0].url });
+                    await saveBookAction({
+                      name: res[0].name,
+                      type: res[0].name.endsWith('.pdf') ? 'PDF' : 'WORD',
+                      size: (res[0].size / (1024 * 1024)).toFixed(1) + ' MB',
+                      url: res[0].url,
+                      ...(selectedDept ? { departmentId: selectedDept } : {}),
+                      ...(selectedYear ? { academicYear: Number(selectedYear) } : {}),
+                    });
                     refreshBooks();
                   }
                 }}
@@ -66,7 +96,11 @@ export default function LibBooksPage() {
                   </div>
                   <div className='truncate'>
                     <h4 className='font-bold text-slate-700 dark:text-white text-[15px] truncate max-w-[200px] md:max-w-md'>{file.name}</h4>
-                    <p className='text-[11px] text-slate-400 font-bold uppercase'>{file.type} • {file.size}</p>
+                    <p className='text-[11px] text-slate-400 font-bold uppercase'>
+                      {file.type} • {file.size}
+                      {file.department && <span className='ml-2 text-indigo-400'>{file.department.name}</span>}
+                      {file.academicYear && <span className='ml-1 text-indigo-400'>· Level {file.academicYear}</span>}
+                    </p>
                   </div>
                 </div>
                 <div className='flex items-center gap-3'>
