@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
-import { notifyAllStudents } from "@/lib/notifications";
+import { notifyAllStudents, notifyStudentsByFilter } from "@/lib/notifications";
 
 // Fetch books from database
 export async function getBooksAction() {
@@ -42,11 +42,16 @@ export async function saveBookAction(data: { name: string, type: string, size: s
         ...(data.academicYear ? { academicYear: data.academicYear } : {}),
       },
     });
-    await notifyAllStudents(
-      '📚 New library item',
-      `"${data.name}" was added to the E-Library`,
-      'ANNOUNCEMENT'
-    );
+    if (data.departmentId && data.academicYear) {
+      await notifyStudentsByFilter('📚 New library item', `"${data.name}" was added to the E-Library`, 'ANNOUNCEMENT', data.departmentId, data.academicYear);
+    } else if (data.departmentId) {
+      const deptStudents = await db.student.findMany({ where: { departmentId: data.departmentId, user: { status: 'ACTIVE' } }, select: { userId: true } });
+      if (deptStudents.length > 0) {
+        await db.notification.createMany({ data: deptStudents.map(s => ({ userId: s.userId, title: '📚 New library item', message: `"${data.name}" was added to the E-Library`, type: 'ANNOUNCEMENT' as const })) });
+      }
+    } else {
+      await notifyAllStudents('📚 New library item', `"${data.name}" was added to the E-Library`, 'ANNOUNCEMENT');
+    }
     revalidatePath("/doctor/libbooks");
     return book;
   } catch (error) {

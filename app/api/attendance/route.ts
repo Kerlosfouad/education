@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db, getOrCreateStudent } from '@/lib/db';
 import { UAParser } from 'ua-parser-js';
-import { notifyAllStudents } from '@/lib/notifications';
+import { notifyAllStudents, notifyStudentsByFilter } from '@/lib/notifications';
 
 // GET /api/attendance - Get attendance sessions or records
 export async function GET(req: NextRequest) {
@@ -158,12 +158,29 @@ export async function POST(req: NextRequest) {
           await db.$executeRaw`UPDATE attendance_sessions SET "departmentId" = ${departmentId} WHERE id = ${attendanceSession.id}`;
         }
 
-        // Notify all students (non-blocking)
-        notifyAllStudents(
-          '📋 New Attendance Session',
-          `A new attendance session "${title || 'Attendance'}" is now open. Please mark your attendance.`,
-          'ATTENDANCE'
-        ).catch(() => {});
+        // Notify students - filtered by department if provided, else all
+        if (departmentId) {
+          const deptStudents = await db.student.findMany({
+            where: { departmentId, user: { status: 'ACTIVE' } },
+            select: { userId: true },
+          });
+          if (deptStudents.length > 0) {
+            await db.notification.createMany({
+              data: deptStudents.map(s => ({
+                userId: s.userId,
+                title: '📋 New Attendance Session',
+                message: `A new attendance session "${title || 'Attendance'}" is now open. Please mark your attendance.`,
+                type: 'ATTENDANCE' as const,
+              })),
+            });
+          }
+        } else {
+          notifyAllStudents(
+            '📋 New Attendance Session',
+            `A new attendance session "${title || 'Attendance'}" is now open. Please mark your attendance.`,
+            'ATTENDANCE'
+          ).catch(() => {});
+        }
 
         return NextResponse.json(
           { success: true, data: attendanceSession },

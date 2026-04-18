@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { notifyAllStudents } from '@/lib/notifications';
+import { notifyAllStudents, notifyStudentsByFilter } from '@/lib/notifications';
 
 export async function GET() {
   try {
@@ -67,11 +67,15 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    await notifyAllStudents(
-      '🎬 New video',
-      `A new video was uploaded: ${title}`,
-      'ANNOUNCEMENT'
-    );
+    // Notify filtered by subject's dept+year if available, else all
+    if (subjectId) {
+      const subject = await db.subject.findUnique({ where: { id: subjectId }, select: { departmentId: true, academicYear: true } });
+      if (subject) {
+        await notifyStudentsByFilter('🎬 New Video', `A new video was uploaded: ${title}`, 'ANNOUNCEMENT', subject.departmentId, subject.academicYear);
+      }
+    } else {
+      await notifyAllStudents('🎬 New video', `A new video was uploaded: ${title}`, 'ANNOUNCEMENT');
+    }
 
     return NextResponse.json({ success: true, data: video }, { status: 201 });
   } catch (error) {
