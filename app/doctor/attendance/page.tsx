@@ -25,7 +25,7 @@ export default function AttendancePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'sessions' | 'table'>('sessions');
-  const [form, setForm] = useState({ subjectId: '', departmentId: '', title: '', durationHours: '1', durationMinutes: '0' });
+  const [form, setForm] = useState({ subjectId: '', departmentId: '', academicYear: '', title: '', durationHours: '1', durationMinutes: '0' });
   const [menuSessionId, setMenuSessionId] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
@@ -69,12 +69,13 @@ export default function AttendancePage() {
         body: JSON.stringify({
           title: form.title || undefined,
           departmentId: form.departmentId || undefined,
+          academicYear: form.academicYear ? Number(form.academicYear) : undefined,
           openTime: now.toISOString(),
           closeTime: closeTime.toISOString(),
         }),
       });
       const json = await res.json();
-      if (json.success) { setShowModal(false); setForm({ subjectId: '', departmentId: '', title: '', durationHours: '1', durationMinutes: '0' }); fetchData(); }
+      if (json.success) { setShowModal(false); setForm({ subjectId: '', departmentId: '', academicYear: '', title: '', durationHours: '1', durationMinutes: '0' }); fetchData(); }
       else setError(json.error || t('errorOccurred'));
     } catch { setError('Network error'); }
     setSaving(false);
@@ -101,7 +102,7 @@ export default function AttendancePage() {
   };
 
   const openModal = () => {
-    setForm({ subjectId: '', departmentId: '', title: '', durationHours: '1', durationMinutes: '0' });
+    setForm({ subjectId: '', departmentId: '', academicYear: '', title: '', durationHours: '1', durationMinutes: '0' });
     setError(''); setShowModal(true);
   };
 
@@ -302,6 +303,13 @@ export default function AttendancePage() {
                 </select>
               </div>
               <div>
+                <label className="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Level</label>
+                <select value={(form as any).academicYear || ''} onChange={e => setForm(f => ({ ...f, academicYear: e.target.value } as any))}
+                  className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+                  <option value="">All Levels</option>
+                  {[1,2,3,4].map(l => <option key={l} value={l}>Level {l}</option>)}
+                </select>
+              </div>
                 <label className="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Session Duration *</label>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
