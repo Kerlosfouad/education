@@ -10,12 +10,25 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Fetch from Book model - same as doctor uploads
+    // Get student's department and level
+    const student = await db.student.findUnique({
+      where: { userId: session.user.id },
+      select: { departmentId: true, academicYear: true },
+    });
+
+    // Show books that match student's dept+year OR have no restriction (null)
     const books = await db.book.findMany({
+      where: {
+        OR: [
+          { departmentId: null, academicYear: null },
+          { departmentId: student?.departmentId ?? undefined, academicYear: null },
+          { departmentId: null, academicYear: student?.academicYear ?? undefined },
+          { departmentId: student?.departmentId ?? undefined, academicYear: student?.academicYear ?? undefined },
+        ],
+      },
       orderBy: { createdAt: 'desc' },
     });
 
-    // Map to a unified shape for the UI
     const data = books.map(b => ({
       id: b.id,
       title: b.name,
