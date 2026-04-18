@@ -1,45 +1,10 @@
 import { PDFDocument, rgb } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
+import { NOTO_ARABIC_REGULAR_B64, NOTO_ARABIC_BOLD_B64 } from './arabicFonts';
 
-const FONT_URLS = {
-  regular: 'https://fonts.gstatic.com/s/notosansarabic/v18/nwpxtLGrOAZMl5nJ_wfgRg3DrWFZWsnVBJ_sS6tlqHHFlhQ5l3sQWIHPqzCfyGyvu3CBFQLaig.woff2',
-  bold: 'https://fonts.gstatic.com/s/notosansarabic/v18/nwpxtLGrOAZMl5nJ_wfgRg3DrWFZWsnVBJ_sS6tlqHHFlhQ5l3sQWIHPqzCfyGyvu3CBFQLaig.woff2',
-};
-
-// Cache fonts in memory to avoid repeated fetches
-let cachedRegular: Uint8Array | null = null;
-let cachedBold: Uint8Array | null = null;
-
-async function loadArabicFont(bold = false): Promise<Uint8Array> {
-  if (bold && cachedBold) return cachedBold;
-  if (!bold && cachedRegular) return cachedRegular;
-
-  // Try local public folder first
-  try {
-    const { default: fs } = await import('fs');
-    const { default: path } = await import('path');
-    const filename = bold ? 'NotoSansArabic-Bold.ttf' : 'NotoSansArabic-Regular.ttf';
-    const candidates = [
-      path.join(process.cwd(), 'public', 'fonts', filename),
-      path.join('/var/task', 'public', 'fonts', filename),
-      path.join('/var/task', '.next', 'server', 'public', 'fonts', filename),
-    ];
-    for (const p of candidates) {
-      if (fs.existsSync(p)) {
-        const bytes = new Uint8Array(fs.readFileSync(p));
-        if (bold) cachedBold = bytes; else cachedRegular = bytes;
-        return bytes;
-      }
-    }
-  } catch {}
-
-  // Fallback: fetch from Google Fonts CDN
-  const url = bold ? FONT_URLS.bold : FONT_URLS.regular;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Failed to fetch font from CDN`);
-  const bytes = new Uint8Array(await res.arrayBuffer());
-  if (bold) cachedBold = bytes; else cachedRegular = bytes;
-  return bytes;
+function getArabicFont(bold = false): Uint8Array {
+  const b64 = bold ? NOTO_ARABIC_BOLD_B64 : NOTO_ARABIC_REGULAR_B64;
+  return Uint8Array.from(Buffer.from(b64, 'base64'));
 }
 
 // Arabic text needs to be reversed for RTL rendering in pdf-lib
@@ -64,8 +29,8 @@ export async function generateStudentRegistrationPdf(input: {
   const pdfDoc = await PDFDocument.create();
   pdfDoc.registerFontkit(fontkit);
 
-  const arabicFontBytes = await loadArabicFont(false);
-  const arabicFontBoldBytes = await loadArabicFont(true);
+  const arabicFontBytes = getArabicFont(false);
+  const arabicFontBoldBytes = getArabicFont(true);
 
   const arabicFont = await pdfDoc.embedFont(arabicFontBytes);
   const arabicFontBold = await pdfDoc.embedFont(arabicFontBoldBytes);
