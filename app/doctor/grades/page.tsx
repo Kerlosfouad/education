@@ -154,11 +154,11 @@ export default function GradesPage() {
         .join('<br/><br/>');
 
       const wb = XLSX.read(`<html><body>${allHtml}</body></html>`, { type: 'string' });
-      XLSX.writeFile(wb, `grades-All-${Date.now()}.xlsx`);
+      XLSX.writeFile(wb, `grades-All-${Date.now()}.xls`);
     } else {
       const html = buildHtmlTable(students, name);
       const wb = XLSX.read(`<html><body>${html}</body></html>`, { type: 'string' });
-      XLSX.writeFile(wb, `grades-${name}-${Date.now()}.xlsx`);
+      XLSX.writeFile(wb, `grades-${name}-${Date.now()}.xls`);
     }
   };
 
