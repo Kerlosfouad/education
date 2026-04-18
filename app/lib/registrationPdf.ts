@@ -1,6 +1,8 @@
 import { PDFDocument, rgb, StandardFonts, PDFFont } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import { NOTO_ARABIC_REGULAR_B64, NOTO_ARABIC_BOLD_B64 } from './arabicFonts';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { ArabicShaper } = require('arabic-persian-reshaper');
 
 function getArabicFontBytes(bold = false): Uint8Array {
   const b64 = bold ? NOTO_ARABIC_BOLD_B64 : NOTO_ARABIC_REGULAR_B64;
@@ -11,9 +13,10 @@ function hasArabic(text: string): boolean {
   return /[\u0600-\u06FF]/.test(text);
 }
 
-// Reverse Arabic text for RTL rendering in pdf-lib
+// Shape + reverse Arabic text for correct RTL rendering in pdf-lib
 function prepareArabic(text: string): string {
-  return text.split('').reverse().join('');
+  const shaped: string = ArabicShaper.convertArabic(text);
+  return shaped.split('').reverse().join('');
 }
 
 export async function generateStudentRegistrationPdf(input: {

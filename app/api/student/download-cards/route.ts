@@ -6,6 +6,8 @@ import { generateStudentQRCode } from '@/lib/codes';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import { NOTO_ARABIC_REGULAR_B64, NOTO_ARABIC_BOLD_B64 } from '@/lib/arabicFonts';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { ArabicShaper } = require('arabic-persian-reshaper');
 
 function getArabicFontBytes(bold = false): Uint8Array {
   const b64 = bold ? NOTO_ARABIC_BOLD_B64 : NOTO_ARABIC_REGULAR_B64;
@@ -17,7 +19,8 @@ function hasArabic(text: string): boolean {
 }
 
 function prepareArabic(text: string): string {
-  return hasArabic(text) ? text.split('').reverse().join('') : text;
+  const shaped: string = ArabicShaper.convertArabic(text);
+  return shaped.split('').reverse().join('');
 }
 
 export async function GET() {
