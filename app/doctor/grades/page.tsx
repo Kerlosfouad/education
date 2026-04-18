@@ -30,11 +30,12 @@ export default function GradesPage() {
   const [editingMax, setEditingMax] = useState<string | null>(null);
   const [tempMax, setTempMax] = useState('');
   const [customTypes, setCustomTypes] = useState<{ key: string; label: string; max: number }[]>([]);
+  const [hiddenDefaults, setHiddenDefaults] = useState<string[]>([]);
   const [newTypeName, setNewTypeName] = useState('');
   const [newTypeMax, setNewTypeMax] = useState('');
 
   const examTypes = [
-    ...DEFAULT_EXAM_TYPES.map(t => ({ ...t, max: examMaxes[t.key] })),
+    ...DEFAULT_EXAM_TYPES.filter(t => !hiddenDefaults.includes(t.key)).map(t => ({ ...t, max: examMaxes[t.key] })),
     ...customTypes,
   ];
   const maxTotal = examTypes.reduce((s, t) => s + t.max, 0);
@@ -252,13 +253,16 @@ export default function GradesPage() {
               <button onClick={() => { setEditingMax(t.key); setTempMax(String(t.max)); }} className="text-slate-300 hover:text-indigo-500 transition-colors">
                 <Pencil size={12} />
               </button>
-              {!isDefault && (
-                <button onClick={() => setCustomTypes(p => p.filter(c => c.key !== t.key))}
-                  className="text-slate-300 hover:text-red-500 transition-colors ml-1">
-                  <X size={12} />
-                </button>
-              )}
-            </div>
+              <button onClick={() => {
+                  if (isDefault) {
+                    setHiddenDefaults(p => [...p, t.key]);
+                  } else {
+                    setCustomTypes(p => p.filter(c => c.key !== t.key));
+                  }
+                }}
+                className="text-slate-300 hover:text-red-500 transition-colors ml-1">
+                <X size={12} />
+              </button>            </div>
           );
         })}
         <div className="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 rounded-xl px-4 py-2 text-sm shadow-sm">
