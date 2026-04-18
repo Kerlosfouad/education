@@ -19,8 +19,15 @@ function hasArabic(text: string): boolean {
 }
 
 function prepareArabic(text: string): string {
-  const shaped: string = ArabicShaper.convertArabic(text);
-  return shaped.split('').reverse().join('');
+  const words = text.split(' ');
+  const shapedWords = words.map((word: string) => {
+    if (/[\u0600-\u06FF]/.test(word)) {
+      const shaped: string = ArabicShaper.convertArabic(word);
+      return shaped.split('').reverse().join('');
+    }
+    return word;
+  });
+  return shapedWords.reverse().join(' ');
 }
 
 export async function GET() {

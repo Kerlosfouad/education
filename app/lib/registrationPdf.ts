@@ -13,10 +13,18 @@ function hasArabic(text: string): boolean {
   return /[\u0600-\u06FF]/.test(text);
 }
 
-// Shape + reverse Arabic text for correct RTL rendering in pdf-lib
+// Shape Arabic text and reverse word order for RTL rendering in pdf-lib
 function prepareArabic(text: string): string {
-  const shaped: string = ArabicShaper.convertArabic(text);
-  return shaped.split('').reverse().join('');
+  // Shape each word individually, then reverse word order for RTL
+  const words = text.split(' ');
+  const shapedWords = words.map((word: string) => {
+    if (/[\u0600-\u06FF]/.test(word)) {
+      const shaped: string = ArabicShaper.convertArabic(word);
+      return shaped.split('').reverse().join('');
+    }
+    return word;
+  });
+  return shapedWords.reverse().join(' ');
 }
 
 export async function generateStudentRegistrationPdf(input: {
