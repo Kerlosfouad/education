@@ -8,7 +8,6 @@ import { Loader2, Building2, GraduationCap, Phone, BookOpen, CheckCircle, User }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -158,7 +157,8 @@ export default function CompleteProfilePage() {
         <Card className="border-0 shadow-xl">
           <CardHeader className="space-y-1 text-center">
             <div className="flex justify-center mb-4">
-              <Image src="/logo.jpeg" alt="logo" width={64} height={64} className="w-16 h-16 rounded-2xl object-cover" unoptimized />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo.jpeg" alt="logo" className="w-16 h-16 rounded-2xl object-cover" />
             </div>
             <CardTitle className="text-2xl font-bold">Complete Your Profile</CardTitle>
             <CardDescription>
