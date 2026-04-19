@@ -17,7 +17,6 @@ export async function GET() {
     if (!student) return NextResponse.json({ error: 'Student not found' }, { status: 404 });
 
     const qrCodeDataUrl = await generateStudentQRCode(student.id);
-
     const pdf = await generateStudentRegistrationPdf({
       title: 'Registration Form',
       studentName: student.user.name || 'Student',
@@ -36,7 +35,6 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error('PDF error:', error);
-    return NextResponse.json({ error: 'Failed to generate PDF: ' + String(error) }, { status: 500 });
+    return NextResponse.json({ error: 'Failed: ' + String(error) }, { status: 500 });
   }
 }

@@ -13,7 +13,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useI18n } from '@/lib/i18n';
 import StudentPdfDownloader from '@/components/StudentPdfDownloader';
-
 interface Notification {
   id: string; title: string; message: string;
   type: string; isRead: boolean; createdAt: string;
