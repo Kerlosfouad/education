@@ -12,7 +12,7 @@ interface AttendanceSession {
 }
 interface Student { id: string; studentCode: string; user: { name: string; email: string }; }
 interface Subject { id: string; name: string; }
-interface Department { id: string; name: string; nameAr?: string; }
+interface Department { id: string; name: string; nameAr?: string; code?: string; }
 
 export default function AttendancePage() {
   const { t } = useI18n();
@@ -296,7 +296,12 @@ export default function AttendancePage() {
               </div>
               <div>
                 <label className="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Department</label>
-                <select value={form.departmentId} onChange={e => setForm(f => ({ ...f, departmentId: e.target.value, academicYear: '' }))}
+                <select value={form.departmentId} onChange={e => {
+                    const newDeptId = e.target.value;
+                    const newDept = departments.find(d => d.id === newDeptId);
+                    const newLevels = newDept?.code === 'PREP' ? [0] : [1, 2, 3, 4];
+                    setForm(f => ({ ...f, departmentId: newDeptId, academicYear: newLevels.length === 1 ? String(newLevels[0]) : '' }));
+                  }}
                   className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
                   <option value="">All Departments</option>
                   {departments.map(d => <option key={d.id} value={d.id}>{d.nameAr || d.name}</option>)}
