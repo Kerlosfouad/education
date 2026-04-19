@@ -11,12 +11,13 @@ interface Subject {
   department: Department;
 }
 
-const YEARS = [1, 2, 3, 4];
+const ALL_YEARS = [0, 1, 2, 3, 4];
+const PREP_YEARS = [0, 1];
 const SEMESTERS = [1, 2];
-const YEAR_LABELS: Record<number, string> = { 1: 'Level 1', 2: 'Level 2', 3: 'Level 3', 4: 'Level 4' };
+const YEAR_LABELS: Record<number, string> = { 0: 'Level 0', 1: 'Level 1', 2: 'Level 2', 3: 'Level 3', 4: 'Level 4' };
 const SEM_LABELS: Record<number, string> = { 1: 'Semester 1', 2: 'Semester 2' };
 
-const emptyForm = { name: '', code: '', departmentId: '', academicYear: 1, semester: 1 };
+const emptyForm = { name: '', code: '', departmentId: '', academicYear: 0, semester: 1 };
 
 export default function SubjectsPage() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -116,7 +117,7 @@ export default function SubjectsPage() {
         <select value={filterYear} onChange={e => setFilterYear(e.target.value === 'all' ? 'all' : Number(e.target.value))}
           className="px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-slate-50 dark:bg-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
           <option value="all">All Years</option>
-          {YEARS.map(y => <option key={y} value={y}>{YEAR_LABELS[y]}</option>)}
+          {ALL_YEARS.map(y => <option key={y} value={y}>{YEAR_LABELS[y]}</option>)}
         </select>
         <select value={filterSem} onChange={e => setFilterSem(e.target.value === 'all' ? 'all' : Number(e.target.value))}
           className="px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-slate-50 dark:bg-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
@@ -198,7 +199,7 @@ export default function SubjectsPage() {
 
               <div>
                 <label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">Department *</label>
-                <select value={form.departmentId} onChange={e => setForm(p => ({ ...p, departmentId: e.target.value }))}
+                <select value={form.departmentId} onChange={e => setForm(p => ({ ...p, departmentId: e.target.value, academicYear: 0 }))}
                   className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-slate-50 dark:bg-slate-700 dark:text-slate-100">
                   <option value="">Select department</option>
                   {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
@@ -209,7 +210,7 @@ export default function SubjectsPage() {
                   <label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">Academic Year *</label>
                   <select value={form.academicYear} onChange={e => setForm(p => ({ ...p, academicYear: Number(e.target.value) }))}
                     className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-slate-50 dark:bg-slate-700 dark:text-slate-100">
-                    {YEARS.map(y => <option key={y} value={y}>{YEAR_LABELS[y]}</option>)}
+                    {(departments.find(d => d.id === form.departmentId)?.code === 'PREP' ? PREP_YEARS : ALL_YEARS).map(y => <option key={y} value={y}>{YEAR_LABELS[y]}</option>)}
                   </select>
                 </div>
                 <div>

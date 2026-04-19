@@ -16,7 +16,8 @@ export default function LibBooksPage() {
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const LEVELS = [1, 2, 3, 4];
+  const selectedDept = departments.find(d => d.id === form.departmentId);
+  const LEVELS = selectedDept?.code === 'PREP' ? [0, 1] : [0, 1, 2, 3, 4];
 
   const { startUpload } = useUploadThing('pdfUploader');
 
@@ -138,7 +139,7 @@ export default function LibBooksPage() {
               </div>
               <div>
                 <label className='text-xs font-bold text-slate-500 uppercase mb-1.5 block'>Department</label>
-                <select value={form.departmentId} onChange={e => setForm(p => ({ ...p, departmentId: e.target.value }))}
+                <select value={form.departmentId} onChange={e => setForm(p => ({ ...p, departmentId: e.target.value, academicYear: '' }))}
                   className='w-full px-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-slate-50 dark:bg-slate-700 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20'>
                   <option value=''>All Departments</option>
                   {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
