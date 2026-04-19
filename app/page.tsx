@@ -399,9 +399,9 @@ export default function LandingPage() {
               <Image src={LOGO_BASE64} alt="logo" width={32} height={32} className="w-8 h-8 rounded-lg object-cover" unoptimized />
               <span className="font-semibold">{doctorName} Educational System</span>
             </div>
-            <div className="text-muted-foreground text-sm flex flex-col items-center gap-0.5">
-              <div className="flex items-center gap-1">
-                © {new Date().getFullYear()} All rights reserved. Designed by{' '}
+            <div className="text-muted-foreground text-xs flex flex-col items-center gap-0.5">
+              <div className="flex items-center gap-1 flex-wrap justify-center">
+                <span>© {new Date().getFullYear()} All rights reserved. Designed by</span>
                 <a
                   href="https://www.facebook.com/kerlos.foudi?mibextid=ZbWKwL"
                   target="_blank"
