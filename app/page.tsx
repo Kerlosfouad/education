@@ -406,7 +406,7 @@ export default function LandingPage() {
                   href="https://www.facebook.com/kerlos.foudi?mibextid=ZbWKwL"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-semibold text-indigo-400 hover:text-indigo-300 transition-colors underline underline-offset-2"
+                  className="font-bold text-indigo-500 hover:text-indigo-400 transition-colors underline underline-offset-2"
                 >
                   ENG: KERLOS FOUAD
                 </a>
