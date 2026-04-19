@@ -19,6 +19,9 @@ export const ourFileRouter = {
     pdf: { maxFileSize: "16MB" },
     blob: { maxFileSize: "16MB" } 
   })
+    .middleware(async () => {
+      return {};
+    })
     .onUploadComplete(async ({ file }) => {
       return { url: file.url };
     }),
