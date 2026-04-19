@@ -12,7 +12,7 @@ import {
 import Link from 'next/link';
 import Image from 'next/image';
 import { useI18n } from '@/lib/i18n';
-import StudentPdfDownloader from '@/components/StudentPdfDownloader';
+
 interface Notification {
   id: string; title: string; message: string;
   type: string; isRead: boolean; createdAt: string;
@@ -348,7 +348,15 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
                       <p className="text-[10px] text-slate-400">Scan to verify student identity</p>
                     </div>
                   )}
-                  <StudentPdfDownloader studentCode={profile.studentCode} />
+                  <button
+                    onClick={() => {
+                      window.open('/api/student/download-pdf', '_blank');
+                      setTimeout(() => window.open('/api/student/download-cards', '_blank'), 800);
+                    }}
+                    className="flex items-center gap-2 w-full justify-center py-2.5 bg-indigo-600 hover:bg-indigo-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white font-bold text-sm rounded-xl transition-colors"
+                  >
+                    <Download size={16} /> Download Data
+                  </button>
                 </>
               )}
             </div>
