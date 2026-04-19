@@ -1,6 +1,5 @@
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 
-// Transliterate Arabic to Latin so Helvetica can render it
 function toLatinSafe(text: string): string {
   const map: Record<string, string> = {
     'ا':'a','أ':'a','إ':'i','آ':'aa','ب':'b','ت':'t','ث':'th','ج':'j','ح':'h',
@@ -24,23 +23,23 @@ export async function generateStudentRegistrationPdf(input: {
 }) {
   const pdfDoc = await PDFDocument.create();
   const page = pdfDoc.addPage([595.28, 841.89]);
-  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const font    = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
   const margin = 40;
-  const pageWidth = page.getWidth();
-  const pageHeight = page.getHeight();
+  const W = page.getWidth(), H = page.getHeight();
 
-  const title = input.title ?? 'Registration Form';
-  const titleW = fontBold.widthOfTextAtSize(title, 22);
-  page.drawText(title, { x: (pageWidth - titleW) / 2, y: pageHeight - margin - 30, size: 22, font: fontBold, color: rgb(0.1, 0.1, 0.1) });
+  const drawC = (text: string, y: number, size: number, bold = false, color = rgb(0.1,0.1,0.1)) => {
+    const f = bold ? fontBold : font;
+    const w = f.widthOfTextAtSize(text, size);
+    page.drawText(text, { x: (W - w) / 2, y, size, font: f, color });
+  };
 
-  const sub = 'Dr. Emad Bayoume Educational System';
-  const subW = font.widthOfTextAtSize(sub, 12);
-  page.drawText(sub, { x: (pageWidth - subW) / 2, y: pageHeight - margin - 54, size: 12, font, color: rgb(0.4, 0.4, 0.4) });
+  drawC(input.title ?? 'Registration Form', H - margin - 30, 22, true);
+  drawC('Dr. Emad Bayoume Educational System', H - margin - 54, 12, false, rgb(0.4,0.4,0.4));
 
-  const dividerY = pageHeight - margin - 72;
-  page.drawLine({ start: { x: margin, y: dividerY }, end: { x: pageWidth - margin, y: dividerY }, thickness: 1.5, color: rgb(0.2, 0.2, 0.2) });
+  const divY = H - margin - 72;
+  page.drawLine({ start: { x: margin, y: divY }, end: { x: W - margin, y: divY }, thickness: 1.5, color: rgb(0.2,0.2,0.2) });
 
   const rows = [
     { label: 'Student Name', value: toLatinSafe(input.studentName) },
@@ -50,39 +49,29 @@ export async function generateStudentRegistrationPdf(input: {
     { label: 'Registered',   value: input.registeredAt.toISOString().slice(0, 10) },
   ];
 
-  const tableTop = dividerY - 20;
-  const rowHeight = 40;
-  const labelColWidth = 160;
-  const tableWidth = pageWidth - margin * 2;
-  const tableHeight = rows.length * rowHeight;
+  const tTop = divY - 20, rH = 40, lblW = 160;
+  const tW = W - margin * 2, tH = rows.length * rH;
 
-  page.drawRectangle({ x: margin, y: tableTop - tableHeight, width: tableWidth, height: tableHeight, borderWidth: 1, borderColor: rgb(0.75, 0.75, 0.75) });
-  page.drawLine({ start: { x: margin + labelColWidth, y: tableTop }, end: { x: margin + labelColWidth, y: tableTop - tableHeight }, thickness: 1, color: rgb(0.75, 0.75, 0.75) });
+  page.drawRectangle({ x: margin, y: tTop - tH, width: tW, height: tH, borderWidth: 1, borderColor: rgb(0.75,0.75,0.75) });
+  page.drawLine({ start: { x: margin + lblW, y: tTop }, end: { x: margin + lblW, y: tTop - tH }, thickness: 1, color: rgb(0.75,0.75,0.75) });
 
-  rows.forEach((r, idx) => {
-    const yTop = tableTop - idx * rowHeight;
-    const textY = yTop - rowHeight + 13;
-    if (idx > 0) page.drawLine({ start: { x: margin, y: yTop }, end: { x: margin + tableWidth, y: yTop }, thickness: 0.5, color: rgb(0.85, 0.85, 0.85) });
-    page.drawText(r.label, { x: margin + 10, y: textY, size: 11, font: fontBold, color: rgb(0.2, 0.2, 0.2) });
-    page.drawText(r.value, { x: margin + labelColWidth + 10, y: textY, size: 11, font, color: rgb(0.1, 0.1, 0.1), maxWidth: tableWidth - labelColWidth - 20 });
+  rows.forEach((r, i) => {
+    const yTop = tTop - i * rH, textY = yTop - rH + 13;
+    if (i > 0) page.drawLine({ start: { x: margin, y: yTop }, end: { x: margin + tW, y: yTop }, thickness: 0.5, color: rgb(0.85,0.85,0.85) });
+    page.drawText(r.label, { x: margin + 10, y: textY, size: 11, font: fontBold, color: rgb(0.2,0.2,0.2) });
+    page.drawText(r.value, { x: margin + lblW + 10, y: textY, size: 11, font, color: rgb(0.1,0.1,0.1), maxWidth: tW - lblW - 20 });
   });
 
-  const qrAreaTop = tableTop - tableHeight - 20;
+  const qrTop = tTop - tH - 20;
   try {
-    const commaIdx = input.qrCodeDataUrl.indexOf(',');
-    const base64 = commaIdx >= 0 ? input.qrCodeDataUrl.slice(commaIdx + 1) : input.qrCodeDataUrl;
-    const qrImg = await pdfDoc.embedPng(Uint8Array.from(Buffer.from(base64, 'base64')));
-    const qrSize = 130;
-    const qrX = (pageWidth - qrSize) / 2;
-    const qrY = qrAreaTop - qrSize;
+    const b64 = input.qrCodeDataUrl.includes(',') ? input.qrCodeDataUrl.split(',')[1] : input.qrCodeDataUrl;
+    const qrImg = await pdfDoc.embedPng(Uint8Array.from(Buffer.from(b64, 'base64')));
+    const qrSize = 130, qrX = (W - qrSize) / 2, qrY = qrTop - qrSize;
     page.drawImage(qrImg, { x: qrX, y: qrY, width: qrSize, height: qrSize });
-    const ql = 'Scan to verify student identity';
-    page.drawText(ql, { x: (pageWidth - font.widthOfTextAtSize(ql, 9)) / 2, y: qrY - 14, size: 9, font, color: rgb(0.5, 0.5, 0.5) });
-    const fl = 'Please print this form and submit it to your professor.';
-    page.drawText(fl, { x: (pageWidth - font.widthOfTextAtSize(fl, 10)) / 2, y: qrY - 34, size: 10, font, color: rgb(0.5, 0.5, 0.5) });
+    drawC('Scan to verify student identity', qrY - 14, 9, false, rgb(0.5,0.5,0.5));
+    drawC('Please print this form and submit it to your professor.', qrY - 34, 10, false, rgb(0.5,0.5,0.5));
   } catch {
-    const fl = 'Please print this form and submit it to your professor.';
-    page.drawText(fl, { x: (pageWidth - font.widthOfTextAtSize(fl, 10)) / 2, y: qrAreaTop - 20, size: 10, font, color: rgb(0.5, 0.5, 0.5) });
+    drawC('Please print this form and submit it to your professor.', qrTop - 20, 10, false, rgb(0.5,0.5,0.5));
   }
 
   return Buffer.from(await pdfDoc.save());
