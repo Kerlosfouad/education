@@ -51,12 +51,8 @@ const [newAssignment, setNewAssignment] = useState({ title: '', departmentId: ''
   const [detailLoading, setDetailLoading] = useState(false);
 
   const academicYearsByDept: Record<string, { value: string; label: string }[]> = {
-    PREP: [
-      { value: '0', label: 'Level 0' },
-      { value: '1', label: 'Level 1' },
-    ],
+    PREP: [{ value: '0', label: 'Level 0' }],
     default: [
-      { value: '0', label: 'Level 0' },
       { value: '1', label: 'Level 1' },
       { value: '2', label: 'Level 2' },
       { value: '3', label: 'Level 3' },

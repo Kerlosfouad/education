@@ -17,7 +17,7 @@ export default function LibBooksPage() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const selectedDept = departments.find(d => d.id === form.departmentId);
-  const LEVELS = selectedDept?.code === 'PREP' ? [0, 1] : [0, 1, 2, 3, 4];
+  const LEVELS = selectedDept?.code === 'PREP' ? [0] : [1, 2, 3, 4];
 
   const { startUpload } = useUploadThing('pdfUploader');
 

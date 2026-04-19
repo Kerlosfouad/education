@@ -30,6 +30,13 @@ export default function AnnouncementsPage() {
     { value: 'library', label: 'E-Library' },
     { value: 'live', label: 'Live Sessions' },
   ];
+
+  const LEVELS_BY_DEPT = (deptId: string) => {
+    const dept = departments.find(d => d.id === deptId);
+    if (!deptId) return [0,1,2,3,4].map(l => ({ value: String(l), label: `Level ${l}` }));
+    if (dept?.code === 'PREP') return [{ value: '0', label: 'Level 0' }];
+    return [1,2,3,4].map(l => ({ value: String(l), label: `Level ${l}` }));
+  };
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState('');
 
@@ -220,7 +227,7 @@ export default function AnnouncementsPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">Department</label>
-                  <select value={form.departmentId} onChange={e => setForm(p => ({ ...p, departmentId: e.target.value }))}
+                  <select value={form.departmentId} onChange={e => { setForm(p => ({ ...p, departmentId: e.target.value, academicYear: '' })); }}
                     className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-slate-50 dark:bg-slate-700 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
                     <option value="">All Departments</option>
                     {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
@@ -231,7 +238,7 @@ export default function AnnouncementsPage() {
                   <select value={form.academicYear} onChange={e => setForm(p => ({ ...p, academicYear: e.target.value }))}
                     className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-slate-50 dark:bg-slate-700 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
                     <option value="">All Levels</option>
-                    {[0,1,2,3,4].map(l => <option key={l} value={l}>Level {l}</option>)}
+                    {LEVELS_BY_DEPT(form.departmentId).map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
                   </select>
                 </div>
               </div>

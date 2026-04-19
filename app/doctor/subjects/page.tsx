@@ -11,8 +11,8 @@ interface Subject {
   department: Department;
 }
 
-const ALL_YEARS = [0, 1, 2, 3, 4];
-const PREP_YEARS = [0, 1];
+const ALL_YEARS = [1, 2, 3, 4];
+const PREP_YEARS = [0];
 const SEMESTERS = [1, 2];
 const YEAR_LABELS: Record<number, string> = { 0: 'Level 0', 1: 'Level 1', 2: 'Level 2', 3: 'Level 3', 4: 'Level 4' };
 const SEM_LABELS: Record<number, string> = { 1: 'Semester 1', 2: 'Semester 2' };

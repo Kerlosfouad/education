@@ -18,7 +18,7 @@ export default function AttendancePage() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [departments, setDepartments] = useState<{ id: string; name: string; code: string }[]>([]);
   const selectedDept = departments.find(d => d.id === form.departmentId);
-  const LEVELS = selectedDept?.code === 'PREP' ? [0, 1] : [0, 1, 2, 3, 4];
+  const LEVELS = selectedDept?.code === 'PREP' ? [0] : [1, 2, 3, 4];
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
