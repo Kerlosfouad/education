@@ -6,6 +6,7 @@ export async function GET() {
     const students = await db.student.findMany({
       where: {
         user: { status: 'ACTIVE' },
+        studentCode: { not: '' },
       },
       include: {
         user: { select: { name: true } },
