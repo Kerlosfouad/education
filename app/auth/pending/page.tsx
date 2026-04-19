@@ -64,9 +64,7 @@ export default function PendingApprovalPage() {
         <Card className="border-0 shadow-xl">
           <CardContent className="p-8 text-center">
             <div className="flex justify-center mb-6">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center">
-                <BookOpen className="w-8 h-8 text-white" />
-              </div>
+              <img src="/logo.jpeg" alt="logo" className="w-16 h-16 rounded-2xl object-cover" />
             </div>
             <div className="w-20 h-20 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-6">
               <Clock className="w-10 h-10 text-amber-600 animate-pulse" />
