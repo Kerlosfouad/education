@@ -5,7 +5,7 @@ import { db } from '@/lib/db';
 import { generateStudentQRCode } from '@/lib/codes';
 import { PDFDocument, rgb, StandardFonts, PDFFont } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
-import { prepareArabicText, getAmiriFont } from '@/lib/arabicText';
+import { reshapeArabic, getAmiriFont } from '@/lib/arabicText';
 
 const hasArabic = (s: string) => /[\u0600-\u06FF]/.test(s);
 
@@ -53,7 +53,7 @@ export async function GET() {
     page.drawText(titleText, { x: (pageW - font.widthOfTextAtSize(titleText, 11)) / 2, y: pageH - 18, size: 11, font, color: rgb(0.2, 0.2, 0.2) });
 
     const rawName = student.user.name || 'Student';
-    const nameDisplay = prepareArabicText(rawName);
+    const nameDisplay = hasArabic(rawName) ? reshapeArabic(rawName) : rawName;
     const nameFont = pickFont(rawName);
 
     for (let r = 0; r < rows; r++) {

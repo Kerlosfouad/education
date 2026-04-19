@@ -1,6 +1,6 @@
 import { PDFDocument, rgb, StandardFonts, PDFFont } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
-import { prepareArabicText, getAmiriFont } from './arabicText';
+import { reshapeArabic, getAmiriFont } from './arabicText';
 
 const hasArabic = (s: string) => /[\u0600-\u06FF]/.test(s);
 
@@ -30,14 +30,14 @@ export async function generateStudentRegistrationPdf(input: {
     hasArabic(s) ? arabicFont : bold ? fontBold : fontReg;
 
   const drawCentered = (text: string, y: number, size: number, bold = false, color = rgb(0.1, 0.1, 0.1)) => {
-    const prepared = prepareArabicText(text);
+    const prepared = hasArabic(text) ? reshapeArabic(text) : text;
     const font = pickFont(text, bold);
     const w = font.widthOfTextAtSize(prepared, size);
     page.drawText(prepared, { x: (pageWidth - w) / 2, y, size, font, color });
   };
 
   const drawValue = (text: string, rightEdge: number, y: number, size: number, bold = false, color = rgb(0.1, 0.1, 0.1)) => {
-    const prepared = prepareArabicText(text);
+    const prepared = hasArabic(text) ? reshapeArabic(text) : text;
     const font = pickFont(text, bold);
     const w = font.widthOfTextAtSize(prepared, size);
     page.drawText(prepared, { x: rightEdge - w, y, size, font, color });
