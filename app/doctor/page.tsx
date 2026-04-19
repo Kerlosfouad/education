@@ -7,6 +7,7 @@ import {
   X, Hash, Building2, GraduationCap, QrCode, Mail,
 } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 
 interface PendingStudent {
   id: string;
@@ -162,10 +163,10 @@ export default function DoctorDashboardPage() {
   };
 
   const statCards = stats ? [
-    { label: 'Enrolled Subjects', value: stats.subjectsCount, sub: 'Active courses', icon: BookOpen, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-    { label: 'Published Quizzes', value: stats.quizzesCount, sub: 'This week', icon: HelpCircle, color: 'text-purple-600', bg: 'bg-purple-50' },
-    { label: 'Assignments', value: stats.assignmentsCount, sub: 'Need submission', icon: FileText, color: 'text-orange-600', bg: 'bg-orange-50' },
-    { label: 'Attendance Rate', value: `${stats.attendanceRate}%`, sub: 'This semester', icon: Calendar, color: 'text-green-600', bg: 'bg-green-50' },
+    { label: 'Enrolled Subjects', value: stats.subjectsCount, sub: 'Active courses', icon: BookOpen, color: 'text-indigo-600', bg: 'bg-indigo-50', href: '/doctor/subjects' },
+    { label: 'Published Quizzes', value: stats.quizzesCount, sub: 'This week', icon: HelpCircle, color: 'text-purple-600', bg: 'bg-purple-50', href: '/doctor/quizzes' },
+    { label: 'Assignments', value: stats.assignmentsCount, sub: 'Need submission', icon: FileText, color: 'text-orange-600', bg: 'bg-orange-50', href: '/doctor/assignments' },
+    { label: 'Attendance Rate', value: `${stats.attendanceRate}%`, sub: 'This semester', icon: Calendar, color: 'text-green-600', bg: 'bg-green-50', href: '/doctor/attendance' },
   ] : [];
 
   const timeAgo = (dateStr: string) => {
@@ -194,7 +195,7 @@ export default function DoctorDashboardPage() {
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {statCards.map((stat, i) => (
-          <div key={i} className="bg-white dark:bg-[#0f1f38] p-6 rounded-3xl border border-slate-100 dark:border-[#1a2f4a] shadow-sm hover:shadow-md transition-all group">
+          <Link key={i} href={stat.href} className="bg-white dark:bg-[#0f1f38] p-6 rounded-3xl border border-slate-100 dark:border-[#1a2f4a] shadow-sm hover:shadow-md hover:border-indigo-200 dark:hover:border-indigo-700 transition-all group cursor-pointer block">
             <div className="flex justify-between items-start mb-4">
               <div>
                 <p className="text-slate-400 dark:text-slate-500 text-sm font-medium">{stat.label}</p>
@@ -205,7 +206,7 @@ export default function DoctorDashboardPage() {
               </div>
             </div>
             <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">{stat.sub}</p>
-          </div>
+          </Link>
         ))}
       </div>
 
