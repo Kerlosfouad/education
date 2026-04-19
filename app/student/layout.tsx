@@ -349,28 +349,9 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
                     </div>
                   )}
                   <button
-                    onClick={async () => {
-                      try {
-                        const r1 = await fetch('/api/student/download-pdf');
-                        if (r1.ok) {
-                          const b1 = await r1.blob();
-                          const u1 = URL.createObjectURL(b1);
-                          const a1 = document.createElement('a');
-                          a1.href = u1; a1.download = `registration-${profile.studentCode}.pdf`;
-                          document.body.appendChild(a1); a1.click();
-                          document.body.removeChild(a1); URL.revokeObjectURL(u1);
-                        }
-                        await new Promise(r => setTimeout(r, 800));
-                        const r2 = await fetch('/api/student/download-cards');
-                        if (r2.ok) {
-                          const b2 = await r2.blob();
-                          const u2 = URL.createObjectURL(b2);
-                          const a2 = document.createElement('a');
-                          a2.href = u2; a2.download = `cards-${profile.studentCode}.pdf`;
-                          document.body.appendChild(a2); a2.click();
-                          document.body.removeChild(a2); URL.revokeObjectURL(u2);
-                        }
-                      } catch (e) { alert('Download failed: ' + String(e)); }
+                    onClick={() => {
+                      window.open('/api/student/download-pdf', '_blank');
+                      setTimeout(() => window.open('/api/student/download-cards', '_blank'), 800);
                     }}
                     className="flex items-center gap-2 w-full justify-center py-2.5 bg-indigo-600 hover:bg-indigo-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white font-bold text-sm rounded-xl transition-colors"
                   >
