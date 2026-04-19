@@ -42,7 +42,7 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
   const isDark = mounted && theme === 'dark';
   const toggleTheme = () => setTheme(isDark ? 'light' : 'dark');
 
-  const doctorName = profile?.name || 'EDUBRIDGE';
+  const doctorName = 'DR. EMAD BAYUOME';
   const doctorEmail = profile?.email || '';
   const initials = doctorName.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
 

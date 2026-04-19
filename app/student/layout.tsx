@@ -141,7 +141,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
   const studentName = session?.user?.name || 'Student';
   const studentEmail = session?.user?.email || '';
   const initials = studentName.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
-  const doctorName = doctorInfo?.name || 'Dr. Emad';
+  const doctorName = 'DR. EMAD BAYUOME';
   const doctorInitials = doctorName.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
   const yearLabels: Record<number, string> = {
     1: 'Level 1', 2: 'Level 2', 3: 'Level 3', 4: 'Level 4', 5: 'Level 5',
