@@ -231,7 +231,7 @@ export default function AnnouncementsPage() {
                   <select value={form.academicYear} onChange={e => setForm(p => ({ ...p, academicYear: e.target.value }))}
                     className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-slate-50 dark:bg-slate-700 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
                     <option value="">All Levels</option>
-                    {[1,2,3,4].map(l => <option key={l} value={l}>Level {l}</option>)}
+                    {[0,1,2,3,4].map(l => <option key={l} value={l}>Level {l}</option>)}
                   </select>
                 </div>
               </div>
