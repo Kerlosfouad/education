@@ -93,8 +93,16 @@ export async function GET(req: NextRequest) {
       const student = await getOrCreateStudent(session.user.id);
       if (!student) return NextResponse.json({ error: 'No department found' }, { status: 404 });
 
+      // Get sessions that match student's department and academicYear (or have no filter)
+      const allSessions = await db.$queryRaw<any[]>`
+        SELECT s.id FROM attendance_sessions s
+        WHERE (s."departmentId" IS NULL OR s."departmentId" = ${student.departmentId})
+        AND (s."academicYear" IS NULL OR s."academicYear" = ${student.academicYear})
+      `;
+      const sessionIds = allSessions.map((s: any) => s.id);
+
       const attendances = await db.attendance.findMany({
-        where: { studentId: student.id },
+        where: { studentId: student.id, sessionId: { in: sessionIds } },
         include: {
           session: {
             include: {
@@ -160,6 +168,10 @@ export async function POST(req: NextRequest) {
 
         const academicYear = body.academicYear ? Number(body.academicYear) : null;
 
+        // Save departmentId and academicYear via raw update
+        if (departmentId || academicYear) {
+          await db.$executeRaw`UPDATE attendance_sessions SET "departmentId" = ${departmentId || null}, "academicYear" = ${academicYear} WHERE id = ${attendanceSession.id}`;
+        }
         // Notify students - filtered by department if provided, else all
         if (departmentId && academicYear) {
           await notifyStudentsByFilter(
@@ -230,6 +242,15 @@ export async function POST(req: NextRequest) {
           { error: 'Attendance session not found' },
           { status: 404 }
         );
+      }
+
+      // Check session matches student's department and academicYear
+      const sessionAny = attendanceSession as any;
+      if (sessionAny.departmentId && sessionAny.departmentId !== student.departmentId) {
+        return NextResponse.json({ error: 'This session is not for your department' }, { status: 403 });
+      }
+      if (sessionAny.academicYear && sessionAny.academicYear !== student.academicYear) {
+        return NextResponse.json({ error: 'This session is not for your level' }, { status: 403 });
       }
 
       const now = new Date();

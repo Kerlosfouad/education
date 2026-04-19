@@ -201,6 +201,7 @@ model AttendanceSession {
   id           String    @id @default(cuid())
   subjectId    String?
   departmentId String?
+  academicYear Int?
   title        String?
   openTime     DateTime
   closeTime    DateTime

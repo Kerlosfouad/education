@@ -14,12 +14,21 @@ export async function GET() {
     if (!student) return NextResponse.json({ error: 'Student not found' }, { status: 404 });
 
     const now = new Date();
-    const total = await db.attendanceSession.count({ where: { closeTime: { lt: now } } });
+
+    // Count only sessions that match student's department and academicYear
+    const relevantSessions = await db.$queryRaw<{ id: string }[]>`
+      SELECT id FROM attendance_sessions
+      WHERE "closeTime" < ${now}
+      AND ("departmentId" IS NULL OR "departmentId" = ${student.departmentId})
+      AND ("academicYear" IS NULL OR "academicYear" = ${student.academicYear})
+    `;
+    const relevantSessionIds = relevantSessions.map(s => s.id);
+    const total = relevantSessionIds.length;
     const attended = await db.attendance.count({
-      where: { studentId: student.id, verificationMethod: { not: 'ABSENT' } },
+      where: { studentId: student.id, sessionId: { in: relevantSessionIds }, verificationMethod: { not: 'ABSENT' } },
     });
     const absent = await db.attendance.count({
-      where: { studentId: student.id, verificationMethod: 'ABSENT' },
+      where: { studentId: student.id, sessionId: { in: relevantSessionIds }, verificationMethod: 'ABSENT' },
     });
     const rate = total > 0 ? Math.round((attended / total) * 100) : 0;
 
