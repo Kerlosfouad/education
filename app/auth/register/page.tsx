@@ -187,7 +187,7 @@ export default function RegisterPage() {
         <Card className="border-0 shadow-xl">
           <CardHeader className="space-y-1 text-center">
             <div className="flex justify-center mb-4">
-              <img src="/logo.jpeg" alt="logo" className="w-16 h-16 rounded-2xl object-cover" />
+              <Image src="/logo.jpeg" alt="logo" width={64} height={64} className="w-16 h-16 rounded-2xl object-cover" unoptimized />
             </div>
             <CardTitle className="text-2xl font-bold">Create Account</CardTitle>
             <CardDescription>

@@ -109,7 +109,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
       <aside className={`fixed inset-y-0 left-0 z-50 w-[280px] bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700/60 flex flex-col transition-transform duration-300 lg:translate-x-0 lg:sticky lg:top-0 lg:h-screen lg:shrink-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="p-6 border-b border-slate-50 dark:border-slate-700/60 flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center">
-            <img src="/logo.jpeg" alt="logo" className="w-full h-full object-cover" />
+            <Image src="/logo.jpeg" alt="logo" width={32} height={32} className="w-full h-full object-cover rounded-lg" unoptimized />
           </div>
           <h1 className="font-bold text-slate-800 dark:text-slate-100 text-lg">EDUBRIDGE</h1>
         </div>
