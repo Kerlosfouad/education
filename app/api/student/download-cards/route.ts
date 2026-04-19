@@ -61,7 +61,6 @@ export async function GET() {
 <div class="no-print" style="text-align:center;margin-top:20px;">
   <button onclick="window.print()" style="background:#2563eb;color:white;border:none;padding:12px 32px;border-radius:10px;font-size:15px;cursor:pointer;">🖨️ Print / Save as PDF</button>
 </div>
-<script>window.onload = () => setTimeout(() => window.print(), 500);</script>
 </body>
 </html>`;
 
