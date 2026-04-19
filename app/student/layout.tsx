@@ -348,14 +348,25 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
                       <p className="text-[10px] text-slate-400">Scan to verify student identity</p>
                     </div>
                   )}
-                  <a
-                    href="/api/student/download-pdf"
-                    download
-                    onClick={() => setShowProfile(false)}
+                  <button
+                    onClick={async () => {
+                      setShowProfile(false);
+                      try {
+                        const res = await fetch('/api/student/download-pdf');
+                        if (!res.ok) { alert('Failed to generate PDF'); return; }
+                        const blob = await res.blob();
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `student-${profile.studentCode}.pdf`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                      } catch { alert('Download failed'); }
+                    }}
                     className="flex items-center gap-2 w-full justify-center py-2.5 bg-indigo-600 hover:bg-indigo-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white font-bold text-sm rounded-xl transition-colors"
                   >
                     <Download size={16} /> Download Data
-                  </a>                </>
+                  </button>                </>
               )}
             </div>
           </div>
