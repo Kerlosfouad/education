@@ -107,7 +107,7 @@ export default function AnnouncementsPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-3">
           <Megaphone className="text-indigo-600" size={28} />
           <div>
@@ -116,7 +116,7 @@ export default function AnnouncementsPage() {
           </div>
         </div>
         <button onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-100">
+          className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-100 self-start sm:self-auto">
           <Plus size={18} /> New Announcement
         </button>
       </div>
