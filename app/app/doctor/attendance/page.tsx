@@ -17,14 +17,15 @@ export default function AttendancePage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [departments, setDepartments] = useState<{ id: string; name: string; code: string }[]>([]);
-  const selectedDept = departments.find(d => d.id === form.departmentId);
-  const LEVELS = selectedDept?.code === 'PREP' ? [0] : [1, 2, 3, 4];
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'sessions' | 'table'>('sessions');
   const [form, setForm] = useState({ subjectId: '', title: '', openTime: '', closeTime: '', departmentId: '', academicYear: '' });
+
+  const selectedDept = departments.find(d => d.id === form.departmentId);
+  const LEVELS = selectedDept?.code === 'PREP' ? [0] : [1, 2, 3, 4];
 
   const fetchData = useCallback(async () => {
     try {
@@ -275,7 +276,16 @@ export default function AttendancePage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Department</label>
-                  <select value={form.departmentId} onChange={e => setForm(f => ({ ...f, departmentId: e.target.value, academicYear: '' }))}
+                  <select value={form.departmentId} onChange={e => {
+                    const newDeptId = e.target.value;
+                    const newDept = departments.find(d => d.id === newDeptId);
+                    const newLevels = newDept?.code === 'PREP' ? [0] : [1, 2, 3, 4];
+                    setForm(f => ({
+                      ...f,
+                      departmentId: newDeptId,
+                      academicYear: newLevels.length === 1 ? String(newLevels[0]) : '',
+                    }));
+                  }}
                     className="w-full border border-slate-200 dark:border-[#1a2f4a] dark:bg-[#132540] dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
                     <option value="">All Departments</option>
                     {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
