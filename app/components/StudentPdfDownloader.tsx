@@ -10,109 +10,153 @@ interface Props {
 export default function StudentPdfDownloader({ studentCode }: Props) {
   const [loading, setLoading] = useState(false);
 
-  const generateRegistrationPdf = async (data: any, jsPDF: any, html2canvas: any) => {
-    // Create hidden div with HTML content
-    const div = document.createElement('div');
-    div.style.cssText = 'position:fixed;left:-9999px;top:0;width:480px;background:white;padding:30px;font-family:Arial,sans-serif;';
-    div.innerHTML = `
-      <div style="background:white;border-radius:20px;padding:25px;max-width:480px;box-shadow:0 4px 20px rgba(0,0,0,0.1);">
-        <div style="background:#2563eb;color:white;padding:18px;border-radius:12px;text-align:center;margin-bottom:20px;">
-          <div style="font-size:18px;font-weight:bold;margin-bottom:4px;">Dr. Emad Bayoume Platform</div>
-          <div style="font-size:12px;opacity:0.85;">Student Registration Card</div>
-        </div>
-        ${[
-          ['Full Name', data.name],
-          ['Student Code', data.studentCode],
-          ['Department', data.department],
-          ['Academic Year', `Level ${data.academicYear}`],
-          ['Phone', data.phone],
-          ['Email', data.email],
-          ['Registered', data.registeredAt],
-          ['Status', '<span style="background:#eff6ff;color:#2563eb;padding:3px 10px;border-radius:20px;font-size:11px;">Approved ✓</span>'],
-        ].map(([label, value]) => `
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid #f0f0f0;">
-            <span style="color:#888;font-size:11px;font-weight:bold;text-transform:uppercase;">${label}</span>
-            <span style="color:#111;font-size:13px;font-weight:bold;text-align:right;direction:rtl;unicode-bidi:plaintext;">${value}</span>
-          </div>`).join('')}
-        <div style="text-align:center;margin-top:20px;padding:15px;background:#f8faff;border-radius:12px;border:2px dashed #2563eb;">
-          <div style="color:#2563eb;font-size:11px;font-weight:bold;margin-bottom:10px;letter-spacing:1px;">QR CODE</div>
-          <img src="${data.qrCodeDataUrl}" width="150" height="150" />
-          <div style="color:#888;font-size:10px;margin-top:8px;">Scan to verify student identity</div>
-        </div>
-        <div style="text-align:center;margin-top:12px;color:#aaa;font-size:10px;">Please print this form and submit it to your professor.</div>
-      </div>`;
-    document.body.appendChild(div);
-
-    const canvas = await html2canvas(div, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
-    document.body.removeChild(div);
-
-    const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    const pdfW = pdf.internal.pageSize.getWidth();
-    const pdfH = (canvas.height * pdfW) / canvas.width;
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfW, pdfH);
-    pdf.save(`registration-${studentCode}.pdf`);
-  };
-
-  const generateCardsPdf = async (data: any, jsPDF: any, html2canvas: any) => {
-    const cards = Array(6).fill(null).map(() => `
-      <div style="background:white;border:1px solid #ddd;border-radius:10px;overflow:hidden;width:170px;">
-        <div style="background:#eee;padding:8px;text-align:center;">
-          <div style="font-size:11px;font-weight:bold;color:#222;">Attendance Card</div>
-          <div style="font-size:9px;color:#555;margin-top:2px;">Dr. Emad Bayoume</div>
-        </div>
-        <div style="display:flex;justify-content:space-between;padding:6px 8px;border-bottom:1px solid #f0f0f0;">
-          <span style="font-size:9px;font-weight:bold;color:#888;">Name</span>
-          <span style="font-size:10px;font-weight:bold;color:#111;direction:rtl;unicode-bidi:plaintext;max-width:110px;text-align:right;">${data.name}</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;padding:6px 8px;border-bottom:1px solid #f0f0f0;">
-          <span style="font-size:9px;font-weight:bold;color:#888;">ID</span>
-          <span style="font-size:10px;font-weight:bold;color:#111;">${data.studentCode}</span>
-        </div>
-        <div style="text-align:center;padding:8px;">
-          <img src="${data.qrCodeDataUrl}" width="110" height="110" />
-        </div>
-      </div>`).join('');
-
-    const div = document.createElement('div');
-    div.style.cssText = 'position:fixed;left:-9999px;top:0;width:600px;background:#f5f5f5;padding:20px;font-family:Arial,sans-serif;';
-    div.innerHTML = `
-      <div style="text-align:center;margin-bottom:16px;font-size:16px;font-weight:bold;color:#333;">6 Attendance Cards</div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">${cards}</div>
-      <div style="text-align:center;margin-top:16px;font-size:10px;color:#aaa;">Submit one card per lecture to complete attendance registration</div>`;
-    document.body.appendChild(div);
-
-    const canvas = await html2canvas(div, { scale: 2, useCORS: true, backgroundColor: '#f5f5f5' });
-    document.body.removeChild(div);
-
-    const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    const pdfW = pdf.internal.pageSize.getWidth();
-    const pdfH = (canvas.height * pdfW) / canvas.width;
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfW, pdfH);
-    pdf.save(`cards-${studentCode}.pdf`);
-  };
-
   const handleDownload = async () => {
     setLoading(true);
     try {
-      const [dataRes, jsPDFModule, html2canvasModule] = await Promise.all([
-        fetch('/api/student/pdf-data').then(r => r.json()),
-        import('jspdf'),
-        import('html2canvas'),
-      ]);
-      const jsPDF = jsPDFModule.jsPDF;
-      const html2canvas = html2canvasModule.default ?? html2canvasModule;
-
+      const dataRes = await fetch('/api/student/pdf-data').then(r => r.json());
       if (!dataRes.success) {
         alert('Error: ' + (dataRes.error || 'Failed to load student data'));
         setLoading(false);
         return;
       }
+      const data = dataRes.data;
 
-      await generateRegistrationPdf(dataRes.data, jsPDF, html2canvas);
+      // Dynamically import pdf-lib (client-side only)
+      const { PDFDocument, rgb, StandardFonts } = await import('pdf-lib');
+
+      // ── Registration PDF ──────────────────────────────────────────
+      const reg = await PDFDocument.create();
+      const regPage = reg.addPage([595.28, 841.89]);
+      const pw = regPage.getWidth();
+      const ph = regPage.getHeight();
+
+      const hFont = await reg.embedFont(StandardFonts.HelveticaBold);
+      const rFont = await reg.embedFont(StandardFonts.Helvetica);
+
+      // Header bg
+      regPage.drawRectangle({ x: 40, y: ph - 100, width: pw - 80, height: 65, color: rgb(0.145, 0.388, 0.922) });
+
+      // Header text
+      const t1 = 'Dr. Emad Bayoume Platform';
+      regPage.drawText(t1, { x: (pw - hFont.widthOfTextAtSize(t1, 16)) / 2, y: ph - 65, size: 16, font: hFont, color: rgb(1, 1, 1) });
+      const t2 = 'Student Registration Card';
+      regPage.drawText(t2, { x: (pw - rFont.widthOfTextAtSize(t2, 11)) / 2, y: ph - 85, size: 11, font: rFont, color: rgb(0.9, 0.9, 0.9) });
+
+      // Rows
+      const rows = [
+        ['Full Name',     data.name],
+        ['Student Code',  data.studentCode],
+        ['Department',    data.department],
+        ['Academic Year', `Level ${data.academicYear}`],
+        ['Phone',         data.phone],
+        ['Email',         data.email],
+        ['Registered',    data.registeredAt],
+        ['Status',        'Approved'],
+      ];
+
+      let y = ph - 130;
+      rows.forEach(([label, value], i) => {
+        if (i % 2 === 0) regPage.drawRectangle({ x: 40, y: y - 10, width: pw - 80, height: 26, color: rgb(0.97, 0.98, 0.99) });
+        regPage.drawText(label.toUpperCase(), { x: 52, y: y + 2, size: 9, font: hFont, color: rgb(0.53, 0.53, 0.53) });
+        // Right-align value
+        const vw = rFont.widthOfTextAtSize(String(value), 11);
+        regPage.drawText(String(value), { x: pw - 52 - vw, y: y + 2, size: 11, font: rFont, color: rgb(0.07, 0.07, 0.07) });
+        regPage.drawLine({ start: { x: 40, y: y - 10 }, end: { x: pw - 40, y: y - 10 }, thickness: 0.5, color: rgb(0.94, 0.94, 0.94) });
+        y -= 28;
+      });
+
+      // QR
+      try {
+        const commaIdx = data.qrCodeDataUrl.indexOf(',');
+        const b64 = commaIdx >= 0 ? data.qrCodeDataUrl.slice(commaIdx + 1) : data.qrCodeDataUrl;
+        const qrBytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+        const qrImg = await reg.embedPng(qrBytes);
+        const qrSize = 130;
+        const qrX = (pw - qrSize) / 2;
+        const qrY = y - qrSize - 10;
+        regPage.drawRectangle({ x: qrX - 15, y: qrY - 15, width: qrSize + 30, height: qrSize + 40, color: rgb(0.97, 0.98, 1) });
+        regPage.drawImage(qrImg, { x: qrX, y: qrY, width: qrSize, height: qrSize });
+        const ql = 'Scan to verify student identity';
+        regPage.drawText(ql, { x: (pw - rFont.widthOfTextAtSize(ql, 9)) / 2, y: qrY - 12, size: 9, font: rFont, color: rgb(0.53, 0.53, 0.53) });
+      } catch {}
+
+      const regBytes = await reg.save();
+      downloadBlob(new Blob([regBytes.buffer as ArrayBuffer], { type: 'application/pdf' }), `registration-${studentCode}.pdf`);
+
       await new Promise(r => setTimeout(r, 500));
-      await generateCardsPdf(dataRes.data, jsPDF, html2canvas);
+
+      // ── Cards PDF ─────────────────────────────────────────────────
+      const cards = await PDFDocument.create();
+      const cFont = await cards.embedFont(StandardFonts.HelveticaBold);
+      const cFontR = await cards.embedFont(StandardFonts.Helvetica);
+
+      const cpw = 595.28;
+      const cols = 3, cardRows = 2;
+      const mx = 28, my = 45;
+      const cw = (cpw - mx * 2 - (cols - 1) * 10) / cols;
+      const ch = 195;
+      const totalH = cardRows * ch + (cardRows - 1) * 10;
+      const cph = my + 22 + totalH + my;
+
+      const cardsPage = cards.addPage([cpw, cph]);
+
+      // Title
+      const ct = '6 Attendance Cards';
+      cardsPage.drawText(ct, { x: (cpw - cFont.widthOfTextAtSize(ct, 12)) / 2, y: cph - 18, size: 12, font: cFont, color: rgb(0.2, 0.2, 0.2) });
+
+      // Embed QR once
+      let qrImg = null;
+      try {
+        const commaIdx = data.qrCodeDataUrl.indexOf(',');
+        const b64 = commaIdx >= 0 ? data.qrCodeDataUrl.slice(commaIdx + 1) : data.qrCodeDataUrl;
+        const qrBytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+        qrImg = await cards.embedPng(qrBytes);
+      } catch {}
+
+      for (let r = 0; r < cardRows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const cx = mx + c * (cw + 10);
+          const cy = cph - my - 22 - (r + 1) * ch - r * 10;
+
+          // Card border
+          cardsPage.drawRectangle({ x: cx, y: cy, width: cw, height: ch, borderWidth: 1, borderColor: rgb(0.75, 0.75, 0.75), color: rgb(1, 1, 1) });
+
+          // Header
+          cardsPage.drawRectangle({ x: cx, y: cy + ch - 34, width: cw, height: 34, color: rgb(0.92, 0.92, 0.92) });
+          const ht = 'Attendance Card';
+          cardsPage.drawText(ht, { x: cx + (cw - cFont.widthOfTextAtSize(ht, 9)) / 2, y: cy + ch - 16, size: 9, font: cFont, color: rgb(0.1, 0.1, 0.1) });
+          const st = 'Dr. Emad Bayoume';
+          cardsPage.drawText(st, { x: cx + (cw - cFontR.widthOfTextAtSize(st, 7)) / 2, y: cy + ch - 28, size: 7, font: cFontR, color: rgb(0.3, 0.3, 0.3) });
+
+          // Name
+          const nameY = cy + ch - 48;
+          cardsPage.drawText('Name', { x: cx + 6, y: nameY, size: 7, font: cFont, color: rgb(0.5, 0.5, 0.5) });
+          const nameVal = data.name.length > 20 ? data.name.slice(0, 20) + '…' : data.name;
+          const nw = cFontR.widthOfTextAtSize(nameVal, 8);
+          cardsPage.drawText(nameVal, { x: cx + cw - 6 - nw, y: nameY, size: 8, font: cFontR, color: rgb(0.1, 0.1, 0.1) });
+          cardsPage.drawLine({ start: { x: cx + 6, y: nameY - 4 }, end: { x: cx + cw - 6, y: nameY - 4 }, thickness: 0.3, color: rgb(0.85, 0.85, 0.85) });
+
+          // ID
+          const idY = nameY - 16;
+          cardsPage.drawText('ID', { x: cx + 6, y: idY, size: 7, font: cFont, color: rgb(0.5, 0.5, 0.5) });
+          const idw = cFont.widthOfTextAtSize(data.studentCode, 8);
+          cardsPage.drawText(data.studentCode, { x: cx + cw - 6 - idw, y: idY, size: 8, font: cFont, color: rgb(0.1, 0.1, 0.1) });
+          cardsPage.drawLine({ start: { x: cx + 6, y: idY - 4 }, end: { x: cx + cw - 6, y: idY - 4 }, thickness: 0.3, color: rgb(0.85, 0.85, 0.85) });
+
+          // QR
+          if (qrImg) {
+            const qrSize = cw - 16;
+            cardsPage.drawImage(qrImg, { x: cx + 8, y: idY - 8 - qrSize, width: qrSize, height: qrSize });
+          }
+        }
+      }
+
+      const footer = 'Submit one card per lecture to complete attendance registration';
+      cardsPage.drawText(footer, { x: (cpw - cFontR.widthOfTextAtSize(footer, 7)) / 2, y: 12, size: 7, font: cFontR, color: rgb(0.5, 0.5, 0.5) });
+
+      const cardsBytes = await cards.save();
+      downloadBlob(new Blob([cardsBytes.buffer as ArrayBuffer], { type: 'application/pdf' }), `cards-${studentCode}.pdf`);
+
     } catch (e) {
       alert('Download failed: ' + String(e));
     }
@@ -131,4 +175,13 @@ export default function StudentPdfDownloader({ studentCode }: Props) {
       }
     </button>
   );
+}
+
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }

@@ -6,13 +6,6 @@ const nextConfig = {
       { protocol: 'http', hostname: 'localhost' },
     ],
   },
-  webpack: (config, { isServer }) => {
-    if (isServer) {
-      // Prevent html2canvas and jspdf from being bundled server-side
-      config.externals = [...(config.externals || []), 'html2canvas', 'jspdf'];
-    }
-    return config;
-  },
   async headers() {
     return [
       {
