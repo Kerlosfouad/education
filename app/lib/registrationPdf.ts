@@ -73,13 +73,20 @@ export async function generateStudentRegistrationPdf(input: {
     const yTop  = tableTop - idx * rowHeight;
     const textY = yTop - rowHeight + 13;
     if (idx > 0) page.drawLine({ start: { x: margin, y: yTop }, end: { x: margin + tableWidth, y: yTop }, thickness: 0.5, color: rgb(0.85, 0.85, 0.85) });
-    // Label always Latin
-    page.drawText(r.label, { x: margin + 10, y: textY, size: 11, font: fontBold, color: rgb(0.2, 0.2, 0.2) });
-    // Value: Arabic right-aligned, Latin left-aligned
+
+    // Label - use pickFont in case label is Arabic
+    const labelPrepared = hasArabic(r.label) ? reshapeArabic(r.label) : r.label;
+    const labelFont = pickFont(r.label, true);
+    page.drawText(labelPrepared, { x: margin + 10, y: textY, size: 11, font: labelFont, color: rgb(0.2, 0.2, 0.2) });
+
+    // Value - Arabic right-aligned with arabicFont, Latin left-aligned
+    const valuePrepared = hasArabic(r.value) ? reshapeArabic(r.value) : r.value;
+    const valueFont = pickFont(r.value, false);
     if (hasArabic(r.value)) {
-      drawValue(r.value, valueRightEdge, textY, 11, false, rgb(0.1, 0.1, 0.1));
+      const vw = valueFont.widthOfTextAtSize(valuePrepared, 11);
+      page.drawText(valuePrepared, { x: valueRightEdge - vw, y: textY, size: 11, font: valueFont, color: rgb(0.1, 0.1, 0.1) });
     } else {
-      page.drawText(r.value, { x: margin + labelColWidth + 10, y: textY, size: 11, font: fontReg, color: rgb(0.1, 0.1, 0.1), maxWidth: tableWidth - labelColWidth - 20 });
+      page.drawText(valuePrepared, { x: margin + labelColWidth + 10, y: textY, size: 11, font: valueFont, color: rgb(0.1, 0.1, 0.1), maxWidth: tableWidth - labelColWidth - 20 });
     }
   });
 
