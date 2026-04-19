@@ -3,7 +3,6 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { generateStudentQRCode } from '@/lib/codes';
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 
 export async function GET() {
   try {
@@ -19,65 +18,59 @@ export async function GET() {
     const qrCodeDataUrl = await generateStudentQRCode(student.id);
     const registeredAt = (student.approvedAt || student.user.createdAt).toISOString().slice(0, 10);
 
-    const doc = await PDFDocument.create();
-    const page = doc.addPage([595.28, 841.89]);
-    const pw = page.getWidth();
-    const ph = page.getHeight();
+    const html = `<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Registration Form - ${student.studentCode}</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; background: #f0f4ff; padding: 30px; }
+  .card { background: white; border-radius: 20px; padding: 25px; max-width: 480px; margin: 0 auto; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+  .header { background: #2563eb; color: white; padding: 18px; border-radius: 12px; text-align: center; margin-bottom: 20px; }
+  .header h1 { font-size: 18px; margin-bottom: 4px; }
+  .header p { font-size: 12px; opacity: 0.85; }
+  .info-row { display: flex; justify-content: space-between; align-items: center; padding: 11px 0; border-bottom: 1px solid #f0f0f0; }
+  .info-label { color: #888; font-size: 11px; font-weight: bold; text-transform: uppercase; }
+  .info-value { color: #111; font-size: 13px; font-weight: bold; text-align: right; unicode-bidi: plaintext; direction: rtl; }
+  .qr-section { text-align: center; margin-top: 20px; padding: 15px; background: #f8faff; border-radius: 12px; border: 2px dashed #2563eb; }
+  .qr-label { color: #2563eb; font-size: 11px; font-weight: bold; margin-bottom: 10px; letter-spacing: 1px; }
+  .qr-desc { color: #888; font-size: 10px; margin-top: 8px; }
+  .badge { background: #eff6ff; color: #2563eb; padding: 3px 10px; border-radius: 20px; font-size: 11px; }
+  .footer { text-align: center; margin-top: 16px; color: #aaa; font-size: 10px; }
+  @media print { body { background: white; padding: 0; } .no-print { display: none; } }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="header">
+    <h1>Dr. Emad Bayoume Platform</h1>
+    <p>Student Registration Card</p>
+  </div>
+  <div class="info-row"><span class="info-label">Full Name</span><span class="info-value">${student.user.name || 'Student'}</span></div>
+  <div class="info-row"><span class="info-label">Student Code</span><span class="info-value">${student.studentCode}</span></div>
+  <div class="info-row"><span class="info-label">Department</span><span class="info-value">${student.department.name}</span></div>
+  <div class="info-row"><span class="info-label">Academic Year</span><span class="info-value">Level ${student.academicYear}</span></div>
+  <div class="info-row"><span class="info-label">Phone</span><span class="info-value">${student.phone || '-'}</span></div>
+  <div class="info-row"><span class="info-label">Email</span><span class="info-value">${student.user.email}</span></div>
+  <div class="info-row"><span class="info-label">Registered</span><span class="info-value">${registeredAt}</span></div>
+  <div class="info-row"><span class="info-label">Status</span><span class="badge">Approved ✓</span></div>
+  <div class="qr-section">
+    <div class="qr-label">QR CODE</div>
+    <img src="${qrCodeDataUrl}" width="150" height="150" />
+    <div class="qr-desc">Scan to verify student identity</div>
+  </div>
+  <div class="footer">Please print this form and submit it to your professor.</div>
+</div>
+<div class="no-print" style="text-align:center;margin-top:20px;">
+  <button onclick="window.print()" style="background:#2563eb;color:white;border:none;padding:12px 32px;border-radius:10px;font-size:15px;cursor:pointer;">🖨️ Print / Save as PDF</button>
+</div>
+</body>
+</html>`;
 
-    const hFont = await doc.embedFont(StandardFonts.HelveticaBold);
-    const rFont = await doc.embedFont(StandardFonts.Helvetica);
-
-    // Header
-    page.drawRectangle({ x: 40, y: ph - 100, width: pw - 80, height: 65, color: rgb(0.145, 0.388, 0.922) });
-    const t1 = 'Dr. Emad Bayoume Platform';
-    page.drawText(t1, { x: (pw - hFont.widthOfTextAtSize(t1, 16)) / 2, y: ph - 65, size: 16, font: hFont, color: rgb(1, 1, 1) });
-    const t2 = 'Student Registration Card';
-    page.drawText(t2, { x: (pw - rFont.widthOfTextAtSize(t2, 11)) / 2, y: ph - 85, size: 11, font: rFont, color: rgb(0.9, 0.9, 0.9) });
-
-    // Rows
-    const rows: [string, string][] = [
-      ['Full Name',     student.user.name || 'Student'],
-      ['Student Code',  student.studentCode],
-      ['Department',    student.department.name],
-      ['Academic Year', `Level ${student.academicYear}`],
-      ['Phone',         student.phone || '-'],
-      ['Email',         student.user.email],
-      ['Registered',    registeredAt],
-      ['Status',        'Approved'],
-    ];
-
-    let y = ph - 130;
-    rows.forEach(([label, value], i) => {
-      if (i % 2 === 0) page.drawRectangle({ x: 40, y: y - 10, width: pw - 80, height: 26, color: rgb(0.97, 0.98, 0.99) });
-      page.drawText(label.toUpperCase(), { x: 52, y: y + 2, size: 9, font: hFont, color: rgb(0.53, 0.53, 0.53) });
-      const vw = rFont.widthOfTextAtSize(value, 11);
-      page.drawText(value, { x: pw - 52 - vw, y: y + 2, size: 11, font: rFont, color: rgb(0.07, 0.07, 0.07) });
-      page.drawLine({ start: { x: 40, y: y - 10 }, end: { x: pw - 40, y: y - 10 }, thickness: 0.5, color: rgb(0.94, 0.94, 0.94) });
-      y -= 28;
-    });
-
-    // QR Code
-    try {
-      const commaIdx = qrCodeDataUrl.indexOf(',');
-      const b64 = commaIdx >= 0 ? qrCodeDataUrl.slice(commaIdx + 1) : qrCodeDataUrl;
-      const qrBytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-      const qrImg = await doc.embedPng(qrBytes);
-      const qrSize = 130;
-      const qrX = (pw - qrSize) / 2;
-      const qrY = y - qrSize - 10;
-      page.drawRectangle({ x: qrX - 15, y: qrY - 15, width: qrSize + 30, height: qrSize + 40, color: rgb(0.97, 0.98, 1) });
-      page.drawImage(qrImg, { x: qrX, y: qrY, width: qrSize, height: qrSize });
-      const ql = 'Scan to verify student identity';
-      page.drawText(ql, { x: (pw - rFont.widthOfTextAtSize(ql, 9)) / 2, y: qrY - 12, size: 9, font: rFont, color: rgb(0.53, 0.53, 0.53) });
-    } catch {}
-
-    const pdfBytes = await doc.save();
-
-    return new NextResponse(Buffer.from(pdfBytes), {
-      headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="registration-${student.studentCode}.pdf"`,
-      },
+    return new NextResponse(html, {
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
     });
   } catch (error) {
     return NextResponse.json({ error: 'Internal server error: ' + String(error) }, { status: 500 });
