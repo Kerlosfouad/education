@@ -56,13 +56,19 @@ export default function AttendancePage() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   useEffect(() => {
-    const url = form.departmentId
-      ? `/api/subjects/departments/levels?departmentId=${form.departmentId}`
-      : '/api/subjects/departments/levels';
-    fetch(url).then(r => r.json()).then(j => {
-      if (j.success) setAvailableLevels(j.data);
-    });
-  }, [form.departmentId]);
+    if (!form.departmentId) {
+      setAvailableLevels([1, 2, 3, 4]);
+      return;
+    }
+    const dept = departments.find(d => d.id === form.departmentId);
+    if (dept?.code === 'PREP') {
+      setAvailableLevels([0]);
+      setForm(f => ({ ...f, academicYear: '0' }));
+    } else {
+      setAvailableLevels([1, 2, 3, 4]);
+      setForm(f => ({ ...f, academicYear: '' }));
+    }
+  }, [form.departmentId, departments]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
