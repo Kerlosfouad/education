@@ -93,7 +93,7 @@ export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
-  const [doctorName, setDoctorName] = useState<string>('Dr. Kerlos Fouad');
+  const [doctorName] = useState<string>('DR. EMAD BAYUOME');
   const { theme, setTheme } = useTheme();
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
@@ -137,30 +137,7 @@ export default function LandingPage() {
     }).then(setQrDataUrl).catch(console.error);
   }, []);
 
-  // Pull doctor display name from DB (instead of hardcoding).
-  // - If logged-in doctor -> /api/doctor/me
-  // - Otherwise -> /api/doctor/public (first doctor fallback)
-  useEffect(() => {
-    if (authStatus === 'loading') return;
-
-    const endpoint =
-      authStatus === 'authenticated' && session?.user?.role === 'DOCTOR'
-        ? '/api/doctor/me'
-        : '/api/doctor/public';
-
-    let cancelled = false;
-    fetch(endpoint)
-      .then(r => r.json())
-      .then(json => {
-        const name = json?.data?.name;
-        if (!cancelled && typeof name === 'string' && name.trim()) setDoctorName(name.trim());
-      })
-      .catch(() => {});
-
-    return () => {
-      cancelled = true;
-    };
-  }, [authStatus, session?.user?.role]);
+  // Doctor name is fixed
 
   const isDark = mounted && theme === 'dark';
 
