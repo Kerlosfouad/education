@@ -3,11 +3,19 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { generateStudentQRCode } from '@/lib/codes';
-import { PDFDocument, rgb, StandardFonts, PDFFont } from 'pdf-lib';
-import fontkit from '@pdf-lib/fontkit';
-import { reshapeArabic, getAmiriFont } from '@/lib/arabicText';
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 
-const hasArabic = (s: string) => /[\u0600-\u06FF]/.test(s);
+function toLatinSafe(text: string): string {
+  const map: Record<string, string> = {
+    'ا':'a','أ':'a','إ':'i','آ':'aa','ب':'b','ت':'t','ث':'th','ج':'j','ح':'h',
+    'خ':'kh','د':'d','ذ':'dh','ر':'r','ز':'z','س':'s','ش':'sh','ص':'s','ض':'d',
+    'ط':'t','ظ':'z','ع':'a','غ':'gh','ف':'f','ق':'q','ك':'k','ل':'l','م':'m',
+    'ن':'n','ه':'h','ة':'h','و':'w','ي':'y','ى':'a','ئ':'y','ء':'','ؤ':'w',
+    '\u0640':'','\u064B':'','\u064C':'','\u064D':'','\u064E':'','\u064F':'',
+    '\u0650':'','\u0651':'','\u0652':'',
+  };
+  return text.split('').map(c => map[c] !== undefined ? map[c] : c.charCodeAt(0) > 127 ? '' : c).join('');
+}
 
 export async function GET() {
   try {
@@ -31,30 +39,18 @@ export async function GET() {
     const pageH = marginY + 25 + totalH + marginY;
 
     const pdfDoc = await PDFDocument.create();
-    pdfDoc.registerFontkit(fontkit);
-
-    const amiriBytes = await getAmiriFont();
-    const arabicFont = await pdfDoc.embedFont(amiriBytes);
-    const font       = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-    const fontReg    = await pdfDoc.embedFont(StandardFonts.Helvetica);
-
-    const pickFont = (s: string, bold = false): PDFFont =>
-      hasArabic(s) ? arabicFont : bold ? font : fontReg;
-
     const page = pdfDoc.addPage([pageW, pageH]);
+    const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const fontReg = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
-    // Embed QR
     const commaIdx = qrDataUrl.indexOf(',');
     const base64 = commaIdx >= 0 ? qrDataUrl.slice(commaIdx + 1) : qrDataUrl;
     const qrImg = await pdfDoc.embedPng(Uint8Array.from(Buffer.from(base64, 'base64')));
 
-    // Title
     const titleText = '6 Attendance Cards';
     page.drawText(titleText, { x: (pageW - font.widthOfTextAtSize(titleText, 11)) / 2, y: pageH - 18, size: 11, font, color: rgb(0.2, 0.2, 0.2) });
 
-    const rawName = student.user.name || 'Student';
-    const nameDisplay = hasArabic(rawName) ? reshapeArabic(rawName) : rawName;
-    const nameFont = pickFont(rawName);
+    const nameVal = toLatinSafe(student.user.name || 'Student');
 
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
@@ -69,14 +65,12 @@ export async function GET() {
         const st = 'Dr. Emad Bayoume';
         page.drawText(st, { x: x + (cardW - fontReg.widthOfTextAtSize(st, 7)) / 2, y: y + cardH - 28, size: 7, font: fontReg, color: rgb(0.3, 0.3, 0.3) });
 
-        // Name row - right-aligned for Arabic
         const nameY = y + cardH - 50;
         page.drawText('Name', { x: x + 8, y: nameY, size: 7, font, color: rgb(0.4, 0.4, 0.4) });
-        const nw = nameFont.widthOfTextAtSize(nameDisplay, 8);
-        page.drawText(nameDisplay, { x: x + cardW - 8 - nw, y: nameY, size: 8, font: nameFont, color: rgb(0.1, 0.1, 0.1) });
+        const nw = fontReg.widthOfTextAtSize(nameVal, 8);
+        page.drawText(nameVal, { x: x + cardW - 8 - nw, y: nameY, size: 8, font: fontReg, color: rgb(0.1, 0.1, 0.1) });
         page.drawLine({ start: { x: x + 8, y: nameY - 4 }, end: { x: x + cardW - 8, y: nameY - 4 }, thickness: 0.3, color: rgb(0.8, 0.8, 0.8) });
 
-        // ID row
         const idY = nameY - 16;
         page.drawText('ID', { x: x + 8, y: idY, size: 7, font, color: rgb(0.4, 0.4, 0.4) });
         const iw = font.widthOfTextAtSize(student.studentCode, 8);
