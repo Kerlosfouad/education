@@ -214,7 +214,7 @@ export default function StudentDashboardPage() {  const { t } = useI18n();
                   </a>
                 )}
                 {data.doctor.whatsapp && (
-                  <a href={`https://wa.me/${data.doctor.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
+                  <a href={`https://wa.me/20${data.doctor.whatsapp.replace(/\D/g, '').replace(/^0/, '')}`} target="_blank" rel="noopener noreferrer"
                     className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 transition-colors px-3 py-1.5 rounded-xl text-xs font-bold">
                     <MessageCircle size={13} /> WhatsApp
                   </a>

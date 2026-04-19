@@ -154,7 +154,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
           <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center">
             <Image src={LOGO_BASE64} alt="logo" width={32} height={32} className="w-full h-full object-cover" unoptimized />
           </div>
-          <h1 className="font-bold text-slate-800 dark:text-slate-100 text-lg">{doctorName}</h1>
+          <h1 className="font-bold text-slate-800 dark:text-slate-100 text-sm leading-tight">{doctorName}</h1>
         </div>
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {menuItems.map((item) => {
