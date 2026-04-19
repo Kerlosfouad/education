@@ -348,12 +348,14 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
                       <p className="text-[10px] text-slate-400">Scan to verify student identity</p>
                     </div>
                   )}
-                  <button
-                    onClick={() => { setShowProfile(false); window.open('/api/student/download-pdf', '_blank'); }}
+                  <a
+                    href="/api/student/download-pdf"
+                    download
+                    onClick={() => setShowProfile(false)}
                     className="flex items-center gap-2 w-full justify-center py-2.5 bg-indigo-600 hover:bg-indigo-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white font-bold text-sm rounded-xl transition-colors"
                   >
                     <Download size={16} /> Download Data
-                  </button>                </>
+                  </a>                </>
               )}
             </div>
           </div>
