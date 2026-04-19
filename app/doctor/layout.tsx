@@ -13,6 +13,7 @@ import {
 import Link from 'next/link';
 import Image from 'next/image';
 import { useI18n } from '@/lib/i18n';
+import { LOGO_BASE64 } from '@/lib/logo';
 
 interface DoctorProfile {
   name: string; email: string; image: string;
@@ -67,7 +68,7 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
 
         <div className="p-6 border-b border-slate-50 dark:border-slate-700/60 flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center">
-            <Image src="/logo.jpeg" alt="logo" width={32} height={32} className="w-full h-full object-cover" unoptimized />
+            <Image src={LOGO_BASE64} alt="logo" width={32} height={32} className="w-full h-full object-cover" unoptimized />
           </div>
           <h1 className="font-bold text-slate-800 dark:text-slate-100 text-lg tracking-wide">{doctorName}</h1>
         </div>

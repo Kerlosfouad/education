@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import { LOGO_BASE64 } from '@/lib/logo';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -96,7 +97,7 @@ export default function LoginPage() {
           <CardHeader className="space-y-1 text-center">
             <div className="flex justify-center mb-4">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.jpeg" alt="logo" className="w-16 h-16 rounded-2xl object-cover" />
+              <img src={LOGO_BASE64} alt="logo" className="w-16 h-16 rounded-2xl object-cover" />
             </div>
             <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
             <CardDescription>

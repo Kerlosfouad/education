@@ -8,6 +8,7 @@ import { Clock, Mail, LogOut, BookOpen, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { LOGO_BASE64 } from '@/lib/logo';
 
 export default function PendingApprovalPage() {
   const { data: session, status, update } = useSession();
@@ -65,7 +66,7 @@ export default function PendingApprovalPage() {
           <CardContent className="p-8 text-center">
             <div className="flex justify-center mb-6">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.jpeg" alt="logo" className="w-16 h-16 rounded-2xl object-cover" />
+              <img src={LOGO_BASE64} alt="logo" className="w-16 h-16 rounded-2xl object-cover" />
             </div>
             <div className="w-20 h-20 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-6">
               <Clock className="w-10 h-10 text-amber-600 animate-pulse" />
