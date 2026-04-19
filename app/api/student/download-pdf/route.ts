@@ -6,6 +6,8 @@ import { generateStudentQRCode } from '@/lib/codes';
 import { renderToBuffer, Document, Page, Text, View, Image, StyleSheet, Font } from '@react-pdf/renderer';
 import React from 'react';
 
+export const runtime = 'nodejs';
+
 // Register Arabic font
 Font.register({
   family: 'Cairo',
