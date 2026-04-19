@@ -27,6 +27,7 @@
     "@uploadthing/react": "^7.3.3",
     "arabic-persian-reshaper": "^1.0.1",
     "bcryptjs": "^2.4.3",
+    "bidi-js": "^1.0.3",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
     "jsbarcode": "^3.11.6",
