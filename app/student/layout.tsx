@@ -353,7 +353,11 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
                       setShowProfile(false);
                       try {
                         const res = await fetch('/api/student/download-pdf');
-                        if (!res.ok) { alert('Failed to generate PDF'); return; }
+                        if (!res.ok) {
+                          const err = await res.json().catch(() => ({}));
+                          alert('Error: ' + (err.error || res.status));
+                          return;
+                        }
                         const blob = await res.blob();
                         const url = URL.createObjectURL(blob);
                         const a = document.createElement('a');
@@ -361,7 +365,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
                         a.download = `student-${profile.studentCode}.pdf`;
                         a.click();
                         URL.revokeObjectURL(url);
-                      } catch { alert('Download failed'); }
+                      } catch (e) { alert('Download failed: ' + String(e)); }
                     }}
                     className="flex items-center gap-2 w-full justify-center py-2.5 bg-indigo-600 hover:bg-indigo-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white font-bold text-sm rounded-xl transition-colors"
                   >
