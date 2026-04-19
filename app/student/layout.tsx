@@ -7,7 +7,7 @@ import { useTheme } from 'next-themes';
 import {
   LayoutDashboard, CalendarCheck2, FileText, HelpCircle,
   Video, Library, LogOut, Menu, X, MonitorPlay,
-  Bell, GraduationCap, Sun, Moon, QrCode, Hash, Building2, BookOpen, Download,
+  Bell, GraduationCap, Sun, Moon, QrCode, Hash, Building2, BookOpen, Download, FileDown,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -36,6 +36,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [showStudentCard, setShowStudentCard] = useState(false);
   const [showDoctorCard, setShowDoctorCard] = useState(false);
   const [doctorInfo, setDoctorInfo] = useState<DoctorInfo | null>(null);
   const [profile, setProfile] = useState<StudentProfile | null>(null);
@@ -291,8 +292,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
         <div className="p-4 md:p-8 lg:p-10">{children}</div>
       </main>
 
-      {showProfile && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowProfile(false)}>
+      {showProfile && (        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowProfile(false)}>
           <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="bg-gradient-to-br from-indigo-600 to-purple-600 dark:from-[#00c896] dark:to-[#00a87e] p-6 text-white relative">
               <button onClick={() => setShowProfile(false)} className="absolute top-4 right-4 p-1.5 bg-white/20 hover:bg-white/30 rounded-lg transition-colors">
@@ -349,16 +349,68 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
                     </div>
                   )}
                   <button
-                    onClick={() => {
-                      window.open('/api/student/download-pdf', '_blank');
-                      setTimeout(() => window.open('/api/student/download-cards', '_blank'), 800);
-                    }}
+                    onClick={() => { setShowProfile(false); setShowStudentCard(true); }}
                     className="flex items-center gap-2 w-full justify-center py-2.5 bg-indigo-600 hover:bg-indigo-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white font-bold text-sm rounded-xl transition-colors"
                   >
                     <Download size={16} /> Download Data
                   </button>
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showStudentCard && profile && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto" onClick={() => setShowStudentCard(false)}>
+          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-sm my-4" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="bg-indigo-600 dark:bg-[#00c896] p-5 rounded-t-3xl text-white text-center relative">
+              <button onClick={() => setShowStudentCard(false)} className="absolute top-3 right-3 p-1.5 bg-white/20 hover:bg-white/30 rounded-lg transition-colors">
+                <X size={16} />
+              </button>
+              <p className="font-black text-base">Dr. Emad Bayoume Platform</p>
+              <p className="text-white/80 text-xs mt-0.5">Student Registration Card</p>
+            </div>
+
+            {/* Info rows */}
+            <div className="px-5 pt-4 divide-y divide-slate-100 dark:divide-slate-700">
+              {[
+                ['FULL NAME',     profile.user.name],
+                ['STUDENT CODE',  profile.studentCode],
+                ['DEPARTMENT',    profile.department.name],
+                ['ACADEMIC YEAR', `Level ${profile.academicYear}`],
+                ['PHONE',         profile.phone || '-'],
+                ['EMAIL',         profile.user.email],
+                ['STATUS',        'Approved ✓'],
+              ].map(([label, value]) => (
+                <div key={label} className="flex justify-between items-center py-2.5">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase">{label}</span>
+                  <span className="text-sm font-bold text-slate-800 dark:text-slate-100 text-right max-w-[60%] break-all">{value}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* QR */}
+            {profile.qrCode && (
+              <div className="mx-5 my-4 p-4 bg-blue-50 dark:bg-slate-700/50 rounded-2xl border-2 border-dashed border-indigo-300 dark:border-indigo-600 text-center">
+                <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest mb-2">QR CODE</p>
+                <img src={profile.qrCode} alt="QR" className="w-36 h-36 mx-auto" />
+                <p className="text-[10px] text-slate-400 mt-2">Scan to verify student identity</p>
+              </div>
+            )}
+
+            <p className="text-center text-[10px] text-slate-400 pb-3">Please print this form and submit it to your professor.</p>
+
+            {/* Save as PDF button */}
+            <div className="px-5 pb-5">
+              <a
+                href="/api/student/download-pdf"
+                download
+                className="flex items-center gap-2 w-full justify-center py-3 bg-indigo-600 hover:bg-indigo-700 dark:bg-[#00c896] dark:hover:bg-[#00a87e] text-white font-bold text-sm rounded-xl transition-colors"
+              >
+                <FileDown size={16} /> Save as PDF
+              </a>
             </div>
           </div>
         </div>
