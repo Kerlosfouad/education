@@ -411,8 +411,8 @@ export default function LandingPage() {
                   ENG: KERLOS FOUAD
                 </a>
               </div>
-              <div className="text-xs text-muted-foreground/60">
-                Assistants: Eng/Hedra Victor &amp; Eng/Mina Fouad
+              <div className="text-xs text-indigo-400">
+                Assistants: <span className="font-semibold">Eng/Hedra Victor</span> &amp; <span className="font-semibold">Eng/Mina Fouad</span>
               </div>
             </div>
             <div className="flex items-center gap-6">
