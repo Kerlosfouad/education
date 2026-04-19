@@ -348,12 +348,20 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
                       <p className="text-[10px] text-slate-400">Scan to verify student identity</p>
                     </div>
                   )}
-                  <button
-                    onClick={() => { setShowProfile(false); window.open('/api/student/download-pdf', '_blank'); }}
-                    className="flex items-center gap-2 w-full justify-center py-2.5 bg-indigo-600 hover:bg-indigo-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white font-bold text-sm rounded-xl transition-colors"
-                  >
-                    <Download size={16} /> Download Data
-                  </button>                </>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => { setShowProfile(false); window.open('/api/student/download-pdf', '_blank'); }}
+                      className="flex items-center gap-2 flex-1 justify-center py-2.5 bg-indigo-600 hover:bg-indigo-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white font-bold text-sm rounded-xl transition-colors"
+                    >
+                      <Download size={16} /> Registration
+                    </button>
+                    <button
+                      onClick={() => { setShowProfile(false); window.open('/api/student/download-cards', '_blank'); }}
+                      className="flex items-center gap-2 flex-1 justify-center py-2.5 bg-slate-700 hover:bg-slate-800 dark:bg-slate-600 dark:hover:bg-slate-500 text-white font-bold text-sm rounded-xl transition-colors"
+                    >
+                      <Download size={16} /> 6 Cards
+                    </button>
+                  </div>                </>
               )}
             </div>
           </div>
