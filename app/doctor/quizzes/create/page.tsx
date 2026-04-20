@@ -90,7 +90,7 @@ export default function CreateQuizPage() {
 
   const handleSubmit = async (publish: boolean) => {
     setError('');
-    if (!form.title || !form.departmentId || !form.academicYear || questions.some(q => !q.question)) {
+    if (!form.title || !form.departmentId || form.academicYear === null || form.academicYear === undefined || questions.some(q => !q.question)) {
       setError('Please fill all required fields (title, department, academic year, and all questions)');
       return;
     }
@@ -205,7 +205,7 @@ export default function CreateQuizPage() {
           <div>
             <label className="text-sm font-medium text-gray-600 mb-1 block">Academic Year *</label>
             <select
-              value={form.academicYear || ''}
+              value={form.academicYear === 0 && !form.departmentId ? '' : form.academicYear}
               onChange={e => setForm(p => ({ ...p, academicYear: Number(e.target.value) }))}
               disabled={!form.departmentId}
               className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
