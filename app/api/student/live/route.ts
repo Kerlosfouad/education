@@ -10,7 +10,19 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const student = await db.student.findUnique({
+      where: { userId: session.user.id },
+      select: { departmentId: true, academicYear: true },
+    });
+
     const sessions = await db.zoomLecture.findMany({
+      where: student ? {
+        subject: {
+          OR: [
+            { departmentId: student.departmentId, academicYear: student.academicYear },
+          ]
+        }
+      } : {},
       include: { subject: { select: { name: true } } },
       orderBy: { scheduledAt: 'desc' },
     });

@@ -86,7 +86,13 @@ export default function VideosPage() {
       const res = await fetch('/api/videos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: form.title, description: form.description, fileUrl, fileSize }),
+        body: JSON.stringify({
+          title: form.title,
+          description: form.description,
+          fileUrl,
+          fileSize,
+          subjectId: form.subjectId || undefined,
+        }),
       });
       const data = await res.json();
       if (data.success) {

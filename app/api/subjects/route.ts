@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
       where: {
         isActive: true,
         ...(departmentId ? { departmentId } : {}),
-        ...(academicYear ? { academicYear } : {}),
+        ...(academicYear !== null ? { academicYear } : {}),
       },
       select: { id: true, name: true, code: true, departmentId: true, department: { select: { name: true } } },
       orderBy: { name: 'asc' },
