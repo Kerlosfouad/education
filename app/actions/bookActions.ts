@@ -39,7 +39,7 @@ export async function saveBookAction(data: { name: string, type: string, size: s
         size: data.size,
         url: data.url,
         ...(data.departmentId ? { departmentId: data.departmentId } : {}),
-        ...(data.academicYear ? { academicYear: data.academicYear } : {}),
+        ...(data.academicYear !== undefined && data.academicYear !== null ? { academicYear: data.academicYear } : {}),
       },
     });
     if (data.departmentId && data.academicYear) {

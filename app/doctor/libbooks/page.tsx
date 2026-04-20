@@ -50,7 +50,7 @@ export default function LibBooksPage() {
         size: (selectedFile.size / (1024 * 1024)).toFixed(1) + ' MB',
         url: uploaded[0].url,
         ...(form.departmentId ? { departmentId: form.departmentId } : {}),
-        ...(form.academicYear ? { academicYear: Number(form.academicYear) } : {}),
+        ...(form.academicYear !== '' ? { academicYear: Number(form.academicYear) } : {}),
       });
       toast.success('File uploaded successfully');
       setShowModal(false);
