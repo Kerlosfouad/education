@@ -28,9 +28,9 @@ export async function GET() {
       const totalSessions = await db.attendanceSession.count({
         where: {
           OR: [
-            { departmentId: null },
-            { departmentId: student.departmentId, academicYear: student.academicYear },
-            { departmentId: student.departmentId, academicYear: null },
+            { departmentId: null } as any,
+            { departmentId: student.departmentId, academicYear: student.academicYear } as any,
+            { departmentId: student.departmentId, academicYear: null } as any,
           ]
         }
       });
