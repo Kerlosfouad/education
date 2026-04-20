@@ -149,7 +149,7 @@ export default function AnnouncementsPage() {
                         {departments.find(d => d.id === a.departmentId)?.name}
                       </span>
                     )}
-                    {a.academicYear && (
+                    {a.academicYear !== null && a.academicYear !== undefined && (
                       <span className="text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded-full font-bold">
                         Level {a.academicYear}
                       </span>

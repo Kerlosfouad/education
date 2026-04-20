@@ -164,7 +164,7 @@ export async function GET() {
           academicYear: student.academicYear,
         },
         doctor: {
-          name: doctor?.name || 'EDUBRIDGE',
+          name: doctor?.name || 'DR. EMAD BAYUOME',
           email: doctor?.email || '',
           image: doctor?.image || '',
           title: dp.title || '',
