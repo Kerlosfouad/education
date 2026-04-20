@@ -1,8 +1,15 @@
 import { db } from '@/lib/db';
 import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 export async function GET() {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user || !['DOCTOR', 'ADMIN'].includes(session.user.role)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const students = await db.student.findMany({
       where: {
         user: { status: 'ACTIVE' },
@@ -10,36 +17,53 @@ export async function GET() {
       },
       include: {
         user: { select: { name: true } },
-        attendances: true,
+        attendances: { where: { verificationMethod: { not: 'ABSENT' } } },
         assignmentSubmissions: true,
-        quizAttempts: {
-          where: { status: 'COMPLETED' }
-        },
+        quizAttempts: { where: { status: 'COMPLETED' } },
       }
     });
 
-    const totalSessions = await db.attendanceSession.count();
-    const totalQuizzes = await db.quiz.count({ where: { isPublished: true } });
-    const totalAssignments = await db.assignment.count({ where: { isActive: true } });
+    const data = await Promise.all(students.map(async student => {
+      // Filter totals by student's own department and year
+      const totalSessions = await db.attendanceSession.count({
+        where: {
+          OR: [
+            { departmentId: null },
+            { departmentId: student.departmentId, academicYear: student.academicYear },
+            { departmentId: student.departmentId, academicYear: null },
+          ]
+        }
+      });
+      const totalQuizzes = await db.quiz.count({
+        where: {
+          isPublished: true,
+          OR: [
+            { departmentId: null },
+            { departmentId: student.departmentId, academicYear: student.academicYear },
+          ]
+        }
+      });
+      const totalAssignments = await db.assignment.count({
+        where: {
+          isActive: true,
+          OR: [
+            { departmentId: null },
+            { departmentId: student.departmentId, academicYear: student.academicYear },
+          ]
+        }
+      });
 
-    const data = students.map(student => {
       const attendanceRate = totalSessions > 0
         ? Math.round((student.attendances.length / totalSessions) * 100)
         : 0;
-
       const quizRate = totalQuizzes > 0
         ? Math.round((student.quizAttempts.length / totalQuizzes) * 100)
         : 0;
-
       const assignmentRate = totalAssignments > 0
         ? Math.round((student.assignmentSubmissions.length / totalAssignments) * 100)
         : 0;
-
       const avgQuizScore = student.quizAttempts.length > 0
-        ? Math.round(
-            student.quizAttempts.reduce((a, q) => a + (q.percentage ?? 0), 0) /
-            student.quizAttempts.length
-          )
+        ? Math.round(student.quizAttempts.reduce((a, q) => a + (q.percentage ?? 0), 0) / student.quizAttempts.length)
         : 0;
 
       return {
@@ -57,7 +81,7 @@ export async function GET() {
         totalQuizzes,
         totalAssignments,
       };
-    });
+    }));
 
     return NextResponse.json(data);
   } catch (error) {

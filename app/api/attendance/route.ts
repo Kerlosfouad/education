@@ -249,7 +249,7 @@ export async function POST(req: NextRequest) {
       if (sessionAny.departmentId && sessionAny.departmentId !== student.departmentId) {
         return NextResponse.json({ error: 'This session is not for your department' }, { status: 403 });
       }
-      if (sessionAny.academicYear && sessionAny.academicYear !== student.academicYear) {
+      if (sessionAny.academicYear !== null && sessionAny.academicYear !== undefined && sessionAny.academicYear !== student.academicYear) {
         return NextResponse.json({ error: 'This session is not for your level' }, { status: 403 });
       }
 
