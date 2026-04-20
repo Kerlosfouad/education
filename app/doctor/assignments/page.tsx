@@ -89,7 +89,7 @@ const [newAssignment, setNewAssignment] = useState({ title: '', departmentId: ''
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newAssignment.departmentId || !newAssignment.academicYear) {
+    if (!newAssignment.departmentId || newAssignment.academicYear === '' || newAssignment.academicYear === undefined) {
       alert('Please select department and academic year');
       return;
     }

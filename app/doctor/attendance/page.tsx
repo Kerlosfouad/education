@@ -84,7 +84,7 @@ export default function AttendancePage() {
         body: JSON.stringify({
           title: form.title || undefined,
           departmentId: form.departmentId || undefined,
-          academicYear: form.academicYear ? Number(form.academicYear) : undefined,
+          academicYear: form.academicYear !== '' ? Number(form.academicYear) : undefined,
           openTime: now.toISOString(),
           closeTime: closeTime.toISOString(),
         }),

@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
     const { departmentId, academicYear, title, description, timeLimit, maxAttempts, passingScore,
       shuffleQuestions, showCorrectAnswers, startTime, endTime, questions, isPublished } = body;
 
-    if (!departmentId || !academicYear || !title || !timeLimit || !questions || questions.length === 0) {
+    if (!departmentId || academicYear === undefined || academicYear === null || !title || !timeLimit || !questions || questions.length === 0) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
