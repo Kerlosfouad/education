@@ -10,7 +10,7 @@ export async function GET() {
 
   const student = await db.student.findUnique({
     where: { userId: session.user.id },
-    include: { department: true },
+    include: { department: true, user: { select: { name: true } } },
   });
   if (!student) return NextResponse.json({ error: 'Student not found' }, { status: 404 });
 
@@ -54,7 +54,7 @@ export async function GET() {
     success: true,
     data: {
       student: {
-        name: student.userId,
+        name: student.user.name,
         studentCode: student.studentCode,
         department: student.department.name,
         academicYear: student.academicYear,
