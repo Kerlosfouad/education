@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
   const filtered = all.filter(a => {
     // Filter by dept/year
     if (a.departmentId && a.departmentId !== student?.departmentId) return false;
-    if (a.academicYear && a.academicYear !== student?.academicYear) return false;
+    if (a.academicYear !== null && a.academicYear !== undefined && a.academicYear !== student?.academicYear) return false;
     // Filter by target page
     const target = a.targetPage || 'dashboard';
     return target === page;

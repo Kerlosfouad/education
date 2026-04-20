@@ -114,9 +114,15 @@ export async function GET() {
       alreadyMarked = !!existing;
     }
 
-    // Videos
+    // Videos - filtered by student's department and year
     const videos = await db.lectureSlide.findMany({
-      where: { fileType: 'video' },
+      where: {
+        fileType: 'video',
+        OR: [
+          { subjectId: null },
+          { subject: { departmentId: student.departmentId, academicYear: student.academicYear } },
+        ],
+      },
       include: { subject: { select: { name: true } } },
       orderBy: { uploadedAt: 'desc' },
       take: 5,
