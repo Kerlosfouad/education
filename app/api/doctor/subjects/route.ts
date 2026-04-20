@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const { name, code, departmentId, academicYear, semester } = body;
 
-  if (!name || !code || !departmentId || !academicYear || !semester) {
+  if (!name || !code || !departmentId || academicYear === undefined || academicYear === null || !semester) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
   }
 
