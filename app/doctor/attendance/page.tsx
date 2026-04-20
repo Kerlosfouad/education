@@ -31,7 +31,7 @@ export default function AttendancePage() {
   const fetchData = useCallback(async () => {
     try {
       const [sessRes, subRes, stuRes] = await Promise.all([
-        fetch('/api/attendance'), fetch('/api/subjects'), fetch('/api/students'),
+        fetch('/api/attendance'), fetch('/api/subjects'), fetch('/api/students?limit=200'),
       ]);
       const [sessJson, subJson, stuJson] = await Promise.all([sessRes.json(), subRes.json(), stuRes.json()]);
       if (sessJson.success) {
@@ -248,7 +248,13 @@ export default function AttendancePage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                  {students.map(student => {
+                  {students
+                    .filter(student =>
+                      sessions.some(s =>
+                        s.attendances?.some(a => a.studentId === student.id)
+                      )
+                    )
+                    .map(student => {
                     const presentCount = sessions.filter(s => getStatus(s, student.id) === 'present').length;
                     const rate = sessions.length > 0 ? Math.round((presentCount / sessions.length) * 100) : 0;
                     return (
@@ -264,14 +270,11 @@ export default function AttendancePage() {
                         <td className="p-4 text-sm font-mono text-slate-500 border-r border-slate-100">{student.studentCode}</td>
                         {sessions.map(s => {
                           const status = getStatus(s, student.id);
-                          const attendance = s.attendances?.find(a => a.studentId === student.id);
                           return (
                             <td key={s.id} className="p-2 text-center border-r border-slate-50">
                               {status === 'present' && (
-                                <div className="flex flex-col items-center gap-0.5">
-                                  <div className="w-7 h-7 mx-auto rounded-lg bg-green-50 flex items-center justify-center">
-                                    <CheckCircle2 size={14} className="text-green-600" />
-                                  </div>
+                                <div className="w-7 h-7 mx-auto rounded-lg bg-green-50 flex items-center justify-center">
+                                  <CheckCircle2 size={14} className="text-green-600" />
                                 </div>
                               )}
                               {status === 'absent' && <div className="w-7 h-7 mx-auto rounded-lg bg-red-50 flex items-center justify-center"><XCircle size={14} className="text-red-500" /></div>}
