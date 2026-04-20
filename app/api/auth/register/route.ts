@@ -76,8 +76,8 @@ export async function POST(req: NextRequest) {
       if (!departmentId) {
         return NextResponse.json({ error: 'Department is required' }, { status: 400 });
       }
-      if (!academicYear || academicYear < 1 || academicYear > 5) {
-        return NextResponse.json({ error: 'Academic year must be between 1 and 5' }, { status: 400 });
+      if (academicYear === undefined || academicYear === null || academicYear < 0 || academicYear > 5) {
+        return NextResponse.json({ error: 'Academic year must be between 0 and 5' }, { status: 400 });
       }
 
       // Use provided code or generate one

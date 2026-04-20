@@ -8,7 +8,7 @@ import { z } from 'zod';
 const schema = z.object({
   fullName: z.string().trim().min(1),
   departmentId: z.string().min(1),
-  academicYear: z.number().min(1).max(5),
+  academicYear: z.number().min(0).max(5),
   studentCode: z
     .string()
     .trim()
