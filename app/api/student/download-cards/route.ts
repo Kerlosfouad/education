@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { generateStudentQRCode } from '@/lib/codes';
+import { escapeHtml } from '@/lib/sanitize';
 
 export async function GET() {
   try {
@@ -16,8 +17,8 @@ export async function GET() {
     if (!student) return NextResponse.json({ error: 'Student not found' }, { status: 404 });
 
     const qrDataUrl = await generateStudentQRCode(student.id);
-    const name = student.user.name || 'Student';
-    const code = student.studentCode;
+    const name = escapeHtml(student.user.name || 'Student');
+    const code = escapeHtml(student.studentCode);
 
     const card = `
       <div style="background:white;border:1px solid #ddd;border-radius:10px;overflow:hidden;">
@@ -68,6 +69,6 @@ export async function GET() {
       headers: { 'Content-Type': 'text/html; charset=utf-8' },
     });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed: ' + String(error) }, { status: 500 });
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }

@@ -46,11 +46,12 @@ export async function GET() {
       take: 5,
     });
 
-    // Attendance rate - based on closed sessions for student's department only
+    // Attendance rate - based on closed sessions for student's department AND academicYear
     const totalSessionsRaw = await db.$queryRaw<{count: bigint}[]>`
       SELECT COUNT(*) as count FROM attendance_sessions
       WHERE "closeTime" < ${now}
       AND ("departmentId" IS NULL OR "departmentId" = ${student.departmentId})
+      AND ("academicYear" IS NULL OR "academicYear" = ${student.academicYear})
     `;
     const totalSessions = Number(totalSessionsRaw[0]?.count ?? 0);
     const attendedSessions = await db.attendance.count({
@@ -65,6 +66,7 @@ export async function GET() {
       SELECT id FROM attendance_sessions
       WHERE "closeTime" < ${now}
       AND ("departmentId" IS NULL OR "departmentId" = ${student.departmentId})
+      AND ("academicYear" IS NULL OR "academicYear" = ${student.academicYear})
     `;
     if (closedSessions.length > 0) {
       const closedIds = closedSessions.map((s) => s.id);

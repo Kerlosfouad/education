@@ -57,10 +57,19 @@ export async function POST(req: NextRequest) {
   if (!subjectId || !studentId || !examType || score === undefined)
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
 
+  if (typeof score !== 'number' || score < 0)
+    return NextResponse.json({ error: 'Invalid score value' }, { status: 400 });
+
+  const max = maxScore ?? 100;
+  if (typeof max !== 'number' || max <= 0)
+    return NextResponse.json({ error: 'Invalid maxScore value' }, { status: 400 });
+
+  if (score > max)
+    return NextResponse.json({ error: 'Score cannot exceed maxScore' }, { status: 400 });
+
   const subject = await db.subject.findUnique({ where: { id: subjectId } });
   if (!subject) return NextResponse.json({ error: 'Subject not found' }, { status: 404 });
 
-  const max = maxScore ?? 100;
   const pct = Math.round((score / max) * 100);
 
   const grade = await db.examResult.upsert({

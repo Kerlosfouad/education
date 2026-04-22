@@ -28,7 +28,11 @@ export async function PATCH(req: NextRequest) {
     const { id } = await req.json();
 
     if (id) {
-      await db.notification.update({ where: { id }, data: { isRead: true } });
+      // Ensure the notification belongs to the current user
+      await db.notification.updateMany({
+        where: { id, userId: session.user.id },
+        data: { isRead: true },
+      });
     } else {
       await db.notification.updateMany({
         where: { userId: session.user.id, isRead: false },

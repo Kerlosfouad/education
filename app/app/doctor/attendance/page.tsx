@@ -26,7 +26,6 @@ export default function AttendancePage() {
   const [form, setForm] = useState({ subjectId: '', title: '', openTime: '', closeTime: '', departmentId: '', academicYear: '' });
 
   const selectedDept = departments.find(d => d.id === form.departmentId);
-  const LEVELS = selectedDept?.code === 'PREP' ? [0] : [1, 2, 3, 4];
   const fetchData = useCallback(async () => {
     try {
       const [sessRes, subRes, stuRes, deptRes] = await Promise.all([

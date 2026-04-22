@@ -10,7 +10,12 @@ export async function GET() {
     const student = await db.student.findUnique({ where: { userId: session.user.id } });
     if (!student) return NextResponse.json({ success: true, data: [] });
     const assignments = await db.assignment.findMany({
-      where: { OR: [{ departmentId: student.departmentId }, { departmentId: null }] },
+      where: {
+        OR: [
+          { departmentId: student.departmentId, academicYear: student.academicYear },
+          { departmentId: null },
+        ],
+      },
       include: { subject: { select: { name: true } }, submissions: { where: { studentId: student.id } } },
       orderBy: { createdAt: 'desc' },
     });

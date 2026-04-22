@@ -20,7 +20,9 @@ export const ourFileRouter = {
     blob: { maxFileSize: "16MB" } 
   })
     .middleware(async () => {
-      return {};
+      const session = await getServerSession(authOptions);
+      if (!session?.user) throw new Error("Unauthorized");
+      return { userId: session.user.id };
     })
     .onUploadComplete(async ({ file }) => {
       return { url: file.url };
@@ -29,6 +31,11 @@ export const ourFileRouter = {
   videoUploader: f({ 
     video: { maxFileSize: "512MB", maxFileCount: 1 }
   })
+    .middleware(async () => {
+      const session = await getServerSession(authOptions);
+      if (!session?.user) throw new Error("Unauthorized");
+      return { userId: session.user.id };
+    })
     .onUploadComplete(async ({ file }) => {
       return { url: file.url, name: file.name, size: file.size };
     }),

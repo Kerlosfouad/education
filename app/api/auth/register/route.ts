@@ -4,6 +4,7 @@ import { hashPassword } from '@/lib/auth';
 import { z } from 'zod';
 import QRCode from 'qrcode';
 import { isDoctorEmail } from '@/lib/role-rules';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -35,6 +36,11 @@ async function generateQRCode(studentCode: string): Promise<string> {
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get('x-forwarded-for') ?? req.headers.get('x-real-ip') ?? 'unknown';
+    if (!checkRateLimit(`register:${ip}`, 10, 60 * 60 * 1000)) {
+      return NextResponse.json({ error: 'Too many registration attempts. Please try again later.' }, { status: 429 });
+    }
+
     const body = await req.json();
 
     const result = registerSchema.safeParse(body);

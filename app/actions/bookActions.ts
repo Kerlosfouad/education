@@ -3,6 +3,8 @@
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { notifyAllStudents, notifyStudentsByFilter } from "@/lib/notifications";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 // Fetch books from database
 export async function getBooksAction() {
@@ -18,6 +20,10 @@ export async function getBooksAction() {
 
 export async function deleteBookAction(id: string) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user || !['DOCTOR', 'ADMIN'].includes(session.user.role)) {
+      return { success: false };
+    }
     await db.book.delete({
       where: { id }
     });
@@ -32,6 +38,10 @@ export async function deleteBookAction(id: string) {
 // Save a new book
 export async function saveBookAction(data: { name: string, type: string, size: string, url: string, departmentId?: string, academicYear?: number }) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user || !['DOCTOR', 'ADMIN'].includes(session.user.role)) {
+      throw new Error('Unauthorized');
+    }
     const book = await db.book.create({
       data: {
         name: data.name,

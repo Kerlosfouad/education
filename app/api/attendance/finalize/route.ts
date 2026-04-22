@@ -14,8 +14,23 @@ export async function POST(req: NextRequest) {
     const { sessionId } = await req.json();
     if (!sessionId) return NextResponse.json({ error: 'Missing sessionId' }, { status: 400 });
 
-    // Get all students
-    const allStudents = await db.student.findMany({ select: { id: true } });
+    // Get the session to know which department/year it targets
+    const attendanceSession = await db.attendanceSession.findUnique({ where: { id: sessionId } });
+    if (!attendanceSession) return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+
+    const sessionAny = attendanceSession as any;
+
+    // Only get students that belong to this session's department/year filter
+    const studentFilter: any = {};
+    if (sessionAny.departmentId) studentFilter.departmentId = sessionAny.departmentId;
+    if (sessionAny.academicYear !== null && sessionAny.academicYear !== undefined) {
+      studentFilter.academicYear = sessionAny.academicYear;
+    }
+
+    const allStudents = await db.student.findMany({
+      where: Object.keys(studentFilter).length > 0 ? studentFilter : undefined,
+      select: { id: true },
+    });
 
     // Get students who already have a record for this session
     const existing = await db.attendance.findMany({

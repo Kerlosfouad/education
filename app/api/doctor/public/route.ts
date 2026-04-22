@@ -39,7 +39,7 @@ export async function GET() {
     success: true,
     data: {
       name: doctor.name,
-      email: doctor.email,
+      email: '',
       image: doctor.image,
       title: p.title || '',
       bio: p.bio || '',

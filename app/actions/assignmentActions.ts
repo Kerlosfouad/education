@@ -2,6 +2,8 @@
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { notifyStudentsByFilter } from "@/lib/notifications";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export async function createAssignmentAction(data: {
   title: string;
@@ -10,6 +12,10 @@ export async function createAssignmentAction(data: {
   durationDays: number;
 }) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user || !['DOCTOR', 'ADMIN'].includes(session.user.role)) {
+      return { success: false, error: 'Unauthorized' };
+    }
     await db.assignment.create({
       data: {
         title: data.title,
@@ -51,6 +57,10 @@ export async function getAssignmentsAction() {
 
 export async function deleteAssignmentAction(id: string) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user || !['DOCTOR', 'ADMIN'].includes(session.user.role)) {
+      return { success: false };
+    }
     await db.assignment.delete({ where: { id } });
     revalidatePath('/doctor/assignments');
     return { success: true };

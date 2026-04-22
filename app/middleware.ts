@@ -68,6 +68,8 @@ export default withAuth(
         // Public API endpoints (no auth needed)
         if (pathname.startsWith('/api/auth/')) return true;
         if (pathname === '/api/subjects/departments') return true;
+        if (pathname === '/api/subjects/departments/levels') return true;
+        if (pathname === '/api/doctor/public') return true;
         return !!token;
       },
     },

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { generateStudentQRCode } from '@/lib/codes';
+import { escapeHtml } from '@/lib/sanitize';
 
 export async function GET() {
   try {
@@ -17,6 +18,12 @@ export async function GET() {
 
     const qrCodeDataUrl = await generateStudentQRCode(student.id);
     const registeredAt = (student.approvedAt || student.user.createdAt).toISOString().slice(0, 10);
+
+    const safeName = escapeHtml(student.user.name || 'Student');
+    const safeCode = escapeHtml(student.studentCode);
+    const safeDept = escapeHtml(student.department.name);
+    const safePhone = escapeHtml(student.phone || '-');
+    const safeEmail = escapeHtml(student.user.email);
 
     const html = `<!DOCTYPE html>
 <html lang="ar">
@@ -48,12 +55,12 @@ export async function GET() {
     <h1>Dr. Emad Bayoume Platform</h1>
     <p>Student Registration Card</p>
   </div>
-  <div class="info-row"><span class="info-label">Full Name</span><span class="info-value">${student.user.name || 'Student'}</span></div>
-  <div class="info-row"><span class="info-label">Student Code</span><span class="info-value">${student.studentCode}</span></div>
-  <div class="info-row"><span class="info-label">Department</span><span class="info-value">${student.department.name}</span></div>
+  <div class="info-row"><span class="info-label">Full Name</span><span class="info-value">${safeName}</span></div>
+  <div class="info-row"><span class="info-label">Student Code</span><span class="info-value">${safeCode}</span></div>
+  <div class="info-row"><span class="info-label">Department</span><span class="info-value">${safeDept}</span></div>
   <div class="info-row"><span class="info-label">Academic Year</span><span class="info-value">Level ${student.academicYear}</span></div>
-  <div class="info-row"><span class="info-label">Phone</span><span class="info-value">${student.phone || '-'}</span></div>
-  <div class="info-row"><span class="info-label">Email</span><span class="info-value">${student.user.email}</span></div>
+  <div class="info-row"><span class="info-label">Phone</span><span class="info-value">${safePhone}</span></div>
+  <div class="info-row"><span class="info-label">Email</span><span class="info-value">${safeEmail}</span></div>
   <div class="info-row"><span class="info-label">Registered</span><span class="info-value">${registeredAt}</span></div>
   <div class="info-row"><span class="info-label">Status</span><span class="badge">Approved ✓</span></div>
   <div class="qr-section">
@@ -73,6 +80,6 @@ export async function GET() {
       headers: { 'Content-Type': 'text/html; charset=utf-8' },
     });
   } catch (error) {
-    return NextResponse.json({ error: 'Internal server error: ' + String(error) }, { status: 500 });
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
