@@ -174,7 +174,7 @@ export async function GET() {
         doctor: {
           name: doctor?.name || 'DR. EMAD BAYUOME',
           email: doctor?.email || '',
-          image: doctor?.image || '',
+          image: doctor?.image?.startsWith('data:') ? '' : (doctor?.image || ''),
           title: dp.title || '',
           bio: dp.bio || '',
           phone: dp.phone || '',

@@ -91,7 +91,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
   }, [fetchNotifications]);
 
   useEffect(() => {
-    fetch('/api/doctor/settings')
+    fetch('/api/doctor/public')
       .then(r => r.json())
       .then(json => { if (json.success) setDoctorInfo(json.data); })
       .catch(() => {});
@@ -141,7 +141,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
   const studentName = session?.user?.name || 'Student';
   const studentEmail = session?.user?.email || '';
   const initials = studentName.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
-  const doctorName = 'DR. EMAD BAYUOME';
+  const doctorName = doctorInfo?.name || 'DR. EMAD BAYUOME';
   const doctorInitials = doctorName.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
   const yearLabels: Record<number, string> = {
     1: 'Level 1', 2: 'Level 2', 3: 'Level 3', 4: 'Level 4', 5: 'Level 5',
@@ -155,8 +155,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
             <Image src={LOGO_BASE64} alt="logo" width={32} height={32} className="w-full h-full object-cover" unoptimized />
           </div>
           <h1 className="font-bold text-slate-800 dark:text-slate-100 text-sm leading-tight">{doctorName}</h1>
-        </div>
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+        </div>        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {menuItems.map((item) => {
             const isActive = pathname === item.path;
             return (
@@ -191,8 +190,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
 
       <main className="flex-1 min-w-0">
         <div className="relative lg:hidden p-4 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700/60 flex justify-between items-center sticky top-0 z-30">
-          <h1 className="font-bold text-indigo-600">{doctorName}</h1>
-          <div className="flex items-center gap-2">
+          <h1 className="font-bold text-indigo-600">{doctorName}</h1>          <div className="flex items-center gap-2">
             <button onClick={toggleTheme} className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-300">
               {isDark ? <Sun size={20} /> : <Moon size={20} />}
             </button>

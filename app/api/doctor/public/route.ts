@@ -40,7 +40,7 @@ export async function GET() {
     data: {
       name: doctor.name,
       email: '',
-      image: doctor.image,
+      image: doctor.image?.startsWith('data:') ? '' : (doctor.image || ''),
       title: p.title || '',
       bio: p.bio || '',
       phone: p.phone || '',
