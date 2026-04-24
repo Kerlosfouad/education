@@ -151,7 +151,7 @@ export async function GET() {
 
     // Doctor info (for student dashboard display)
     const doctor = await db.user.findFirst({
-      where: { role: 'DOCTOR' },
+      where: { role: 'DOCTOR', doctorProfile: { isNot: null } },
       select: {
         name: true,
         email: true,

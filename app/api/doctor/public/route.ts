@@ -4,7 +4,7 @@ import { db } from '@/lib/db';
 // Public doctor info - accessible without authentication.
 export async function GET() {
   const doctor = await db.user.findFirst({
-    where: { role: 'DOCTOR' },
+    where: { role: 'DOCTOR', doctorProfile: { isNot: null } },
     select: {
       name: true,
       email: true,
