@@ -54,6 +54,7 @@ function AnnouncementsBanner({ studentDeptId }: { studentDeptId?: string }) {
 
 export default function StudentDashboardPage() {  const { t } = useI18n();
   const [data, setData] = useState<DashboardData | null>(null);
+  const [doctorInfo, setDoctorInfo] = useState<DashboardData['doctor'] | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAttendanceModal, setShowAttendanceModal] = useState(false);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
@@ -66,7 +67,6 @@ export default function StudentDashboardPage() {  const { t } = useI18n();
       const json = await res.json();
       if (json.success) {
         setData(json.data);
-        // Don't auto-show modal - student will go to attendance page from notification
       }
     } catch {}
     setLoading(false);
@@ -74,6 +74,11 @@ export default function StudentDashboardPage() {  const { t } = useI18n();
 
   useEffect(() => {
     fetchDashboard();
+    // Fetch doctor info separately from public endpoint (no auth needed)
+    fetch('/api/doctor/public')
+      .then(r => r.json())
+      .then(j => { if (j.success) setDoctorInfo(j.data); })
+      .catch(() => {});
     const interval = setInterval(fetchDashboard, 15000);
     return () => clearInterval(interval);
   }, [fetchDashboard]);
@@ -191,48 +196,50 @@ export default function StudentDashboardPage() {  const { t } = useI18n();
         <AnnouncementsBanner studentDeptId={data?.student?.id} />
 
         {/* Doctor Info Card */}
-        {data?.doctor && (
+        {(doctorInfo?.name || data?.doctor) && (() => {
+          const doc = doctorInfo || data!.doctor;
+          return (
           <div className="bg-gradient-to-br from-indigo-600 to-purple-600 dark:from-[#00c896] dark:to-[#00a87e] rounded-3xl p-6 text-white shadow-lg shadow-indigo-100 dark:shadow-none">
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center font-black text-xl overflow-hidden shrink-0">
-                {data.doctor.image
-                  ? <Image src={data.doctor.image} alt="doctor" width={64} height={64} className="object-cover w-full h-full" unoptimized />
-                  : data.doctor.name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()}
+                {doc.image
+                  ? <Image src={doc.image} alt="doctor" width={64} height={64} className="object-cover w-full h-full" unoptimized />
+                  : (doc.name || 'DR').split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-black text-lg leading-tight">{data.doctor.name}</p>
-                {data.doctor.title && <p className="text-white/70 text-sm mt-0.5">{data.doctor.title}</p>}
-                {data.doctor.bio && <p className="text-white/60 text-xs mt-1 line-clamp-2">{data.doctor.bio}</p>}
+                <p className="font-black text-lg leading-tight">{doc.name}</p>
+                {doc.title && <p className="text-white/70 text-sm mt-0.5">{doc.title}</p>}
+                {doc.bio && <p className="text-white/60 text-xs mt-1 line-clamp-2">{doc.bio}</p>}
               </div>
             </div>
-            {(data.doctor.phone || data.doctor.whatsapp || data.doctor.facebook || data.doctor.instagram || data.doctor.twitter) && (
+            {(doc.phone || doc.whatsapp || doc.facebook || doc.instagram || doc.twitter) && (
               <div className="flex flex-wrap gap-2 mt-4">
-                {data.doctor.phone && (
-                  <a href={`tel:${data.doctor.phone}`}
+                {doc.phone && (
+                  <a href={`tel:${doc.phone}`}
                     className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 transition-colors px-3 py-1.5 rounded-xl text-xs font-bold">
-                    <Phone size={13} /> {data.doctor.phone}
+                    <Phone size={13} /> {doc.phone}
                   </a>
                 )}
-                {data.doctor.whatsapp && (
-                  <a href={`https://wa.me/20${data.doctor.whatsapp.replace(/\D/g, '').replace(/^0/, '')}`} target="_blank" rel="noopener noreferrer"
+                {doc.whatsapp && (
+                  <a href={`https://wa.me/${doc.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
                     className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 transition-colors px-3 py-1.5 rounded-xl text-xs font-bold">
                     <MessageCircle size={13} /> WhatsApp
                   </a>
                 )}
-                {data.doctor.facebook && (
-                  <a href={data.doctor.facebook.startsWith('http') ? data.doctor.facebook : `https://${data.doctor.facebook}`} target="_blank" rel="noopener noreferrer"
+                {doc.facebook && (
+                  <a href={doc.facebook.startsWith('http') ? doc.facebook : `https://${doc.facebook}`} target="_blank" rel="noopener noreferrer"
                     className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 transition-colors px-3 py-1.5 rounded-xl text-xs font-bold">
                     <Facebook size={13} /> Facebook
                   </a>
                 )}
-                {data.doctor.instagram && (
-                  <a href={data.doctor.instagram.startsWith('http') ? data.doctor.instagram : `https://instagram.com/${data.doctor.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer"
+                {doc.instagram && (
+                  <a href={doc.instagram.startsWith('http') ? doc.instagram : `https://instagram.com/${doc.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer"
                     className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 transition-colors px-3 py-1.5 rounded-xl text-xs font-bold">
                     <Instagram size={13} /> Instagram
                   </a>
                 )}
-                {data.doctor.twitter && (
-                  <a href={data.doctor.twitter.startsWith('http') ? data.doctor.twitter : `https://x.com/${data.doctor.twitter.replace('@', '')}`} target="_blank" rel="noopener noreferrer"
+                {doc.twitter && (
+                  <a href={doc.twitter.startsWith('http') ? doc.twitter : `https://x.com/${doc.twitter.replace('@', '')}`} target="_blank" rel="noopener noreferrer"
                     className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 transition-colors px-3 py-1.5 rounded-xl text-xs font-bold">
                     <Twitter size={13} /> Twitter
                   </a>
@@ -240,7 +247,8 @@ export default function StudentDashboardPage() {  const { t } = useI18n();
               </div>
             )}
           </div>
-        )}
+          );
+        })()}
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {stats.map((stat, i) => (
