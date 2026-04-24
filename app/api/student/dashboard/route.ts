@@ -152,13 +152,24 @@ export async function GET() {
     // Doctor info (for student dashboard display)
     const doctor = await db.user.findFirst({
       where: { role: 'DOCTOR' },
-      select: { name: true, email: true, image: true },
+      select: {
+        name: true,
+        email: true,
+        image: true,
+        doctorProfile: {
+          select: {
+            title: true,
+            bio: true,
+            phone: true,
+            whatsapp: true,
+            facebook: true,
+            instagram: true,
+            twitter: true,
+          },
+        },
+      },
     });
-    const doctorProfiles = await db.$queryRaw<any[]>`
-      SELECT title, bio, phone, whatsapp, facebook, instagram, twitter
-      FROM doctor_profiles LIMIT 1
-    `;
-    const dp = doctorProfiles[0] || {};
+    const dp = doctor?.doctorProfile;
 
     return NextResponse.json({
       success: true,
@@ -172,16 +183,16 @@ export async function GET() {
           academicYear: student.academicYear,
         },
         doctor: {
-          name: doctor?.name || 'DR. EMAD BAYUOME',
+          name: doctor?.name || '',
           email: doctor?.email || '',
           image: doctor?.image?.startsWith('data:') ? '' : (doctor?.image || ''),
-          title: dp.title || '',
-          bio: dp.bio || '',
-          phone: dp.phone || '',
-          whatsapp: dp.whatsapp || '',
-          facebook: dp.facebook || '',
-          instagram: dp.instagram || '',
-          twitter: dp.twitter || '',
+          title: dp?.title || '',
+          bio: dp?.bio || '',
+          phone: dp?.phone || '',
+          whatsapp: dp?.whatsapp || '',
+          facebook: dp?.facebook || '',
+          instagram: dp?.instagram || '',
+          twitter: dp?.twitter || '',
         },
         stats: {
           quizzesCount: quizzes.length,

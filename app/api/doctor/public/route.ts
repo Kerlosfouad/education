@@ -5,49 +5,45 @@ import { db } from '@/lib/db';
 export async function GET() {
   const doctor = await db.user.findFirst({
     where: { role: 'DOCTOR' },
-    select: { name: true, email: true, image: true },
-  });
-
-  if (!doctor) {
-    return NextResponse.json(
-      {
-        success: true,
-        data: {
-          name: '',
-          email: '',
-          image: '',
-          title: '',
-          bio: '',
-          phone: '',
-          whatsapp: '',
-          facebook: '',
-          instagram: '',
-          twitter: '',
+    select: {
+      name: true,
+      email: true,
+      image: true,
+      doctorProfile: {
+        select: {
+          title: true,
+          bio: true,
+          phone: true,
+          whatsapp: true,
+          facebook: true,
+          instagram: true,
+          twitter: true,
         },
       },
-      { status: 200 }
-    );
+    },
+  });
+
+  const empty = { name: '', email: '', image: '', title: '', bio: '', phone: '', whatsapp: '', facebook: '', instagram: '', twitter: '' };
+
+  if (!doctor) {
+    return NextResponse.json({ success: true, data: empty });
   }
 
-  const profiles = await db.$queryRaw<any[]>`
-    SELECT title, bio, phone, whatsapp, facebook, instagram, twitter
-    FROM doctor_profiles LIMIT 1
-  `;
-  const p = profiles[0] || {};
+  const p = doctor.doctorProfile;
 
   return NextResponse.json({
     success: true,
     data: {
-      name: doctor.name,
+      name: doctor.name || '',
       email: '',
       image: doctor.image?.startsWith('data:') ? '' : (doctor.image || ''),
-      title: p.title || '',
-      bio: p.bio || '',
-      phone: p.phone || '',
-      whatsapp: p.whatsapp || '',
-      facebook: p.facebook || '',
-      instagram: p.instagram || '',
-      twitter: p.twitter || '',
+      title: p?.title || '',
+      bio: p?.bio || '',
+      phone: p?.phone || '',
+      whatsapp: p?.whatsapp || '',
+      facebook: p?.facebook || '',
+      instagram: p?.instagram || '',
+      twitter: p?.twitter || '',
     },
   });
 }
