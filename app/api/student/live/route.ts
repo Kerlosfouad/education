@@ -17,15 +17,10 @@ export async function GET() {
 
     const sessions = await db.zoomLecture.findMany({
       where: student ? {
-        OR: [
-          {
-            subject: {
-              departmentId: student.departmentId,
-              academicYear: student.academicYear,
-            },
-          },
-          { subjectId: null },
-        ],
+        subject: {
+          departmentId: student.departmentId,
+          academicYear: student.academicYear,
+        },
       } : {},
       include: { subject: { select: { name: true } } },
       orderBy: { scheduledAt: 'desc' },
