@@ -87,5 +87,24 @@ export async function POST(req: NextRequest) {
     },
   });
 
+  // Notify the student about their new/updated grade
+  const student = await db.student.findUnique({
+    where: { id: studentId },
+    select: { userId: true },
+  });
+  if (student) {
+    const examLabel: Record<string, string> = {
+      MIDTERM: 'Midterm', FINAL: 'Final', QUIZ: 'Quiz', PROJECT: 'Project',
+    };
+    await db.notification.create({
+      data: {
+        userId: student.userId,
+        title: '📊 Grade Published',
+        message: `Your ${examLabel[examType] || examType} grade for ${subject.name} has been published: ${score}/${max} (${pct}%)`,
+        type: 'EXAM_RESULT',
+      },
+    });
+  }
+
   return NextResponse.json({ success: true, grade });
 }
