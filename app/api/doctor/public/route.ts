@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
 // Public doctor info - accessible without authentication.
+// v2 - fetch doctor with profile only
 export async function GET() {
   const doctor = await db.user.findFirst({
     where: { role: 'DOCTOR', doctorProfile: { isNot: null } },
