@@ -196,50 +196,59 @@ export default function StudentDashboardPage() {  const { t } = useI18n();
         <AnnouncementsBanner studentDeptId={data?.student?.id} />
 
         {/* Doctor Info Card */}
-        {(doctorInfo?.name || data?.doctor) && (() => {
-          const doc = doctorInfo || data!.doctor;
+        {(() => {
+          const doc = doctorInfo || data?.doctor;
+          const name = doc?.name || 'DR. EMAD BAYUOME';
+          const image = doc?.image || '';
+          const title = doc?.title || '';
+          const bio = doc?.bio || '';
+          const phone = doc?.phone || '';
+          const whatsapp = doc?.whatsapp || '';
+          const facebook = doc?.facebook || '';
+          const instagram = doc?.instagram || '';
+          const twitter = doc?.twitter || '';
           return (
           <div className="bg-gradient-to-br from-indigo-600 to-purple-600 dark:from-[#00c896] dark:to-[#00a87e] rounded-3xl p-6 text-white shadow-lg shadow-indigo-100 dark:shadow-none">
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center font-black text-xl overflow-hidden shrink-0">
-                {doc.image
-                  ? <Image src={doc.image} alt="doctor" width={64} height={64} className="object-cover w-full h-full" unoptimized />
-                  : (doc.name || 'DR').split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()}
+                {image
+                  ? <Image src={image} alt="doctor" width={64} height={64} className="object-cover w-full h-full" unoptimized />
+                  : name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-black text-lg leading-tight">{doc.name}</p>
-                {doc.title && <p className="text-white/70 text-sm mt-0.5">{doc.title}</p>}
-                {doc.bio && <p className="text-white/60 text-xs mt-1 line-clamp-2">{doc.bio}</p>}
+                <p className="font-black text-lg leading-tight">{name}</p>
+                {title && <p className="text-white/70 text-sm mt-0.5">{title}</p>}
+                {bio && <p className="text-white/60 text-xs mt-1 line-clamp-2">{bio}</p>}
               </div>
             </div>
-            {(doc.phone || doc.whatsapp || doc.facebook || doc.instagram || doc.twitter) && (
+            {(phone || whatsapp || facebook || instagram || twitter) && (
               <div className="flex flex-wrap gap-2 mt-4">
-                {doc.phone && (
-                  <a href={`tel:${doc.phone}`}
+                {phone && (
+                  <a href={`tel:${phone}`}
                     className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 transition-colors px-3 py-1.5 rounded-xl text-xs font-bold">
-                    <Phone size={13} /> {doc.phone}
+                    <Phone size={13} /> {phone}
                   </a>
                 )}
-                {doc.whatsapp && (
-                  <a href={`https://wa.me/${doc.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
+                {whatsapp && (
+                  <a href={`https://wa.me/${whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
                     className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 transition-colors px-3 py-1.5 rounded-xl text-xs font-bold">
                     <MessageCircle size={13} /> WhatsApp
                   </a>
                 )}
-                {doc.facebook && (
-                  <a href={doc.facebook.startsWith('http') ? doc.facebook : `https://${doc.facebook}`} target="_blank" rel="noopener noreferrer"
+                {facebook && (
+                  <a href={facebook.startsWith('http') ? facebook : `https://${facebook}`} target="_blank" rel="noopener noreferrer"
                     className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 transition-colors px-3 py-1.5 rounded-xl text-xs font-bold">
                     <Facebook size={13} /> Facebook
                   </a>
                 )}
-                {doc.instagram && (
-                  <a href={doc.instagram.startsWith('http') ? doc.instagram : `https://instagram.com/${doc.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer"
+                {instagram && (
+                  <a href={instagram.startsWith('http') ? instagram : `https://instagram.com/${instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer"
                     className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 transition-colors px-3 py-1.5 rounded-xl text-xs font-bold">
                     <Instagram size={13} /> Instagram
                   </a>
                 )}
-                {doc.twitter && (
-                  <a href={doc.twitter.startsWith('http') ? doc.twitter : `https://x.com/${doc.twitter.replace('@', '')}`} target="_blank" rel="noopener noreferrer"
+                {twitter && (
+                  <a href={twitter.startsWith('http') ? twitter : `https://x.com/${twitter.replace('@', '')}`} target="_blank" rel="noopener noreferrer"
                     className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 transition-colors px-3 py-1.5 rounded-xl text-xs font-bold">
                     <Twitter size={13} /> Twitter
                   </a>
