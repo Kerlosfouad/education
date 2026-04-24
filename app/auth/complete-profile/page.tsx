@@ -105,8 +105,8 @@ export default function CompleteProfilePage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to complete profile');
 
-      // Refresh session to pick up new student data
-      await update({ refreshStatus: true });
+      // Force session refresh so middleware picks up hasStudent = true
+      await update();
       setIsDone(true);
       toast.success('Profile completed! Waiting for approval.');
     } catch (err: any) {
@@ -137,7 +137,7 @@ export default function CompleteProfilePage() {
               <p className="text-muted-foreground mb-6">
                 Your account is pending approval from the doctor. You will be notified once approved.
               </p>
-              <Button onClick={() => router.push('/auth/pending')} className="w-full bg-gradient-to-r from-primary to-purple-600">
+              <Button onClick={() => { window.location.href = '/auth/pending'; }} className="w-full bg-gradient-to-r from-primary to-purple-600">
                 Go to Pending Page
               </Button>
             </CardContent>

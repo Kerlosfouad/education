@@ -27,6 +27,8 @@ declare module 'next-auth/jwt' {
     id: string;
     role: string;
     status: string;
+    studentId?: string | null;
+    hasStudent?: boolean;
     student?: any;
     doctorProfile?: any;
     adminProfile?: any;

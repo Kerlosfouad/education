@@ -148,63 +148,51 @@ export const authOptions: NextAuthOptions = {
       return true;
     },
 
-    async jwt({ token, user, trigger, session }) {
+    async jwt({ token, user, trigger }) {
+      // First sign-in: populate token from signIn callback data
       if (user) {
         token.id = user.id;
         token.role = (user as any).role;
         token.status = (user as any).status;
-        // Use hasStudent from signIn callback (already computed correctly)
         token.studentId = (user as any).studentId ?? null;
         token.hasStudent = (user as any).hasStudent ?? false;
+        // Token is fresh from signIn - no DB query needed
+        return token;
       }
 
-      // Manual session refresh
-      if (trigger === 'update' && token.email) {
-        const dbUser = await db.user.findUnique({
-          where: { email: token.email as string },
-          include: { student: true },
-        });
-        if (dbUser) {
-          token.role = dbUser.role;
-          token.status = dbUser.status;
-          token.studentId = dbUser.student?.id ?? null;
-          token.hasStudent = !!dbUser.student;
-        }
-      }
+      // No token id = empty/invalid token
+      if (!token.id) return token;
 
-      // Auto-refresh when PENDING to catch approval
-      if (token.status === 'PENDING' && token.email && !user) {
-        const dbUser = await db.user.findUnique({
-          where: { email: token.email as string },
-          include: { student: true },
-        });
-        if (dbUser && dbUser.status !== 'PENDING') {
-          token.status = dbUser.status;
-          token.role = dbUser.role;
-          token.studentId = dbUser.student?.id ?? null;
-          token.hasStudent = !!dbUser.student;
-        }
-      }
-
-      // Always verify user still exists in DB (skip on first login as user object is already fresh)
-      if (!user && token.id) {
+      // Manual refresh triggered by update() call (e.g. after complete-profile or approval check)
+      if (trigger === 'update') {
         const dbUser = await db.user.findUnique({
           where: { id: token.id as string },
           include: { student: true },
         });
-        // If user was deleted, invalidate token
         if (!dbUser) return {} as any;
-        // Sync latest data
         token.role = dbUser.role;
         token.studentId = dbUser.student?.id ?? null;
         token.hasStudent = !!dbUser.student;
-        // Students without a profile must always be PENDING regardless of DB status
-        if (dbUser.role === 'STUDENT' && !dbUser.student) {
-          token.status = 'PENDING';
-        } else {
-          token.status = dbUser.status;
-        }
+        token.status = (dbUser.role === 'STUDENT' && !dbUser.student)
+          ? 'PENDING'
+          : dbUser.status;
+        return token;
       }
+
+      // Periodic sync on every request - keeps token in sync with DB
+      const dbUser = await db.user.findUnique({
+        where: { id: token.id as string },
+        include: { student: true },
+      });
+      if (!dbUser) return {} as any;
+
+      token.role = dbUser.role;
+      token.studentId = dbUser.student?.id ?? null;
+      token.hasStudent = !!dbUser.student;
+      token.status = (dbUser.role === 'STUDENT' && !dbUser.student)
+        ? 'PENDING'
+        : dbUser.status;
+
       return token;
     },
 

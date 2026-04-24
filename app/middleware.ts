@@ -24,6 +24,11 @@ export default withAuth(
       return NextResponse.redirect(new URL('/auth/complete-profile', req.url));
     }
 
+    // If user already has student record, don't let them access complete-profile again
+    if (hasStudent && pathname === '/auth/complete-profile') {
+      return NextResponse.redirect(new URL('/auth/pending', req.url));
+    }
+
     // Has student but PENDING
     if (
       hasStudent &&
