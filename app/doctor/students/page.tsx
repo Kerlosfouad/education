@@ -126,12 +126,12 @@ export default function StudentsPage() {
       };
     });
 
-  const availableLevels = [...new Set(
+  const availableLevels = Array.from(new Set(
     activeStudents
       .filter(s => !filterDept || s.department.name === filterDept)
       .map(s => s.academicYear)
       .filter(l => filterDept ? true : l !== 0)
-  )].sort((a, b) => a - b);
+  )).sort((a, b) => a - b);
 
   const getStatus = (rate: number) => {
     if (rate >= 75) return { label: 'Active', cls: 'bg-emerald-50 text-emerald-600' };
