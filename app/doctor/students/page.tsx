@@ -306,14 +306,16 @@ export default function StudentsPage() {
                         </div>
                       </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-col gap-2">
                       <button onClick={() => handleAction(s.id, s.userId, 'approve')} disabled={!!actionLoading}
-                        className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors disabled:opacity-50">
-                        {approving ? <Loader2 size={20} className="animate-spin" /> : <CheckCircle2 size={20} />}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50">
+                        {approving ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+                        Approve
                       </button>
                       <button onClick={() => handleAction(s.id, s.userId, 'reject')} disabled={!!actionLoading}
-                        className="p-2 text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-50">
-                        {rejecting ? <Loader2 size={20} className="animate-spin" /> : <XCircle size={20} />}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50">
+                        {rejecting ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />}
+                        Reject
                       </button>
                     </div>
                   </div>
