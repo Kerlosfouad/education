@@ -46,9 +46,10 @@ export default function StudentsPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
-  const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
+  const [departments, setDepartments] = useState<{ id: string; name: string; code: string }[]>([]);
   const [filterDept, setFilterDept] = useState('');
   const [filterLevel, setFilterLevel] = useState('');
+  const [availableLevels, setAvailableLevels] = useState<number[]>([1, 2, 3, 4]);
 
   const fetchData = useCallback(async () => {
     try {
@@ -70,6 +71,22 @@ export default function StudentsPage() {
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  useEffect(() => {
+    if (!filterDept) {
+      setAvailableLevels([1, 2, 3, 4]);
+      setFilterLevel('');
+      return;
+    }
+    const dept = departments.find(d => d.name === filterDept);
+    if (dept?.code === 'PREP') {
+      setAvailableLevels([0]);
+      setFilterLevel('0');
+    } else {
+      setAvailableLevels([1, 2, 3, 4]);
+      setFilterLevel('');
+    }
+  }, [filterDept, departments]);
 
   const handleAction = async (studentId: string, userId: string, action: 'approve' | 'reject') => {
     setActionLoading(studentId + action);
@@ -125,13 +142,6 @@ export default function StudentsPage() {
         quizRate: analyticsData?.quizRate ?? 0,
       };
     });
-
-  const availableLevels = Array.from(new Set(
-    activeStudents
-      .filter(s => !filterDept || s.department.name === filterDept)
-      .map(s => s.academicYear)
-      .filter(l => filterDept ? true : l !== 0)
-  )).sort((a, b) => a - b);
 
   const getStatus = (rate: number) => {
     if (rate >= 75) return { label: 'Active', cls: 'bg-emerald-50 text-emerald-600' };
