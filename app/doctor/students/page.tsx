@@ -179,7 +179,7 @@ export default function StudentsPage() {
           <select value={filterLevel} onChange={e => setFilterLevel(e.target.value)}
             className="px-3 py-2 bg-white dark:bg-[#0d1e35] border border-slate-200 dark:border-[#1a2f4a] rounded-xl text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20">
             <option value="">All Levels</option>
-            {[1, 2, 3, 4].map(l => (
+            {[0, 1, 2, 3, 4].map(l => (
               <option key={l} value={String(l)}>Level {l}</option>
             ))}
           </select>
