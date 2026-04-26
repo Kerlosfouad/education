@@ -299,7 +299,7 @@ export default function AttendancePage() {
                     <th className="p-4 text-xs font-bold text-slate-500 text-left sticky left-0 bg-slate-50 z-10 border-b border-slate-100 min-w-[200px]">Student</th>
                     <th className="p-4 text-xs font-bold text-slate-500 text-left border-b border-slate-100 min-w-[100px]">Code</th>
                     <th className="p-3 text-xs font-bold text-slate-500 text-left border-b border-slate-100 min-w-[140px]">Department</th>
-                    <th className="p-3 text-xs font-bold text-slate-500 text-center border-b border-slate-100 min-w-[80px]">Level</th>
+                    <th className="p-3 text-xs font-bold text-slate-500 text-center border-b border-slate-100 min-w-[100px]">Level</th>
                     {sessions.map(s => (
                       <th key={s.id} className="p-3 text-[10px] font-bold text-slate-400 text-center border-b border-slate-100 min-w-[100px]">
                         <div>{s.title || s.subject?.name || 'Session'}</div>
@@ -326,7 +326,7 @@ export default function AttendancePage() {
                         <td className="p-4 text-sm font-mono text-slate-500 border-r border-slate-100">{student.studentCode}</td>
                         <td className="p-3 text-sm text-slate-600 font-medium">{student.department.name}</td>
                         <td className="p-3 text-center">
-                          <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2 py-1 rounded-full">
+                          <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-full whitespace-nowrap">
                             Level {student.academicYear}
                           </span>
                         </td>
