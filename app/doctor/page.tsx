@@ -219,11 +219,35 @@ export default function DoctorDashboardPage() {
               <UserPlus className="text-blue-600 dark:text-[#00c896]" size={20} />
               <h3 className="text-xl font-bold text-slate-800 dark:text-white">Pending Registrations</h3>
             </div>
-            {pending.length > 0 && (
-              <span className="text-xs font-bold text-blue-600 dark:text-[#00c896] bg-blue-50 dark:bg-[#00c896]/10 px-3 py-1 rounded-full">
-                {pending.length} New Requests
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              {pending.length > 0 && (
+                <button onClick={async () => {
+                  if (!confirm(`Accept all ${pending.length} pending students?`)) return;
+                  setActionLoading('accept-all');
+                  try {
+                    await Promise.all(pending.map(s => 
+                      fetch('/api/students/approve', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ studentId: s.id, userId: s.userId, action: 'approve' }),
+                      })
+                    ));
+                    fetchData();
+                  } catch {}
+                  setActionLoading(null);
+                }}
+                  disabled={!!actionLoading}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50">
+                  {actionLoading === 'accept-all' ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+                  Accept All
+                </button>
+              )}
+              {pending.length > 0 && (
+                <span className="text-xs font-bold text-blue-600 dark:text-[#00c896] bg-blue-50 dark:bg-[#00c896]/10 px-3 py-1 rounded-full">
+                  {pending.length} New Requests
+                </span>
+              )}
+            </div>
           </div>
 
           {pending.length === 0 ? (
