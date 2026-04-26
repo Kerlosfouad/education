@@ -7,7 +7,7 @@ import { useTheme } from 'next-themes';
 import {
   LayoutDashboard, CalendarCheck2, FileText, HelpCircle,
   Video, Library, LogOut, Menu, X, MonitorPlay,
-  Bell, GraduationCap, Sun, Moon, QrCode, Hash, Building2, BookOpen, Download, FileDown,
+  Bell, GraduationCap, Sun, Moon, QrCode, Hash, Building2, BookOpen, Download, FileDown, Settings,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -61,6 +61,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
     { icon: GraduationCap,   label: 'Grades',           path: '/student/grades' },
     { icon: Video,           label: t('videos'),        path: '/student/videos' },
     { icon: Library,         label: t('eLibrary'),      path: '/student/library' },
+    { icon: Settings,        label: 'Settings',         path: '/student/settings' },
   ];
 
   const fetchNotifications = useCallback(async () => {

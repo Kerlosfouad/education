@@ -19,3 +19,22 @@ export async function GET() {
 
   return NextResponse.json({ success: true, data: student });
 }
+
+export async function PATCH(request: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const { name, studentCode } = await request.json();
+  if (!name?.trim() || !studentCode?.trim())
+    return NextResponse.json({ error: 'Name and student code are required' }, { status: 400 });
+
+  const student = await db.student.findUnique({ where: { userId: session.user.id } });
+  if (!student) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
+  await Promise.all([
+    db.user.update({ where: { id: session.user.id }, data: { name: name.trim() } }),
+    db.student.update({ where: { id: student.id }, data: { studentCode: studentCode.trim() } }),
+  ]);
+
+  return NextResponse.json({ success: true });
+}
