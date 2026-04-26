@@ -9,6 +9,8 @@ interface AttendanceSession {
   id: string; title: string | null; openTime: string; closeTime: string;
   isOpen: boolean; createdAt: string; subject: { name: string };
   _count: { attendances: number }; attendances?: AttendanceRecord[];
+  department?: { name: string } | null;
+  academicYear?: number | null;
 }
 interface Student { 
   id: string; 
@@ -206,7 +208,11 @@ export default function AttendancePage() {
                       </div>
                       <div>
                         <h3 className="font-bold text-slate-800">{s.title || s.subject?.name || 'Session'}</h3>
-                        <p className="text-xs text-slate-400">{s.subject?.name || 'General'} • {new Date(s.openTime).toLocaleDateString('ar-EG')}</p>
+                        <p className="text-xs text-slate-400">
+                          {s.department ? `${s.department.name}${s.academicYear !== null && s.academicYear !== undefined ? ` • Level ${s.academicYear}` : ''}` : 'All Students'}
+                          {' • '}
+                          {new Date(s.openTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </p>
                       </div>
                     </div>
                       <div className="flex items-center gap-2">
@@ -240,7 +246,7 @@ export default function AttendancePage() {
                     )}
 
                   <div className="flex items-center gap-4 text-xs mb-4">
-                    <span className="flex items-center gap-1 text-slate-400"><Clock size={12} />{new Date(s.openTime).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })} → {new Date(s.closeTime).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</span>
+                    <span className="flex items-center gap-1 text-slate-400"><Clock size={12} />{new Date(s.openTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} → {new Date(s.closeTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
                     <span className="flex items-center gap-1 text-green-600 font-bold"><Check size={12} /> {presentCount} {t('present')}</span>
                     <span className="flex items-center gap-1 text-red-500 font-bold"><X size={12} /> {absentCount} {t('absent')}</span>
                   </div>
