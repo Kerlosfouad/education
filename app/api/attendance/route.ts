@@ -158,20 +158,11 @@ export async function POST(req: NextRequest) {
             openTime: new Date(openTime),
             closeTime: new Date(closeTime),
             createdBy: session.user.id,
+            departmentId: departmentId || null,
+            academicYear: body.academicYear !== undefined && body.academicYear !== '' ? Number(body.academicYear) : null,
           },
         });
 
-        // Save departmentId via raw update if provided
-        if (departmentId) {
-          await db.$executeRaw`UPDATE attendance_sessions SET "departmentId" = ${departmentId} WHERE id = ${attendanceSession.id}`;
-        }
-
-        const academicYear = body.academicYear ? Number(body.academicYear) : null;
-
-        // Save departmentId and academicYear via raw update
-        if (departmentId || academicYear) {
-          await db.$executeRaw`UPDATE attendance_sessions SET "departmentId" = ${departmentId || null}, "academicYear" = ${academicYear} WHERE id = ${attendanceSession.id}`;
-        }
         // Notify students - filtered by department if provided, else all
         if (departmentId && academicYear) {
           await notifyStudentsByFilter(
