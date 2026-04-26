@@ -46,20 +46,25 @@ export default function StudentsPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
+  const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
+  const [filterDept, setFilterDept] = useState('');
+  const [filterLevel, setFilterLevel] = useState('');
 
   const fetchData = useCallback(async () => {
     try {
-      const [analyticsRes, pendingRes, studentsRes] = await Promise.all([
+      const [analyticsRes, pendingRes, studentsRes, deptsRes] = await Promise.all([
         fetch('/api/doctor/analytics'),
         fetch('/api/students/pending'),
         fetch('/api/students'),
+        fetch('/api/subjects/departments'),
       ]);
-      const [analyticsJson, pendingJson, studentsJson] = await Promise.all([
-        analyticsRes.json(), pendingRes.json(), studentsRes.json(),
+      const [analyticsJson, pendingJson, studentsJson, deptsJson] = await Promise.all([
+        analyticsRes.json(), pendingRes.json(), studentsRes.json(), deptsRes.json(),
       ]);
       if (Array.isArray(analyticsJson)) setAnalytics(analyticsJson);
       if (pendingJson.success) setAllStudents(pendingJson.data);
       if (studentsJson.success) setActiveStudents(studentsJson.data);
+      if (deptsJson.success) setDepartments(deptsJson.data);
     } catch {}
     setLoading(false);
   }, []);
@@ -100,11 +105,14 @@ export default function StudentsPage() {
 
   const pending = allStudents;
 
-  const filteredAnalytics = activeStudents
-    .filter(s =>
-      s.user.name.toLowerCase().includes(search.toLowerCase()) ||
-      s.studentCode.includes(search)
-    )
+  const filteredStudents = activeStudents.filter(s => {
+    const matchSearch = s.user.name.toLowerCase().includes(search.toLowerCase()) || s.studentCode.includes(search);
+    const matchDept = !filterDept || s.department.name === filterDept;
+    const matchLevel = !filterLevel || String(s.academicYear) === filterLevel;
+    return matchSearch && matchDept && matchLevel;
+  });
+
+  const filteredAnalytics = filteredStudents
     .map(s => {
       const analyticsData = analytics.find(a => a.studentCode === s.studentCode);
       return {
@@ -157,6 +165,32 @@ export default function StudentsPage() {
           </button>
         </div>
       </div>
+
+      {/* Filters */}
+      {tab === 'active' && (
+        <div className="flex flex-wrap gap-3">
+          <select value={filterDept} onChange={e => setFilterDept(e.target.value)}
+            className="px-3 py-2 bg-white dark:bg-[#0d1e35] border border-slate-200 dark:border-[#1a2f4a] rounded-xl text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20">
+            <option value="">All Departments</option>
+            {departments.map(d => (
+              <option key={d.id} value={d.name}>{d.name}</option>
+            ))}
+          </select>
+          <select value={filterLevel} onChange={e => setFilterLevel(e.target.value)}
+            className="px-3 py-2 bg-white dark:bg-[#0d1e35] border border-slate-200 dark:border-[#1a2f4a] rounded-xl text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20">
+            <option value="">All Levels</option>
+            {[1, 2, 3, 4].map(l => (
+              <option key={l} value={String(l)}>Level {l}</option>
+            ))}
+          </select>
+          {(filterDept || filterLevel) && (
+            <button onClick={() => { setFilterDept(''); setFilterLevel(''); }}
+              className="flex items-center gap-1.5 px-3 py-2 text-sm text-red-500 bg-red-50 dark:bg-red-900/20 rounded-xl hover:bg-red-100 transition-colors">
+              <X size={14} /> Clear Filters
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-2">
@@ -252,8 +286,7 @@ export default function StudentsPage() {
           {/* Cards Grid */}
           {activeStudents.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {activeStudents
-                .filter(s => s.user.name.toLowerCase().includes(search.toLowerCase()) || s.studentCode.includes(search))
+              {filteredStudents
                 .map(s => {
                   const initials = s.user.name?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || '?';
                   return (
