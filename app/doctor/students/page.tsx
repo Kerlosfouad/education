@@ -278,42 +278,40 @@ export default function StudentsPage() {
                 const approving = actionLoading === s.id + 'approve';
                 const rejecting = actionLoading === s.id + 'reject';
                 return (
-                  <div key={s.id} className="flex items-center justify-between p-4 bg-slate-50/50 dark:bg-[#0a1628]/60 rounded-2xl border border-dashed border-slate-200 dark:border-[#1a2f4a]">
+                  <div key={s.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 bg-slate-50/50 dark:bg-[#0a1628]/60 rounded-2xl border border-dashed border-slate-200 dark:border-[#1a2f4a]">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-white dark:bg-[#0d1e35] flex items-center justify-center font-bold text-blue-600 dark:text-[#00c896] border border-slate-100 dark:border-[#1a2f4a] shadow-sm overflow-hidden shrink-0">
                         {s.user.image
                           ? <Image src={s.user.image} alt="" width={40} height={40} className="object-cover w-full h-full rounded-full" />
                           : s.user.name?.charAt(0) ?? '?'}
                       </div>
-                      <div>
-                        <p className="text-sm font-bold text-slate-800 dark:text-white">{s.user.name}</p>
-                        <p className="text-[10px] text-slate-400">{s.user.email} • {timeAgo(s.user.createdAt)}</p>
-                        <div className="mt-3 space-y-1 text-xs">
-                          <div className="flex items-center justify-between">
-                            <span className="text-slate-400 font-medium">Code</span>
-                            <span className="font-black text-slate-700 dark:text-slate-200 tracking-widest">#{s.studentCode}</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-slate-400 font-medium">Department</span>
-                            <span className="font-semibold text-slate-700 dark:text-slate-200 truncate max-w-[140px]">{s.department.name}</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-slate-400 font-medium">Level</span>
-                            <span className="font-semibold text-slate-700 dark:text-slate-200">
-                              Level {s.academicYear}
-                            </span>
-                          </div>
-                        </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-bold text-slate-800 dark:text-white truncate">{s.user.name}</p>
+                        <p className="text-[10px] text-slate-400 truncate">{s.user.email} • {timeAgo(s.user.createdAt)}</p>
                       </div>
                     </div>
-                    <div className="flex flex-col gap-2">
+                    <div className="grid grid-cols-2 gap-2 text-xs ml-13 sm:ml-0">
+                      <div className="flex items-center justify-between sm:justify-start sm:gap-2">
+                        <span className="text-slate-400 font-medium">Code</span>
+                        <span className="font-black text-slate-700 dark:text-slate-200 tracking-widest text-[10px]">#{s.studentCode}</span>
+                      </div>
+                      <div className="flex items-center justify-between sm:justify-start sm:gap-2">
+                        <span className="text-slate-400 font-medium">Level</span>
+                        <span className="font-semibold text-slate-700 dark:text-slate-200">Level {s.academicYear}</span>
+                      </div>
+                      <div className="col-span-2 flex items-center justify-between sm:justify-start sm:gap-2">
+                        <span className="text-slate-400 font-medium">Department</span>
+                        <span className="font-semibold text-slate-700 dark:text-slate-200 truncate max-w-[140px]">{s.department.name}</span>
+                      </div>
+                    </div>
+                    <div className="flex sm:flex-col gap-2">
                       <button onClick={() => handleAction(s.id, s.userId, 'approve')} disabled={!!actionLoading}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50">
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50">
                         {approving ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
                         Approve
                       </button>
                       <button onClick={() => handleAction(s.id, s.userId, 'reject')} disabled={!!actionLoading}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50">
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50">
                         {rejecting ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />}
                         Reject
                       </button>
