@@ -200,18 +200,20 @@ export default function AttendancePage() {
               const presentCount = s.attendances?.filter(a => a.verificationMethod !== 'ABSENT').length ?? 0;
               const absentCount = s.attendances?.filter(a => a.verificationMethod === 'ABSENT').length ?? 0;
                 return (
-                  <div key={s.id} className="relative bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-all">
+                  <div key={s.id} className="relative bg-white p-4 md:p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-all">
                   <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isActive ? 'bg-green-100' : 'bg-slate-100'}`}>
-                        <CalendarCheck2 className={isActive ? 'text-green-600' : 'text-slate-400'} size={22} />
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className={`w-10 h-10 md:w-12 md:h-12 shrink-0 rounded-2xl flex items-center justify-center ${isActive ? 'bg-green-100' : 'bg-slate-100'}`}>
+                        <CalendarCheck2 className={isActive ? 'text-green-600' : 'text-slate-400'} size={20} />
                       </div>
-                      <div>
-                        <h3 className="font-bold text-slate-800">{s.title || s.subject?.name || 'Session'}</h3>
-                        <p className="text-xs text-slate-400">
-                          {s.department ? `${s.department.name}${s.academicYear !== null && s.academicYear !== undefined ? ` • Level ${s.academicYear}` : ''}` : 'All Students'}
-                          {' • '}
-                          {new Date(s.openTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      <div className="min-w-0">
+                        <h3 className="font-bold text-slate-800 text-sm md:text-base truncate">{s.title || 'Session'}</h3>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          {s.department
+                            ? <span className="font-medium text-slate-500">{s.department.name}{s.academicYear !== null && s.academicYear !== undefined ? ` • Level ${s.academicYear}` : ''}</span>
+                            : <span>All Students</span>
+                          }
+                          <span> • {new Date(s.openTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                         </p>
                       </div>
                     </div>
@@ -245,7 +247,7 @@ export default function AttendancePage() {
                       </div>
                     )}
 
-                  <div className="flex items-center gap-4 text-xs mb-4">
+                  <div className="flex flex-wrap items-center gap-3 text-xs mb-4">
                     <span className="flex items-center gap-1 text-slate-400"><Clock size={12} />{new Date(s.openTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} → {new Date(s.closeTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
                     <span className="flex items-center gap-1 text-green-600 font-bold"><Check size={12} /> {presentCount} {t('present')}</span>
                     <span className="flex items-center gap-1 text-red-500 font-bold"><X size={12} /> {absentCount} {t('absent')}</span>
