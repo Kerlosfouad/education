@@ -120,7 +120,11 @@ export default function StudentsPage() {
     setDeleteLoading(null);
   };
 
-  const pending = allStudents;
+  const pending = allStudents.filter(s => {
+    const matchDept = !filterDept || s.department.name === filterDept;
+    const matchLevel = !filterLevel || String(s.academicYear) === filterLevel;
+    return matchDept && matchLevel;
+  });
 
   const filteredStudents = activeStudents.filter(s => {
     const matchSearch = s.user.name.toLowerCase().includes(search.toLowerCase()) || s.studentCode.includes(search);
@@ -184,8 +188,7 @@ export default function StudentsPage() {
       </div>
 
       {/* Filters */}
-      {tab === 'active' && (
-        <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-3">
           <select value={filterDept} onChange={e => { setFilterDept(e.target.value); setFilterLevel(''); }}
             className="px-3 py-2 bg-white dark:bg-[#0d1e35] border border-slate-200 dark:border-[#1a2f4a] rounded-xl text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20">
             <option value="">All Departments</option>
@@ -207,7 +210,6 @@ export default function StudentsPage() {
             </button>
           )}
         </div>
-      )}
 
       {/* Tabs */}
       <div className="flex gap-2">
