@@ -32,6 +32,6 @@ export async function GET(request: Request) {
   return NextResponse.json({
     success: true,
     data: students,
-    pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+    pagination: { page, limit, total, pages: limit ? Math.ceil(total / limit) : 1 },
   });
 }
