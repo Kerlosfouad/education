@@ -11,8 +11,9 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const page = Math.max(1, parseInt(searchParams.get('page') ?? '1'));
-  const limit = Math.min(100, parseInt(searchParams.get('limit') ?? '20'));
-  const skip = (page - 1) * limit;
+  const limitParam = searchParams.get('limit');
+  const limit = limitParam ? parseInt(limitParam) : undefined;
+  const skip = limit ? (page - 1) * limit : 0;
 
   const [students, total] = await Promise.all([
     db.student.findMany({
@@ -23,7 +24,7 @@ export async function GET(request: Request) {
       },
       orderBy: { user: { name: 'asc' } },
       skip,
-      take: limit,
+      ...(limit ? { take: limit } : {}),
     }),
     db.student.count({ where: { user: { status: 'ACTIVE' } } }),
   ]);
