@@ -126,7 +126,11 @@ export default function StudentsPage() {
       };
     });
 
-  const getStatus = (rate: number) => {
+  const availableLevels = [...new Set(
+    activeStudents
+      .filter(s => !filterDept || s.department.name === filterDept)
+      .map(s => s.academicYear)
+  )].sort((a, b) => a - b);
     if (rate >= 75) return { label: 'Active', cls: 'bg-emerald-50 text-emerald-600' };
     if (rate >= 50) return { label: 'Warning', cls: 'bg-yellow-50 text-yellow-600' };
     return { label: 'At Risk', cls: 'bg-orange-50 text-orange-600' };
@@ -169,7 +173,7 @@ export default function StudentsPage() {
       {/* Filters */}
       {tab === 'active' && (
         <div className="flex flex-wrap gap-3">
-          <select value={filterDept} onChange={e => setFilterDept(e.target.value)}
+          <select value={filterDept} onChange={e => { setFilterDept(e.target.value); setFilterLevel(''); }}
             className="px-3 py-2 bg-white dark:bg-[#0d1e35] border border-slate-200 dark:border-[#1a2f4a] rounded-xl text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20">
             <option value="">All Departments</option>
             {departments.map(d => (
@@ -179,7 +183,7 @@ export default function StudentsPage() {
           <select value={filterLevel} onChange={e => setFilterLevel(e.target.value)}
             className="px-3 py-2 bg-white dark:bg-[#0d1e35] border border-slate-200 dark:border-[#1a2f4a] rounded-xl text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20">
             <option value="">All Levels</option>
-            {[0, 1, 2, 3, 4].map(l => (
+            {availableLevels.map(l => (
               <option key={l} value={String(l)}>Level {l}</option>
             ))}
           </select>
