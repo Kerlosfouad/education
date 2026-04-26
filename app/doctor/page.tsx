@@ -216,8 +216,8 @@ export default function DoctorDashboardPage() {
         <div className="lg:col-span-2 bg-white dark:bg-[#0f1f38] p-4 md:p-8 rounded-3xl border border-slate-100 dark:border-[#1a2f4a] shadow-sm">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2 min-w-0">
-              <UserPlus className="text-blue-600 dark:text-[#00c896] shrink-0" size={18} />
-              <h3 className="text-sm md:text-xl font-bold text-slate-800 dark:text-white whitespace-nowrap">Pending Registrations</h3>
+              <UserPlus className="text-blue-600 dark:text-[#00c896] shrink-0" size={16} />
+              <h3 className="text-xs md:text-xl font-bold text-slate-800 dark:text-white whitespace-nowrap">Pending Registrations</h3>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               {pending.length > 0 && (
