@@ -49,7 +49,7 @@ export default function StudentsPage() {
   const [departments, setDepartments] = useState<{ id: string; name: string; code: string }[]>([]);
   const [filterDept, setFilterDept] = useState('');
   const [filterLevel, setFilterLevel] = useState('');
-  const [availableLevels, setAvailableLevels] = useState<number[]>([1, 2, 3, 4]);
+  const [availableLevels, setAvailableLevels] = useState<number[]>([]);
 
   const fetchData = useCallback(async () => {
     try {
@@ -74,7 +74,7 @@ export default function StudentsPage() {
 
   useEffect(() => {
     if (!filterDept) {
-      setAvailableLevels([1, 2, 3, 4]);
+      setAvailableLevels([]);
       setFilterLevel('');
       return;
     }
