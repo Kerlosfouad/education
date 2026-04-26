@@ -130,6 +130,7 @@ export default function StudentsPage() {
     activeStudents
       .filter(s => !filterDept || s.department.name === filterDept)
       .map(s => s.academicYear)
+      .filter(l => filterDept ? true : l !== 0)
   )].sort((a, b) => a - b);
     if (rate >= 75) return { label: 'Active', cls: 'bg-emerald-50 text-emerald-600' };
     if (rate >= 50) return { label: 'Warning', cls: 'bg-yellow-50 text-yellow-600' };
