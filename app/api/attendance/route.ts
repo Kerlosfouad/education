@@ -158,10 +158,18 @@ export async function POST(req: NextRequest) {
             openTime: new Date(openTime),
             closeTime: new Date(closeTime),
             createdBy: session.user.id,
-            departmentId: departmentId || null,
-            academicYear: body.academicYear !== undefined && body.academicYear !== '' ? Number(body.academicYear) : null,
           },
         });
+
+        const academicYear = body.academicYear !== undefined && body.academicYear !== '' ? Number(body.academicYear) : null;
+        if (departmentId || academicYear !== null) {
+          await db.$executeRawUnsafe(
+            `UPDATE attendance_sessions SET "departmentId" = $1, "academicYear" = $2 WHERE id = $3`,
+            departmentId || null,
+            academicYear,
+            attendanceSession.id
+          );
+        }
 
         // Notify students - filtered by department if provided, else all
         if (departmentId && academicYear) {
