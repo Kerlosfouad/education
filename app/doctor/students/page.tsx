@@ -132,6 +132,8 @@ export default function StudentsPage() {
       .map(s => s.academicYear)
       .filter(l => filterDept ? true : l !== 0)
   )].sort((a, b) => a - b);
+
+  const getStatus = (rate: number) => {
     if (rate >= 75) return { label: 'Active', cls: 'bg-emerald-50 text-emerald-600' };
     if (rate >= 50) return { label: 'Warning', cls: 'bg-yellow-50 text-yellow-600' };
     return { label: 'At Risk', cls: 'bg-orange-50 text-orange-600' };
