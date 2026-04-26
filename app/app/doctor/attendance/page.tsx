@@ -8,6 +8,8 @@ interface AttendanceSession {
   id: string; title: string | null; openTime: string; closeTime: string;
   isOpen: boolean; createdAt: string; subject: { name: string };
   _count: { attendances: number }; attendances?: AttendanceRecord[];
+  department?: { name: string; nameAr?: string } | null;
+  academicYear?: number | null;
 }
 interface Student { id: string; studentCode: string; user: { name: string; email: string }; }
 interface Subject { id: string; name: string; }
@@ -170,7 +172,12 @@ export default function AttendancePage() {
                       </div>
                       <div>
                         <h3 className="font-bold text-slate-800 dark:text-white">{s.title || s.subject.name}</h3>
-                        <p className="text-xs text-slate-400">{s.subject.name} &bull; {new Date(s.openTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                        <p className="text-xs text-slate-400">
+                          {s.department ? s.department.name : 'All Departments'}
+                          {s.academicYear !== null && s.academicYear !== undefined ? ` • Level ${s.academicYear}` : ' • All Levels'}
+                          {' • '}
+                          {new Date(s.openTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </p>
                       </div>
                     </div>
                     <span className={`text-xs font-bold px-3 py-1 rounded-full ${isActive ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 animate-pulse' : 'bg-slate-100 dark:bg-[#0a1628]/60 text-slate-500 dark:text-slate-400'}`}>
