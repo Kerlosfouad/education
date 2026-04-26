@@ -213,13 +213,13 @@ export default function DoctorDashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
         {/* Pending Registrations */}
-        <div className="lg:col-span-2 bg-white dark:bg-[#0f1f38] p-8 rounded-3xl border border-slate-100 dark:border-[#1a2f4a] shadow-sm">
+        <div className="lg:col-span-2 bg-white dark:bg-[#0f1f38] p-4 md:p-8 rounded-3xl border border-slate-100 dark:border-[#1a2f4a] shadow-sm">
           <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-2">
-              <UserPlus className="text-blue-600 dark:text-[#00c896]" size={20} />
-              <h3 className="text-xl font-bold text-slate-800 dark:text-white">Pending Registrations</h3>
+            <div className="flex items-center gap-2 min-w-0">
+              <UserPlus className="text-blue-600 dark:text-[#00c896] shrink-0" size={18} />
+              <h3 className="text-sm md:text-xl font-bold text-slate-800 dark:text-white whitespace-nowrap">Pending Registrations</h3>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               {pending.length > 0 && (
                 <button onClick={async () => {
                   if (!confirm(`Accept all ${pending.length} pending students?`)) return;
@@ -237,14 +237,14 @@ export default function DoctorDashboardPage() {
                   setActionLoading(null);
                 }}
                   disabled={!!actionLoading}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50">
-                  {actionLoading === 'accept-all' ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+                  className="flex items-center gap-1 px-2.5 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50 whitespace-nowrap">
+                  {actionLoading === 'accept-all' ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
                   Accept All
                 </button>
               )}
               {pending.length > 0 && (
-                <span className="text-xs font-bold text-blue-600 dark:text-[#00c896] bg-blue-50 dark:bg-[#00c896]/10 px-3 py-1 rounded-full">
-                  {pending.length} New Requests
+                <span className="text-xs font-bold text-blue-600 dark:text-[#00c896] bg-blue-50 dark:bg-[#00c896]/10 px-2 py-1 rounded-full whitespace-nowrap">
+                  {pending.length} New
                 </span>
               )}
             </div>
