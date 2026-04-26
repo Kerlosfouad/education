@@ -238,9 +238,34 @@ export default function StudentsPage() {
               <Clock className="text-blue-600 dark:text-[#00c896]" size={16} />
               <h3 className="text-sm md:text-lg font-bold text-slate-800 dark:text-white">Pending Registrations</h3>
             </div>
-            <span className="text-[10px] md:text-xs font-bold text-blue-600 dark:text-[#00c896] px-2 py-0.5 bg-white dark:bg-[#0d1e35] rounded-full border border-blue-100 dark:border-[#1a2f4a] whitespace-nowrap">
-              {pending.length} Requests
-            </span>
+            <div className="flex items-center gap-2">
+              {pending.length > 0 && (
+                <button onClick={async () => {
+                  if (!confirm(`Accept all ${pending.length} pending students?`)) return;
+                  setActionLoading('accept-all');
+                  try {
+                    await Promise.all(pending.map(s => 
+                      fetch('/api/students/approve', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ studentId: s.id, userId: s.userId, action: 'approve' }),
+                      })
+                    ));
+                    setAllStudents([]);
+                    fetchData();
+                  } catch {}
+                  setActionLoading(null);
+                }}
+                  disabled={!!actionLoading}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50">
+                  {actionLoading === 'accept-all' ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+                  Accept All
+                </button>
+              )}
+              <span className="text-[10px] md:text-xs font-bold text-blue-600 dark:text-[#00c896] px-2 py-0.5 bg-white dark:bg-[#0d1e35] rounded-full border border-blue-100 dark:border-[#1a2f4a] whitespace-nowrap">
+                {pending.length} Requests
+              </span>
+            </div>
           </div>
           {pending.length === 0 ? (
             <div className="text-center py-14 text-slate-400">
