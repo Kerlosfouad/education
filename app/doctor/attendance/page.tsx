@@ -10,7 +10,13 @@ interface AttendanceSession {
   isOpen: boolean; createdAt: string; subject: { name: string };
   _count: { attendances: number }; attendances?: AttendanceRecord[];
 }
-interface Student { id: string; studentCode: string; user: { name: string; email: string }; }
+interface Student { 
+  id: string; 
+  studentCode: string; 
+  academicYear: number;
+  user: { name: string; email: string }; 
+  department: { name: string };
+}
 interface Subject { id: string; name: string; }
 interface Department { id: string; name: string; nameAr?: string; code?: string; }
 export default function AttendancePage() {
@@ -27,6 +33,9 @@ export default function AttendancePage() {
   const [activeTab, setActiveTab] = useState<'sessions' | 'table'>('sessions');
   const [form, setForm] = useState({ subjectId: '', departmentId: '', academicYear: '', title: '', durationHours: '1', durationMinutes: '0' });
   const [menuSessionId, setMenuSessionId] = useState<string | null>(null);
+  const [filterDept, setFilterDept] = useState('');
+  const [filterLevel, setFilterLevel] = useState('');
+  const [tableAvailableLevels, setTableAvailableLevels] = useState<number[]>([]);
 
   const fetchData = useCallback(async () => {
     try {
@@ -69,6 +78,22 @@ export default function AttendancePage() {
       setForm(f => ({ ...f, academicYear: '' }));
     }
   }, [form.departmentId, departments]);
+
+  useEffect(() => {
+    if (!filterDept) {
+      setTableAvailableLevels([]);
+      setFilterLevel('');
+      return;
+    }
+    const dept = departments.find(d => d.name === filterDept);
+    if (dept?.code === 'PREP') {
+      setTableAvailableLevels([0]);
+      setFilterLevel('0');
+    } else {
+      setTableAvailableLevels([1, 2, 3, 4]);
+      setFilterLevel('');
+    }
+  }, [filterDept, departments]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,6 +145,12 @@ export default function AttendancePage() {
     setForm({ subjectId: '', departmentId: '', academicYear: '', title: '', durationHours: '1', durationMinutes: '0' });
     setError(''); setShowModal(true);
   };
+
+  const filteredStudents = students.filter(student => {
+    const matchDept = !filterDept || student.department.name === filterDept;
+    const matchLevel = !filterLevel || String(student.academicYear) === filterLevel;
+    return matchDept && matchLevel;
+  });
 
   const getStatus = (session: AttendanceSession, studentId: string) => {
     const record = session.attendances?.find(a => a.studentId === studentId);
@@ -226,6 +257,35 @@ export default function AttendancePage() {
 
       {activeTab === 'table' && (
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+          {/* Filter Bar */}
+          <div className="p-4 border-b border-slate-100 bg-slate-50/50">
+            <div className="flex flex-wrap gap-3 items-center">
+              <select value={filterDept} onChange={e => { setFilterDept(e.target.value); setFilterLevel(''); }}
+                className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+                <option value="">All Departments</option>
+                {departments.map(d => (
+                  <option key={d.id} value={d.name}>{d.name}</option>
+                ))}
+              </select>
+              <select value={filterLevel} onChange={e => setFilterLevel(e.target.value)}
+                className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+                <option value="">All Levels</option>
+                {tableAvailableLevels.map(l => (
+                  <option key={l} value={String(l)}>Level {l}</option>
+                ))}
+              </select>
+              {(filterDept || filterLevel) && (
+                <button onClick={() => { setFilterDept(''); setFilterLevel(''); }}
+                  className="flex items-center gap-1.5 px-3 py-2 text-sm text-red-500 bg-red-50 rounded-xl hover:bg-red-100 transition-colors">
+                  <X size={14} /> Reset Filters
+                </button>
+              )}
+              <span className="ml-auto text-xs text-slate-400 font-medium">
+                Showing {filteredStudents.length} of {students.length} students
+              </span>
+            </div>
+          </div>
+
           {sessions.length === 0 || students.length === 0 ? (
             <div className="text-center py-20 text-slate-400">
               <Users size={48} className="mx-auto mb-3 opacity-30" />
@@ -238,6 +298,8 @@ export default function AttendancePage() {
                   <tr className="bg-slate-50">
                     <th className="p-4 text-xs font-bold text-slate-500 text-left sticky left-0 bg-slate-50 z-10 border-b border-slate-100 min-w-[200px]">Student</th>
                     <th className="p-4 text-xs font-bold text-slate-500 text-left border-b border-slate-100 min-w-[100px]">Code</th>
+                    <th className="p-3 text-xs font-bold text-slate-500 text-left border-b border-slate-100 min-w-[140px]">Department</th>
+                    <th className="p-3 text-xs font-bold text-slate-500 text-center border-b border-slate-100 min-w-[80px]">Level</th>
                     {sessions.map(s => (
                       <th key={s.id} className="p-3 text-[10px] font-bold text-slate-400 text-center border-b border-slate-100 min-w-[100px]">
                         <div>{s.title || s.subject?.name || 'Session'}</div>
@@ -248,13 +310,7 @@ export default function AttendancePage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                  {students
-                    .filter(student =>
-                      sessions.some(s =>
-                        s.attendances?.some(a => a.studentId === student.id)
-                      )
-                    )
-                    .map(student => {
+                  {filteredStudents.map(student => {
                     const presentCount = sessions.filter(s => getStatus(s, student.id) === 'present').length;
                     const rate = sessions.length > 0 ? Math.round((presentCount / sessions.length) * 100) : 0;
                     return (
@@ -268,6 +324,12 @@ export default function AttendancePage() {
                           </div>
                         </td>
                         <td className="p-4 text-sm font-mono text-slate-500 border-r border-slate-100">{student.studentCode}</td>
+                        <td className="p-3 text-sm text-slate-600 font-medium">{student.department.name}</td>
+                        <td className="p-3 text-center">
+                          <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2 py-1 rounded-full">
+                            Level {student.academicYear}
+                          </span>
+                        </td>
                         {sessions.map(s => {
                           const status = getStatus(s, student.id);
                           return (
