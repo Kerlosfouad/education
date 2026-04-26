@@ -24,7 +24,7 @@ export async function PATCH(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { name, studentCode } = await request.json();
+  const { name, studentCode, departmentId, academicYear } = await request.json();
   if (!name?.trim() || !studentCode?.trim())
     return NextResponse.json({ error: 'Name and student code are required' }, { status: 400 });
 
@@ -33,7 +33,14 @@ export async function PATCH(request: Request) {
 
   await Promise.all([
     db.user.update({ where: { id: session.user.id }, data: { name: name.trim() } }),
-    db.student.update({ where: { id: student.id }, data: { studentCode: studentCode.trim() } }),
+    db.student.update({
+      where: { id: student.id },
+      data: {
+        studentCode: studentCode.trim(),
+        ...(departmentId ? { departmentId } : {}),
+        ...(academicYear !== undefined ? { academicYear: Number(academicYear) } : {}),
+      },
+    }),
   ]);
 
   return NextResponse.json({ success: true });
