@@ -100,6 +100,7 @@ model Student {
   phone             String?
   barcode           String?  @unique
   qrCode            String?  @unique
+  blocked           Boolean  @default(false)
   approvedAt        DateTime?
   approvedBy        String?
   

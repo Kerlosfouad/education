@@ -40,6 +40,9 @@ export async function POST(req: NextRequest) {
 
   const existingStudentCode = await db.student.findUnique({ where: { studentCode } });
   if (existingStudentCode) {
+    if ((existingStudentCode as any).blocked) {
+      return NextResponse.json({ error: 'This student code has been blocked. Please contact your instructor.' }, { status: 403 });
+    }
     return NextResponse.json({ error: 'This student code is already used' }, { status: 409 });
   }
 
