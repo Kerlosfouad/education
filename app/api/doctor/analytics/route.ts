@@ -11,60 +11,46 @@ export async function GET() {
     }
 
     const students = await db.student.findMany({
-      where: {
-        user: { status: 'ACTIVE' },
-        studentCode: { not: '' },
-      },
+      where: { user: { status: 'ACTIVE' }, studentCode: { not: '' } },
       include: {
         user: { select: { name: true } },
-        attendances: { where: { verificationMethod: { not: 'ABSENT' } } },
-        assignmentSubmissions: true,
-        quizAttempts: { where: { status: 'COMPLETED' } },
+        attendances: { where: { verificationMethod: { not: 'ABSENT' } }, select: { id: true } },
+        assignmentSubmissions: { select: { id: true } },
+        quizAttempts: { where: { status: 'COMPLETED' }, select: { id: true, percentage: true } },
       }
     });
 
-    const data = await Promise.all(students.map(async student => {
-      // Filter totals by student's own department and year
-      const totalSessions = await db.attendanceSession.count({
-        where: {
-          OR: [
-            { departmentId: null } as any,
-            { departmentId: student.departmentId, academicYear: student.academicYear } as any,
-            { departmentId: student.departmentId, academicYear: null } as any,
-          ]
-        }
-      });
-      const totalQuizzes = await db.quiz.count({
-        where: {
-          isPublished: true,
-          OR: [
-            { departmentId: null },
-            { departmentId: student.departmentId, academicYear: student.academicYear },
-          ]
-        }
-      });
-      const totalAssignments = await db.assignment.count({
-        where: {
-          isActive: true,
-          OR: [
-            { departmentId: null },
-            { departmentId: student.departmentId, academicYear: student.academicYear },
-          ]
-        }
-      });
+    // Fetch all sessions, quizzes, assignments in bulk
+    const [allSessions, allQuizzes, allAssignments] = await Promise.all([
+      db.attendanceSession.findMany({ select: { id: true, departmentId: true, academicYear: true } }),
+      db.quiz.findMany({ where: { isPublished: true }, select: { id: true, departmentId: true, academicYear: true } }),
+      db.assignment.findMany({ where: { isActive: true }, select: { id: true, departmentId: true, academicYear: true } }),
+    ]);
+
+    const data = students.map(student => {
+      const totalSessions = allSessions.filter(s =>
+        !s.departmentId ||
+        (s.departmentId === student.departmentId && (s.academicYear === student.academicYear || s.academicYear === null))
+      ).length;
+
+      const totalQuizzes = allQuizzes.filter(q =>
+        !q.departmentId ||
+        (q.departmentId === student.departmentId && q.academicYear === student.academicYear)
+      ).length;
+
+      const totalAssignments = allAssignments.filter(a =>
+        !a.departmentId ||
+        (a.departmentId === student.departmentId && a.academicYear === student.academicYear)
+      ).length;
 
       const attendanceRate = totalSessions > 0
-        ? Math.round((student.attendances.length / totalSessions) * 100)
-        : 0;
+        ? Math.round((student.attendances.length / totalSessions) * 100) : 0;
       const quizRate = totalQuizzes > 0
-        ? Math.round((student.quizAttempts.length / totalQuizzes) * 100)
-        : 0;
+        ? Math.round((student.quizAttempts.length / totalQuizzes) * 100) : 0;
       const assignmentRate = totalAssignments > 0
-        ? Math.round((student.assignmentSubmissions.length / totalAssignments) * 100)
-        : 0;
+        ? Math.round((student.assignmentSubmissions.length / totalAssignments) * 100) : 0;
       const avgQuizScore = student.quizAttempts.length > 0
-        ? Math.round(student.quizAttempts.reduce((a, q) => a + (q.percentage ?? 0), 0) / student.quizAttempts.length)
-        : 0;
+        ? Math.round(student.quizAttempts.reduce((a, q) => a + (q.percentage ?? 0), 0) / student.quizAttempts.length) : 0;
 
       return {
         id: student.id,
@@ -81,7 +67,7 @@ export async function GET() {
         totalQuizzes,
         totalAssignments,
       };
-    }));
+    });
 
     return NextResponse.json(data);
   } catch (error) {
