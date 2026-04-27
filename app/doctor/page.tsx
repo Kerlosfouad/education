@@ -114,7 +114,6 @@ export default function DoctorDashboardPage() {
 
       const analyticsData: any[] = Array.isArray(analyticsJson) ? analyticsJson : [];
       const totalAssignments = analyticsData[0]?.totalAssignments ?? 0;
-      const totalAssignments = analyticsData[0]?.totalAssignments ?? 0;
 
       const allStudentsCount = analyticsData.length;
       let totalAttended = 0, totalPossible = 0;
