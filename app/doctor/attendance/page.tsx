@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { CalendarCheck2, Plus, Users, Clock, CheckCircle2, XCircle, Loader2, X, Check, MoreVertical, Trash2 } from 'lucide-react';
+import { CalendarCheck2, Plus, Users, Clock, CheckCircle2, XCircle, Loader2, X, Check, MoreVertical, Trash2, Search } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 
 interface AttendanceRecord { studentId: string; verificationMethod: string; }
@@ -38,6 +38,7 @@ export default function AttendancePage() {
   const [filterDept, setFilterDept] = useState('');
   const [filterLevel, setFilterLevel] = useState('');
   const [tableAvailableLevels, setTableAvailableLevels] = useState<number[]>([]);
+  const [search, setSearch] = useState('');
 
   const fetchData = useCallback(async () => {
     try {
@@ -151,7 +152,8 @@ export default function AttendancePage() {
   const filteredStudents = students.filter(student => {
     const matchDept = !filterDept || student.department.name === filterDept;
     const matchLevel = !filterLevel || String(student.academicYear) === filterLevel;
-    return matchDept && matchLevel;
+    const matchSearch = !search || student.user.name.toLowerCase().includes(search.toLowerCase()) || student.studentCode.includes(search);
+    return matchDept && matchLevel && matchSearch;
   });
 
   const getStatus = (session: AttendanceSession, studentId: string) => {
@@ -268,6 +270,16 @@ export default function AttendancePage() {
           {/* Filter Bar */}
           <div className="p-4 border-b border-slate-100 bg-slate-50/50">
             <div className="flex flex-wrap gap-3 items-center">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
+                <input
+                  type="text"
+                  placeholder="Search by name or code..."
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 w-52"
+                />
+              </div>
               <select value={filterDept} onChange={e => { setFilterDept(e.target.value); setFilterLevel(''); }}
                 className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
                 <option value="">All Departments</option>
@@ -282,10 +294,10 @@ export default function AttendancePage() {
                   <option key={l} value={String(l)}>Level {l}</option>
                 ))}
               </select>
-              {(filterDept || filterLevel) && (
-                <button onClick={() => { setFilterDept(''); setFilterLevel(''); }}
+              {(filterDept || filterLevel || search) && (
+                <button onClick={() => { setFilterDept(''); setFilterLevel(''); setSearch(''); }}
                   className="flex items-center gap-1.5 px-3 py-2 text-sm text-red-500 bg-red-50 rounded-xl hover:bg-red-100 transition-colors">
-                  <X size={14} /> Reset Filters
+                  <X size={14} /> Reset
                 </button>
               )}
               <span className="ml-auto text-xs text-slate-400 font-medium">
