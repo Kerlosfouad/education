@@ -114,20 +114,6 @@ export default function DoctorDashboardPage() {
 
       const analyticsData: any[] = [];
 
-      // Calculate attendance rate from sessions
-      const sessions = sessionsJson.success ? sessionsJson.data : [];
-      const totalStudents = studentsJson.success ? studentsJson.total ?? studentsJson.data?.length ?? 0 : 0;
-      let totalAttended = 0, totalPossible = 0;
-      for (const s of sessions) {
-        totalPossible += totalStudents;
-        totalAttended += s._count?.attendances ?? 0;
-      }
-      const rate = totalPossible > 0 ? Math.round((totalAttended / totalPossible) * 100) : 0;
-
-      // Get assignments count
-      const assignRes = await fetch('/api/doctor/grades?assignmentsOnly=true').catch(() => null);
-      const assignCount = assignRes ? await db_assignCount(assignRes) : 0;
-
       setStats({
         subjectsCount: subJson.success ? subJson.data.length : 0,
         quizzesCount: quizJson.success ? quizJson.data.filter((q: any) => q.isPublished).length : 0,
