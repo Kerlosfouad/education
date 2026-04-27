@@ -111,8 +111,14 @@ export default function LandingPage() {
       deferredPrompt.prompt();
       await deferredPrompt.userChoice;
       setDeferredPrompt(null);
-    } else {
-      setShowInstallGuide(true);
+    } else if (typeof window !== 'undefined') {
+      // Check if already installed
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+      if (isStandalone) {
+        alert('App is already installed!');
+      } else {
+        setShowInstallGuide(true);
+      }
     }
   };
   const { data: session, status: authStatus } = useSession();
