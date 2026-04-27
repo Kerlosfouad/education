@@ -22,24 +22,33 @@ export async function GET(req: NextRequest) {
       where,
       include: {
         subject: { include: { department: true } },
-        department: { select: { name: true } },
         _count: { select: { questions: true, attempts: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
 
+    // Fetch department names for quizzes that have departmentId
+    const deptIds = [...new Set(quizzes.map((q: any) => q.departmentId).filter(Boolean))];
+    const depts = deptIds.length > 0
+      ? await db.department.findMany({ where: { id: { in: deptIds as string[] } }, select: { id: true, name: true } })
+      : [];
+    const deptMap = Object.fromEntries(depts.map((d: any) => [d.id, d]));
+    const quizzesWithDept = quizzes.map((q: any) => ({
+      ...q,
+      department: q.departmentId ? deptMap[q.departmentId] ?? null : null,
+    }));
+
     if (session.user.role === 'STUDENT') {
       const student = await getOrCreateStudent(session.user.id);
       if (!student) return NextResponse.json({ error: 'No department found' }, { status: 404 });
 
-      // filter quizzes by student's department AND academic year
       const quizzesWithAttempts = await Promise.all(
-        quizzes
-          .filter(quiz =>
+        quizzesWithDept
+          .filter((quiz: any) =>
             quiz.departmentId === student.departmentId &&
             quiz.academicYear === student.academicYear
           )
-          .map(async (quiz) => {
+          .map(async (quiz: any) => {
             const attempts = await db.quizAttempt.findMany({
               where: { quizId: quiz.id, studentId: student.id },
               orderBy: { startedAt: 'desc' },
@@ -50,7 +59,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: true, data: quizzesWithAttempts });
     }
 
-    return NextResponse.json({ success: true, data: quizzes });
+    return NextResponse.json({ success: true, data: quizzesWithDept });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
