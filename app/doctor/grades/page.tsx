@@ -23,13 +23,35 @@ export default function GradesPage() {
   const [editingStudent, setEditingStudent] = useState<StudentGrade | null>(null);
   const [editGrades, setEditGrades] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
-  const [examMaxes, setExamMaxes] = useState<Record<string, number>>(() =>
-    Object.fromEntries(DEFAULT_EXAM_TYPES.map(t => [t.key, t.max]))
-  );
+  const [examMaxes, setExamMaxes] = useState<Record<string, number>>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('grades_examMaxes');
+        if (saved) return JSON.parse(saved);
+      } catch {}
+    }
+    return Object.fromEntries(DEFAULT_EXAM_TYPES.map(t => [t.key, t.max]));
+  });
   const [editingMax, setEditingMax] = useState<string | null>(null);
   const [tempMax, setTempMax] = useState('');
-  const [customTypes, setCustomTypes] = useState<{ key: string; label: string; max: number }[]>([]);
-  const [hiddenDefaults, setHiddenDefaults] = useState<string[]>([]);
+  const [customTypes, setCustomTypes] = useState<{ key: string; label: string; max: number }[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('grades_customTypes');
+        if (saved) return JSON.parse(saved);
+      } catch {}
+    }
+    return [];
+  });
+  const [hiddenDefaults, setHiddenDefaults] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('grades_hiddenDefaults');
+        if (saved) return JSON.parse(saved);
+      } catch {}
+    }
+    return [];
+  });
   const [newTypeName, setNewTypeName] = useState('');
   const [newTypeMax, setNewTypeMax] = useState('');
 
@@ -38,6 +60,24 @@ export default function GradesPage() {
     ...customTypes,
   ];
   const maxTotal = examTypes.reduce((s, t) => s + t.max, 0);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('grades_examMaxes', JSON.stringify(examMaxes));
+    }
+  }, [examMaxes]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('grades_customTypes', JSON.stringify(customTypes));
+    }
+  }, [customTypes]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('grades_hiddenDefaults', JSON.stringify(hiddenDefaults));
+    }
+  }, [hiddenDefaults]);
 
   useEffect(() => {
     fetch('/api/doctor/subjects')
