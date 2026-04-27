@@ -101,29 +101,27 @@ export default function DoctorDashboardPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [subRes, quizRes, attendRes, pendRes, analyticsRes, studentsRes] = await Promise.all([
+      const [subRes, quizRes, pendRes, analyticsRes, studentsRes] = await Promise.all([
         fetch('/api/subjects'),
         fetch('/api/quizzes'),
-        fetch('/api/attendance'),
         fetch('/api/students/pending'),
         fetch('/api/doctor/analytics'),
         fetch('/api/students'),
       ]);
-      const [subJson, quizJson, attendJson, pendJson, analyticsJson, studentsJson] = await Promise.all([
-        subRes.json(), quizRes.json(), attendRes.json(), pendRes.json(), analyticsRes.json(), studentsRes.json(),
+      const [subJson, quizJson, pendJson, analyticsJson, studentsJson] = await Promise.all([
+        subRes.json(), quizRes.json(), pendRes.json(), analyticsRes.json(), studentsRes.json(),
       ]);
 
       const analyticsData: any[] = Array.isArray(analyticsJson) ? analyticsJson : [];
       const totalAssignments = analyticsData[0]?.totalAssignments ?? 0;
+      const totalAssignments = analyticsData[0]?.totalAssignments ?? 0;
 
       const allStudentsCount = analyticsData.length;
       let totalAttended = 0, totalPossible = 0;
-      if (attendJson.success && allStudentsCount > 0) {
-        for (const s of attendJson.data) {
-          totalPossible += allStudentsCount;
-          totalAttended += s._count?.attendances ?? 0;
-        }
-      }
+      analyticsData.forEach(s => {
+        totalPossible += s.totalSessions;
+        totalAttended += s.attendanceCount;
+      });
       const rate = totalPossible > 0 ? Math.round((totalAttended / totalPossible) * 100) : 0;
 
       setStats({
