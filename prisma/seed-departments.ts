@@ -4,7 +4,7 @@ const db = new PrismaClient();
 
 // Only the 4 departments shown in the app
 const departments = [
-  { name: 'Preparatory Engineering', code: 'PREP',  level: 1 },
+  { name: 'Level 0', code: 'PREP',  level: 1 },
   { name: 'Architecture',         code: 'ARCH',  level: 2 },
   { name: 'Civil Engineering',    code: 'CIVIL', level: 2 },
   { name: 'Computer Engineering', code: 'COMP',  level: 2 },

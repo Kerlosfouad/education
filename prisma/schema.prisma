@@ -100,6 +100,7 @@ model Student {
   phone             String?
   barcode           String?  @unique
   qrCode            String?  @unique
+  blocked           Boolean  @default(false)
   approvedAt        DateTime?
   approvedBy        String?
   
@@ -161,9 +162,9 @@ model Department {
   createdAt   DateTime  @default(now())
   
   // Relations
-  subjects    Subject[]
-  students    Student[]
-  books       Book[]
+  subjects            Subject[]
+  students            Student[]
+  books               Book[]
   
   @@map("departments")
 }
@@ -198,18 +199,20 @@ model Subject {
 
 // Attendance session
 model AttendanceSession {
-  id          String    @id @default(cuid())
-  subjectId   String?
-  title       String?
-  openTime    DateTime
-  closeTime   DateTime
-  isOpen      Boolean   @default(true)
-  createdBy   String
-  createdAt   DateTime  @default(now())
+  id           String    @id @default(cuid())
+  subjectId    String?
+  departmentId String?
+  academicYear Int?
+  title        String?
+  openTime     DateTime
+  closeTime    DateTime
+  isOpen       Boolean   @default(true)
+  createdBy    String
+  createdAt    DateTime  @default(now())
   
   // Relations
-  subject     Subject?  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  attendances Attendance[]
+  subject      Subject?    @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  attendances  Attendance[]
   
   @@map("attendance_sessions")
 }
