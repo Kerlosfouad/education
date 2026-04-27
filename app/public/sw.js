@@ -1,5 +1,5 @@
 const CACHE_NAME = 'dr-emad-edu-v1';
-const STATIC_ASSETS = ['/', '/auth/login'];
+const STATIC_ASSETS = ['/', '/auth/login', '/auth/register'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -18,16 +18,8 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Only cache GET requests, skip API calls
-  if (event.request.method !== 'GET' || event.request.url.includes('/api/')) return;
-
+  if (event.request.method !== 'GET') return;
   event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-        return response;
-      })
-      .catch(() => caches.match(event.request))
+    fetch(event.request).catch(() => caches.match(event.request))
   );
 });
