@@ -26,11 +26,11 @@ export async function PATCH(_: Request, { params }: { params: { id: string } }) 
     }
     const student = await db.student.findUnique({ where: { id: params.id } });
     if (!student) return NextResponse.json({ success: false }, { status: 404 });
-    const updated = await db.student.update({
+    const updated = await (db.student.update as any)({
       where: { id: params.id },
       data: { blocked: !(student as any).blocked },
     });
-    return NextResponse.json({ success: true, blocked: (updated as any).blocked });
+    return NextResponse.json({ success: true, blocked: updated.blocked });
   } catch {
     return NextResponse.json({ success: false }, { status: 500 });
   }
