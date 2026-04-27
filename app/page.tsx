@@ -96,10 +96,13 @@ export default function LandingPage() {
   const [doctorName] = useState<string>('DR. EMAD BAYUOME');
   const { theme, setTheme } = useTheme();
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showInstallGuide, setShowInstallGuide] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
 
   useEffect(() => {
     const handler = (e: Event) => { e.preventDefault(); setDeferredPrompt(e); };
     window.addEventListener('beforeinstallprompt', handler);
+    setIsIOS(/iphone|ipad|ipod/i.test(navigator.userAgent));
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
@@ -109,7 +112,7 @@ export default function LandingPage() {
       await deferredPrompt.userChoice;
       setDeferredPrompt(null);
     } else {
-      return;
+      setShowInstallGuide(true);
     }
   };
   const { data: session, status: authStatus } = useSession();
@@ -390,6 +393,51 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* Install Guide Modal */}
+      {showInstallGuide && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowInstallGuide(false)}>
+          <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white">Install App</h3>
+              <button onClick={() => setShowInstallGuide(false)} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-500">✕</button>
+            </div>
+            {isIOS ? (
+              <div className="space-y-3 text-sm text-slate-600 dark:text-slate-300">
+                <p className="font-semibold text-slate-800 dark:text-white">On iPhone / iPad:</p>
+                <div className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
+                  <span className="text-xl">1️⃣</span>
+                  <span>Tap the <strong>Share</strong> button at the bottom of Safari</span>
+                </div>
+                <div className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
+                  <span className="text-xl">2️⃣</span>
+                  <span>Scroll down and tap <strong>"Add to Home Screen"</strong></span>
+                </div>
+                <div className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
+                  <span className="text-xl">3️⃣</span>
+                  <span>Tap <strong>"Add"</strong> to confirm</span>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3 text-sm text-slate-600 dark:text-slate-300">
+                <p className="font-semibold text-slate-800 dark:text-white">On Android:</p>
+                <div className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
+                  <span className="text-xl">1️⃣</span>
+                  <span>Open this page in <strong>Chrome</strong></span>
+                </div>
+                <div className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
+                  <span className="text-xl">2️⃣</span>
+                  <span>Tap the <strong>3-dot menu</strong> (⋮) at the top right</span>
+                </div>
+                <div className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
+                  <span className="text-xl">3️⃣</span>
+                  <span>Tap <strong>"Add to Home Screen"</strong></span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="py-12 border-t">
