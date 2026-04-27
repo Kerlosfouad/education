@@ -101,33 +101,38 @@ export default function DoctorDashboardPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [subRes, quizRes, pendRes, analyticsRes, studentsRes] = await Promise.all([
+      const [subRes, quizRes, pendRes, studentsRes, statsRes] = await Promise.all([
         fetch('/api/subjects'),
         fetch('/api/quizzes'),
         fetch('/api/students/pending'),
-        fetch('/api/doctor/analytics'),
         fetch('/api/students'),
+        fetch('/api/doctor/stats'),
       ]);
-      const [subJson, quizJson, pendJson, analyticsJson, studentsJson] = await Promise.all([
-        subRes.json(), quizRes.json(), pendRes.json(), analyticsRes.json(), studentsRes.json(),
+      const [subJson, quizJson, pendJson, studentsJson, statsJson] = await Promise.all([
+        subRes.json(), quizRes.json(), pendRes.json(), studentsRes.json(), statsRes.json(),
       ]);
 
-      const analyticsData: any[] = Array.isArray(analyticsJson) ? analyticsJson : [];
-      const totalAssignments = analyticsData[0]?.totalAssignments ?? 0;
+      const analyticsData: any[] = [];
 
-      const allStudentsCount = analyticsData.length;
+      // Calculate attendance rate from sessions
+      const sessions = sessionsJson.success ? sessionsJson.data : [];
+      const totalStudents = studentsJson.success ? studentsJson.total ?? studentsJson.data?.length ?? 0 : 0;
       let totalAttended = 0, totalPossible = 0;
-      analyticsData.forEach(s => {
-        totalPossible += s.totalSessions;
-        totalAttended += s.attendanceCount;
-      });
+      for (const s of sessions) {
+        totalPossible += totalStudents;
+        totalAttended += s._count?.attendances ?? 0;
+      }
       const rate = totalPossible > 0 ? Math.round((totalAttended / totalPossible) * 100) : 0;
+
+      // Get assignments count
+      const assignRes = await fetch('/api/doctor/grades?assignmentsOnly=true').catch(() => null);
+      const assignCount = assignRes ? await db_assignCount(assignRes) : 0;
 
       setStats({
         subjectsCount: subJson.success ? subJson.data.length : 0,
         quizzesCount: quizJson.success ? quizJson.data.filter((q: any) => q.isPublished).length : 0,
-        assignmentsCount: totalAssignments,
-        attendanceRate: rate,
+        assignmentsCount: statsJson.success ? statsJson.data.totalAssignments : 0,
+        attendanceRate: statsJson.success ? statsJson.data.attendanceRate : 0,
       });
 
       if (pendJson.success) setPending(pendJson.data);
