@@ -163,30 +163,6 @@ setNewAssignment({ title: '', departmentId: '', academicYear: '', durationDays: 
             <History className="text-indigo-500" size={20} />
             <h3 className="font-bold text-slate-800 dark:text-slate-100">{t('allAssignments')}</h3>
           </div>
-          {/* Filter Bar */}
-          <div className="flex flex-wrap gap-2 mb-4">
-            <div className="relative flex-1 min-w-[140px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-              <input type="text" placeholder="Search..." value={search} onChange={e => setSearch(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-600 rounded-xl text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20" />
-            </div>
-            <select value={filterDept} onChange={e => { setFilterDept(e.target.value); setFilterLevel(''); }}
-              className="px-3 py-2 bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-600 rounded-xl text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
-              <option value="">All Depts</option>
-              {departments.map(d => <option key={d.id} value={d.name}>{d.name}</option>)}
-            </select>
-            <select value={filterLevel} onChange={e => setFilterLevel(e.target.value)}
-              className="px-3 py-2 bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-600 rounded-xl text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
-              <option value="">All Levels</option>
-              {filterAvailableLevels.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
-            </select>
-            {(search || filterDept || filterLevel) && (
-              <button onClick={() => { setSearch(''); setFilterDept(''); setFilterLevel(''); }}
-                className="flex items-center gap-1 px-3 py-2 text-xs text-red-500 bg-red-50 dark:bg-red-900/20 rounded-xl hover:bg-red-100 transition-colors">
-                <X size={13} /> Reset
-              </button>
-            )}
-          </div>
           {assignments.length === 0 ? (
             <div className="text-center py-16 text-slate-400">
               <FileText size={40} className="mx-auto mb-3 opacity-30" />
@@ -194,7 +170,7 @@ setNewAssignment({ title: '', departmentId: '', academicYear: '', durationDays: 
             </div>
           ) : (
             <div className="space-y-3">
-              {filteredAssignments.map(a => {
+              {assignments.map(a => {
                 const isNew = Date.now() - new Date(a.createdAt).getTime() < 24 * 60 * 60 * 1000;
                 const isSelected = selected?.id === a.id;
                 return (
@@ -281,9 +257,34 @@ setNewAssignment({ title: '', departmentId: '', academicYear: '', durationDays: 
                 </div>
               ) : (
                 <div className="space-y-4 max-h-[420px] overflow-y-auto pr-1">
+                  {/* Filter Bar */}
+                  <div className="flex flex-wrap gap-2">
+                    <select value={filterDept} onChange={e => { setFilterDept(e.target.value); setFilterLevel(''); }}
+                      className="px-3 py-2 bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-600 rounded-xl text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+                      <option value="">All Departments</option>
+                      {departments.map(d => <option key={d.id} value={d.name}>{d.name}</option>)}
+                    </select>
+                    <select value={filterLevel} onChange={e => setFilterLevel(e.target.value)}
+                      className="px-3 py-2 bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-600 rounded-xl text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+                      <option value="">All Levels</option>
+                      {filterAvailableLevels.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
+                    </select>
+                    {(filterDept || filterLevel) && (
+                      <button onClick={() => { setFilterDept(''); setFilterLevel(''); }}
+                        className="flex items-center gap-1 px-3 py-2 text-xs text-red-500 bg-red-50 dark:bg-red-900/20 rounded-xl hover:bg-red-100 transition-colors">
+                        <X size={13} /> Reset
+                      </button>
+                    )}
+                  </div>
                   {/* Group by department + year */}
                   {Object.entries(
-                    selected.submissions.reduce((groups, sub) => {
+                    selected.submissions
+                      .filter(sub => {
+                        const matchDept = !filterDept || sub.student.department?.name === filterDept;
+                        const matchLevel = !filterLevel || String(sub.student.academicYear) === filterLevel;
+                        return matchDept && matchLevel;
+                      })
+                      .reduce((groups, sub) => {
                       const key = `${sub.student.department?.name ?? 'General'} - Level ${sub.student.academicYear}`;
                       if (!groups[key]) groups[key] = [];
                       groups[key].push(sub);
