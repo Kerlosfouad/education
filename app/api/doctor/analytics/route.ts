@@ -22,7 +22,7 @@ export async function GET() {
 
     // Fetch all sessions, quizzes, assignments in bulk
     const [allSessions, allQuizzes, allAssignments] = await Promise.all([
-      db.attendanceSession.findMany({ select: { id: true, departmentId: true, academicYear: true } }),
+      (db.attendanceSession.findMany as any)({ select: { id: true, departmentId: true, academicYear: true } }),
       db.quiz.findMany({ where: { isPublished: true }, select: { id: true, departmentId: true, academicYear: true } }),
       db.assignment.findMany({ where: { isActive: true }, select: { id: true, departmentId: true, academicYear: true } }),
     ]);
