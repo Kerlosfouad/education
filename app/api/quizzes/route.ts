@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
     });
 
     // Fetch department names for quizzes that have departmentId
-    const deptIds = [...new Set(quizzes.map((q: any) => q.departmentId).filter(Boolean))];
+    const deptIds = Array.from(new Set(quizzes.map((q: any) => q.departmentId).filter(Boolean)));
     const depts = deptIds.length > 0
       ? await db.department.findMany({ where: { id: { in: deptIds as string[] } }, select: { id: true, name: true } })
       : [];
