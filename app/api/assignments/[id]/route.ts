@@ -15,6 +15,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       where: { id: params.id },
       include: {
         subject: { select: { name: true } },
+        department: { select: { name: true } },
         submissions: {
           include: {
             student: {

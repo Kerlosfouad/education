@@ -33,8 +33,10 @@ interface AssignmentDetail {
   id: string;
   title: string;
   maxScore: number;
+  academicYear: number | null;
   fileUrl: string | null;
   subject: { name: string } | null;
+  department: { name: string } | null;
   submissions: Submission[];
 }
 
@@ -223,7 +225,12 @@ setNewAssignment({ title: '', departmentId: '', academicYear: '', durationDays: 
               <div className="flex items-start justify-between">
                 <div>
                   <h3 className="font-black text-slate-800 dark:text-slate-100 text-lg">{selected.title}</h3>
-                  <p className="text-xs text-slate-400 mt-0.5">{selected.subject?.name ?? 'General'} &bull; Max score: {selected.maxScore}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    {selected.department
+                      ? `${selected.department.name}${selected.academicYear !== null && selected.academicYear !== undefined ? ` • Level ${selected.academicYear}` : ''}`
+                      : 'All Students'}
+                    {' • Max score: '}{selected.maxScore}
+                  </p>
                 </div>
                 {selected.fileUrl && (
                   <a href={selected.fileUrl} target="_blank" rel="noopener noreferrer"
