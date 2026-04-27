@@ -287,7 +287,7 @@ export default function StudentsPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-bold text-slate-800 dark:text-white truncate">{s.user.name}</p>
-                        <p className="text-[10px] text-slate-400 truncate">{s.user.email} GÇó {timeAgo(s.user.createdAt)}</p>
+                        <p className="text-[10px] text-slate-400 truncate">{s.user.email} Gï¿½ï¿½ {timeAgo(s.user.createdAt)}</p>
                       </div>
                     </div>
                     <div className="space-y-1.5 text-xs mb-3 ml-13">
