@@ -15,7 +15,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       where: { id: params.id },
       include: {
         subject: { select: { name: true } },
-        department: { select: { name: true } },
         submissions: {
           include: {
             student: {
@@ -32,7 +31,17 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     if (!assignment) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-    return NextResponse.json({ success: true, data: assignment });
+    // Fetch department separately since it's stored as raw field
+    const raw = await db.$queryRaw<{ departmentId: string | null; academicYear: number | null }[]>`
+      SELECT "departmentId", "academicYear" FROM assignments WHERE id = ${params.id}
+    `;
+    const { departmentId, academicYear } = raw[0] ?? {};
+    let department = null;
+    if (departmentId) {
+      department = await db.department.findUnique({ where: { id: departmentId }, select: { name: true } });
+    }
+
+    return NextResponse.json({ success: true, data: { ...assignment, department, academicYear } });
   } catch (error) {
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
