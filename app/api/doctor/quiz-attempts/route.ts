@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
   const attempts = await db.quizAttempt.findMany({
     where: { quizId },
     include: {
-      student: { include: { user: { select: { name: true } } } },
+      student: { include: { user: { select: { name: true } }, department: { select: { name: true } } } },
     },
     orderBy: { startedAt: 'desc' },
   });

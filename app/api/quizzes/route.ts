@@ -22,6 +22,7 @@ export async function GET(req: NextRequest) {
       where,
       include: {
         subject: { include: { department: true } },
+        department: { select: { name: true } },
         _count: { select: { questions: true, attempts: true } },
       },
       orderBy: { createdAt: 'desc' },

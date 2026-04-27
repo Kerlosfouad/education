@@ -18,6 +18,7 @@ type Quiz = {
   departmentId: string | null;
   academicYear: number | null;
   subject: { name: string } | null;
+  department: { name: string } | null;
   _count: { questions: number; attempts: number };
 };
 
@@ -29,7 +30,7 @@ type Attempt = {
   status: string;
   startedAt: string;
   completedAt: string | null;
-  student: { studentCode: string; user: { name: string } };
+  student: { studentCode: string; academicYear: number; user: { name: string }; department: { name: string } };
 };
 
 export default function QuizzesPage() {
@@ -38,6 +39,10 @@ export default function QuizzesPage() {
   const [selectedQuiz, setSelectedQuiz] = useState<Quiz | null>(null);
   const [attempts, setAttempts] = useState<Attempt[]>([]);
   const [attemptsLoading, setAttemptsLoading] = useState(false);
+  const [departments, setDepartments] = useState<{ id: string; name: string; code: string }[]>([]);
+  const [filterDept, setFilterDept] = useState('');
+  const [filterLevel, setFilterLevel] = useState('');
+  const [filterAvailableLevels, setFilterAvailableLevels] = useState<{ value: string; label: string }[]>([]);
   const { t } = useI18n();
 
   useEffect(() => {
@@ -45,7 +50,20 @@ export default function QuizzesPage() {
       .then(r => r.json())
       .then(data => { setQuizzes(Array.isArray(data.data) ? data.data : []); setLoading(false); })
       .catch(() => setLoading(false));
+    fetch('/api/subjects/departments').then(r => r.json()).then(j => { if (j.success) setDepartments(j.data); });
   }, []);
+
+  useEffect(() => {
+    if (!filterDept) { setFilterAvailableLevels([]); setFilterLevel(''); return; }
+    const dept = departments.find(d => d.name === filterDept);
+    if (dept?.code === 'PREP') {
+      setFilterAvailableLevels([{ value: '0', label: 'Level 0' }]);
+      setFilterLevel('0');
+    } else {
+      setFilterAvailableLevels([1,2,3,4].map(l => ({ value: String(l), label: `Level ${l}` })));
+      setFilterLevel('');
+    }
+  }, [filterDept, departments]);
 
   const openQuiz = async (quiz: Quiz) => {
     setSelectedQuiz(quiz);
@@ -110,7 +128,13 @@ export default function QuizzesPage() {
                       {quiz.isPublished ? t('published') : t('draft')}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-400 mb-3">{quiz.subject?.name ?? `Level ${quiz.academicYear}`}</p>
+                  <p className="text-sm text-gray-400 mb-3">
+                    {quiz.department
+                      ? `${quiz.department.name}${quiz.academicYear !== null && quiz.academicYear !== undefined ? ` • Level ${quiz.academicYear}` : ''}`
+                      : quiz.academicYear !== null && quiz.academicYear !== undefined
+                        ? `Level ${quiz.academicYear}`
+                        : 'All Students'}
+                  </p>
                   <div className="flex flex-wrap gap-3 text-sm text-gray-500">
                     <span className="flex items-center gap-1"><BookOpen className="w-4 h-4 text-indigo-400" />{quiz._count.questions} {t('questions')}</span>
                     <span className="flex items-center gap-1"><Clock className="w-4 h-4 text-purple-400" />{quiz.timeLimit} {t('minutes')}</span>
@@ -183,7 +207,32 @@ export default function QuizzesPage() {
                 </div>
               ) : (
                 <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
-                  {attempts.map(a => {
+                  {/* Filter Bar */}
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    <select value={filterDept} onChange={e => { setFilterDept(e.target.value); setFilterLevel(''); }}
+                      className="px-3 py-2 bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-600 rounded-xl text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+                      <option value="">All Departments</option>
+                      {departments.map(d => <option key={d.id} value={d.name}>{d.name}</option>)}
+                    </select>
+                    <select value={filterLevel} onChange={e => setFilterLevel(e.target.value)}
+                      className="px-3 py-2 bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-600 rounded-xl text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+                      <option value="">All Levels</option>
+                      {filterAvailableLevels.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
+                    </select>
+                    {(filterDept || filterLevel) && (
+                      <button onClick={() => { setFilterDept(''); setFilterLevel(''); }}
+                        className="flex items-center gap-1 px-3 py-2 text-xs text-red-500 bg-red-50 dark:bg-red-900/20 rounded-xl hover:bg-red-100 transition-colors">
+                        <X size={13} /> Reset
+                      </button>
+                    )}
+                  </div>
+                  {attempts
+                    .filter(a => {
+                      const matchDept = !filterDept || a.student.department?.name === filterDept;
+                      const matchLevel = !filterLevel || String(a.student.academicYear) === filterLevel;
+                      return matchDept && matchLevel;
+                    })
+                    .map(a => {
                     const passed = (a.percentage ?? 0) >= selectedQuiz.passingScore;
                     const completed = a.status === 'COMPLETED';
                     return (
