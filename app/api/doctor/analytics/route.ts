@@ -27,8 +27,10 @@ export async function GET() {
       db.assignment.findMany({ where: { isActive: true }, select: { id: true, departmentId: true, academicYear: true } }),
     ]);
 
+    type SessionRow = { id: string; departmentId: string | null; academicYear: number | null };
+
     const data = students.map(student => {
-      const totalSessions = allSessions.filter(s =>
+      const totalSessions = (allSessions as SessionRow[]).filter(s =>
         !s.departmentId ||
         (s.departmentId === student.departmentId && (s.academicYear === student.academicYear || s.academicYear === null))
       ).length;
