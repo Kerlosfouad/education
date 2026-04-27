@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import {
@@ -232,7 +232,7 @@ export default function StudentsPage() {
 
       {/* Pending Tab */}
       {tab === 'pending' && (
-        <div className="bg-white dark:bg-[#0f1f38] rounded-3xl border border-slate-100 dark:border-[#1a2f4a] shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-[#0f1f38] rounded-3xl border border-slate-100 dark:border-[#1a2f4a] shadow-sm">
           <div className="p-4 border-b border-slate-50 dark:border-[#1a2f4a] flex items-center justify-between bg-blue-50/30 dark:bg-[#00c896]/5">
             <div className="flex items-center gap-2">
               <Clock className="text-blue-600 dark:text-[#00c896]" size={16} />
@@ -287,7 +287,7 @@ export default function StudentsPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-bold text-slate-800 dark:text-white truncate">{s.user.name}</p>
-                        <p className="text-[10px] text-slate-400 truncate">{s.user.email} ΓÇó {timeAgo(s.user.createdAt)}</p>
+                        <p className="text-[10px] text-slate-400 truncate">{s.user.email} G�� {timeAgo(s.user.createdAt)}</p>
                       </div>
                     </div>
                     <div className="space-y-1.5 text-xs mb-3 ml-13">
@@ -393,7 +393,7 @@ export default function StudentsPage() {
 
           {/* Analytics Table - only show if there are students */}
           {filteredAnalytics.length > 0 && (
-          <div className="bg-white dark:bg-[#0f1f38] rounded-3xl border border-slate-100 dark:border-[#1a2f4a] shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-[#0f1f38] rounded-3xl border border-slate-100 dark:border-[#1a2f4a] shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
