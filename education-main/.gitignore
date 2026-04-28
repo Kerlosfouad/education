@@ -1,9 +1,0 @@
-node_modules
-.next
-.env
-
-# Prevent duplicate root-level folders from being tracked
-/components/
-/lib/
-/types/
-/doctor/
