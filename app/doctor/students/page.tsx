@@ -226,7 +226,7 @@ export default function StudentsPage() {
         <button onClick={() => setTab('active')}
           className={`flex-1 md:flex-none px-3 md:px-5 py-2 rounded-xl text-xs md:text-sm font-bold transition-colors flex items-center justify-center gap-1.5 ${tab === 'active' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-[#0d1e35] text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-[#1a2f4a] hover:bg-slate-50 dark:hover:bg-[#132540]'}`}>
           <Users size={13} />
-          <span className="whitespace-nowrap">All Students ({activeStudents.length})</span>
+          <span className="whitespace-nowrap">All Students ({filteredStudents.length})</span>
         </button>
       </div>
 
