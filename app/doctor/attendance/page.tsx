@@ -163,6 +163,13 @@ export default function AttendancePage() {
     return 'present';
   };
 
+  // Check if a session applies to a student (by dept/level)
+  const sessionAppliesToStudent = (session: AttendanceSession, student: Student) => {
+    const deptMatch = !session.department || session.department.name === student.department.name;
+    const levelMatch = session.academicYear === null || session.academicYear === undefined || session.academicYear === student.academicYear;
+    return deptMatch && levelMatch;
+  };
+
   if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="animate-spin text-blue-600" size={40} /></div>;
 
   return (
@@ -331,8 +338,9 @@ export default function AttendancePage() {
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {filteredStudents.map(student => {
-                    const presentCount = sessions.filter(s => getStatus(s, student.id) === 'present').length;
-                    const rate = sessions.length > 0 ? Math.round((presentCount / sessions.length) * 100) : 0;
+                    const studentSessions = sessions.filter(s => sessionAppliesToStudent(s, student));
+                    const presentCount = studentSessions.filter(s => getStatus(s, student.id) === 'present').length;
+                    const rate = studentSessions.length > 0 ? Math.round((presentCount / studentSessions.length) * 100) : 0;
                     return (
                       <tr key={student.id} className="hover:bg-slate-50/50 transition-colors">
                         <td className="p-4 sticky left-0 bg-white z-10 border-r border-slate-100">
@@ -351,6 +359,15 @@ export default function AttendancePage() {
                           </span>
                         </td>
                         {sessions.map(s => {
+                          if (!sessionAppliesToStudent(s, student)) {
+                            return (
+                              <td key={s.id} className="p-2 text-center border-r border-slate-50">
+                                <div className="w-7 h-7 mx-auto rounded-lg bg-slate-50 flex items-center justify-center">
+                                  <span className="text-slate-200 text-xs">N/A</span>
+                                </div>
+                              </td>
+                            );
+                          }
                           const status = getStatus(s, student.id);
                           return (
                             <td key={s.id} className="p-2 text-center border-r border-slate-50">
