@@ -208,9 +208,9 @@ export default function GradesPage() {
   };
 
   const clearAllGrades = async () => {
-    if (!confirm('Are you sure you want to clear all grades for this subject? This cannot be undone.')) return;
     const subjectId = selectedSubject;
-    if (!subjectId || subjectId === 'all') { toast.error('Please select a specific subject'); return; }
+    if (!subjectId || subjectId === 'all') { toast.error('Please select a specific subject to clear grades'); return; }
+    if (!confirm('Are you sure you want to clear all grades for this subject? This cannot be undone.')) return;
     setLoading(true);
     try {
       const res = await fetch('/api/doctor/grades', {
@@ -275,7 +275,7 @@ export default function GradesPage() {
   return (
     <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in duration-500">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <GraduationCap className="text-indigo-600" size={28} />
           <div>
@@ -283,17 +283,21 @@ export default function GradesPage() {
             <p className="text-slate-500 text-sm mt-0.5">Set and manage student grades by subject</p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          {students.length > 0 && selectedSubject !== 'all' && (
+        <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+          {students.length > 0 && (
             <button onClick={clearAllGrades}
-              className="flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white font-bold rounded-2xl hover:bg-red-700 transition-colors shadow-lg shadow-red-100">
-              <X size={18} /> Clear All
+              className="flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 bg-red-600 text-white font-bold rounded-xl sm:rounded-2xl hover:bg-red-700 transition-colors shadow-lg shadow-red-100 text-xs sm:text-sm flex-1 sm:flex-initial">
+              <X size={16} className="sm:w-[18px] sm:h-[18px]" /> 
+              <span className="hidden sm:inline">Clear All</span>
+              <span className="sm:hidden">Clear</span>
             </button>
           )}
           {students.length > 0 && (
             <button onClick={exportExcel}
-              className="flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white font-bold rounded-2xl hover:bg-green-700 transition-colors shadow-lg shadow-green-100">
-              <Download size={18} /> Export Excel
+              className="flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 bg-green-600 text-white font-bold rounded-xl sm:rounded-2xl hover:bg-green-700 transition-colors shadow-lg shadow-green-100 text-xs sm:text-sm flex-1 sm:flex-initial">
+              <Download size={16} className="sm:w-[18px] sm:h-[18px]" /> 
+              <span className="hidden sm:inline">Export Excel</span>
+              <span className="sm:hidden">Export</span>
             </button>
           )}
         </div>
