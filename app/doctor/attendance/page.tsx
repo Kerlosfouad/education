@@ -273,9 +273,9 @@ export default function AttendancePage() {
       )}
 
       {activeTab === 'table' && (
-        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="space-y-6">
           {/* Filter Bar */}
-          <div className="p-4 border-b border-slate-100 bg-slate-50/50">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
             <div className="flex flex-wrap gap-3 items-center">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
@@ -287,111 +287,120 @@ export default function AttendancePage() {
                   className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 w-52"
                 />
               </div>
-              <select value={filterDept} onChange={e => { setFilterDept(e.target.value); setFilterLevel(''); }}
-                className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
-                <option value="">All Departments</option>
-                {departments.map(d => (
-                  <option key={d.id} value={d.name}>{d.name}</option>
-                ))}
-              </select>
-              <select value={filterLevel} onChange={e => setFilterLevel(e.target.value)}
-                className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
-                <option value="">All Levels</option>
-                {tableAvailableLevels.map(l => (
-                  <option key={l} value={String(l)}>Level {l}</option>
-                ))}
-              </select>
-              {(filterDept || filterLevel || search) && (
-                <button onClick={() => { setFilterDept(''); setFilterLevel(''); setSearch(''); }}
+              {search && (
+                <button onClick={() => setSearch('')}
                   className="flex items-center gap-1.5 px-3 py-2 text-sm text-red-500 bg-red-50 rounded-xl hover:bg-red-100 transition-colors">
-                  <X size={14} /> Reset
+                  <X size={14} /> Clear Search
                 </button>
               )}
-              <span className="ml-auto text-xs text-slate-400 font-medium">
-                Showing {filteredStudents.length} of {students.length} students
-              </span>
             </div>
           </div>
 
           {sessions.length === 0 || students.length === 0 ? (
-            <div className="text-center py-20 text-slate-400">
+            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm text-center py-20 text-slate-400">
               <Users size={48} className="mx-auto mb-3 opacity-30" />
               <p>{t('notEnoughData')}</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="bg-slate-50">
-                    <th className="p-4 text-xs font-bold text-slate-500 text-left sticky left-0 bg-slate-50 z-10 border-b border-slate-100 min-w-[200px]">Student</th>
-                    <th className="p-4 text-xs font-bold text-slate-500 text-left border-b border-slate-100 min-w-[100px]">Code</th>
-                    <th className="p-3 text-xs font-bold text-slate-500 text-left border-b border-slate-100 min-w-[140px]">Department</th>
-                    <th className="p-3 text-xs font-bold text-slate-500 text-center border-b border-slate-100 min-w-[100px]">Level</th>
-                    {sessions.map(s => (
-                      <th key={s.id} className="p-3 text-[10px] font-bold text-slate-400 text-center border-b border-slate-100 min-w-[100px]">
-                        <div>{s.title || s.subject?.name || 'Session'}</div>
-                        <div className="text-slate-300 font-normal">{new Date(s.openTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
-                      </th>
-                    ))}
-                    <th className="p-3 text-[10px] font-bold text-slate-400 text-center border-b border-slate-100 min-w-[70px]">{t('percentage')}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50">
-                  {filteredStudents.map(student => {
-                    const studentSessions = sessions.filter(s => sessionAppliesToStudent(s, student));
-                    const presentCount = studentSessions.filter(s => getStatus(s, student.id) === 'present').length;
-                    const rate = studentSessions.length > 0 ? Math.round((presentCount / studentSessions.length) * 100) : 0;
+            departments.map(dept => {
+              const deptStudents = students.filter(s => s.department.name === dept.name);
+              if (deptStudents.length === 0) return null;
+
+              // Group by level
+              const levels = [...new Set(deptStudents.map(s => s.academicYear))].sort((a, b) => a - b);
+
+              return (
+                <div key={dept.id}>
+                  {levels.map(level => {
+                    const levelStudents = deptStudents.filter(s => s.academicYear === level);
+                    const filteredLevelStudents = levelStudents.filter(student => {
+                      const matchSearch = !search || student.user.name.toLowerCase().includes(search.toLowerCase()) || student.studentCode.includes(search);
+                      return matchSearch;
+                    });
+
+                    if (filteredLevelStudents.length === 0) return null;
+
                     return (
-                      <tr key={student.id} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="p-4 sticky left-0 bg-white z-10 border-r border-slate-100">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 font-bold text-xs shrink-0">
-                              {student.user.name?.charAt(0) ?? '?'}
-                            </div>
-                            <p className="font-bold text-slate-700 text-sm">{student.user.name}</p>
+                      <div key={`${dept.id}-${level}`} className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+                        <div className="px-6 py-4 bg-indigo-50 dark:bg-indigo-900/20 border-b border-indigo-100 dark:border-indigo-800 flex items-center justify-between">
+                          <div>
+                            <span className="font-black text-indigo-700 dark:text-indigo-300">{dept.name}</span>
+                            <span className="ml-2 text-xs text-indigo-400">Level {level}</span>
                           </div>
-                        </td>
-                        <td className="p-4 text-sm font-mono text-slate-500 border-r border-slate-100">{student.studentCode}</td>
-                        <td className="p-3 text-sm text-slate-600 font-medium">{student.department.name}</td>
-                        <td className="p-3 text-center">
-                          <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-full whitespace-nowrap">
-                            Level {student.academicYear}
-                          </span>
-                        </td>
-                        {sessions.map(s => {
-                          if (!sessionAppliesToStudent(s, student)) {
-                            return (
-                              <td key={s.id} className="p-2 text-center border-r border-slate-50">
-                                <div className="w-7 h-7 mx-auto rounded-lg bg-slate-50 flex items-center justify-center">
-                                  <span className="text-slate-200 text-xs">N/A</span>
-                                </div>
-                              </td>
-                            );
-                          }
-                          const status = getStatus(s, student.id);
-                          return (
-                            <td key={s.id} className="p-2 text-center border-r border-slate-50">
-                              {status === 'present' && (
-                                <div className="w-7 h-7 mx-auto rounded-lg bg-green-50 flex items-center justify-center">
-                                  <CheckCircle2 size={14} className="text-green-600" />
-                                </div>
-                              )}
-                              {status === 'absent' && <div className="w-7 h-7 mx-auto rounded-lg bg-red-50 flex items-center justify-center"><XCircle size={14} className="text-red-500" /></div>}
-                              {status === 'unknown' && <div className="w-7 h-7 mx-auto rounded-lg bg-slate-50 flex items-center justify-center"><span className="text-slate-300 text-xs">—</span></div>}
-                            </td>
-                          );
-                        })}
-                        <td className="p-3 text-center">
-                          <span className={`text-xs font-bold px-2 py-1 rounded-full ${rate >= 75 ? 'bg-green-100 text-green-700' : rate >= 50 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
-                            {rate}%
-                          </span>
-                        </td>
-                      </tr>
+                          <span className="text-xs text-indigo-400 bg-indigo-100 dark:bg-indigo-900/40 px-2 py-0.5 rounded-full">{filteredLevelStudents.length} students</span>
+                        </div>
+
+                        <div className="overflow-x-auto">
+                          <table className="w-full border-collapse">
+                            <thead>
+                              <tr className="bg-slate-50">
+                                <th className="p-4 text-xs font-bold text-slate-500 text-left sticky left-0 bg-slate-50 z-10 border-b border-slate-100 min-w-[200px]">Student</th>
+                                <th className="p-4 text-xs font-bold text-slate-500 text-left border-b border-slate-100 min-w-[100px]">Code</th>
+                                {sessions.map(s => (
+                                  <th key={s.id} className="p-3 text-[10px] font-bold text-slate-400 text-center border-b border-slate-100 min-w-[100px]">
+                                    <div>{s.title || s.subject?.name || 'Session'}</div>
+                                    <div className="text-slate-300 font-normal">{new Date(s.openTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+                                  </th>
+                                ))}
+                                <th className="p-3 text-[10px] font-bold text-slate-400 text-center border-b border-slate-100 min-w-[70px]">{t('percentage')}</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-50">
+                              {filteredLevelStudents.map(student => {
+                                const studentSessions = sessions.filter(s => sessionAppliesToStudent(s, student));
+                                const presentCount = studentSessions.filter(s => getStatus(s, student.id) === 'present').length;
+                                const rate = studentSessions.length > 0 ? Math.round((presentCount / studentSessions.length) * 100) : 0;
+                                return (
+                                  <tr key={student.id} className="hover:bg-slate-50/50 transition-colors">
+                                    <td className="p-4 sticky left-0 bg-white z-10 border-r border-slate-100">
+                                      <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 font-bold text-xs shrink-0">
+                                          {student.user.name?.charAt(0) ?? '?'}
+                                        </div>
+                                        <p className="font-bold text-slate-700 text-sm">{student.user.name}</p>
+                                      </div>
+                                    </td>
+                                    <td className="p-4 text-sm font-mono text-slate-500 border-r border-slate-100">{student.studentCode}</td>
+                                    {sessions.map(s => {
+                                      if (!sessionAppliesToStudent(s, student)) {
+                                        return (
+                                          <td key={s.id} className="p-2 text-center border-r border-slate-50">
+                                            <div className="w-7 h-7 mx-auto rounded-lg bg-slate-50 flex items-center justify-center">
+                                              <span className="text-slate-200 text-xs">N/A</span>
+                                            </div>
+                                          </td>
+                                        );
+                                      }
+                                      const status = getStatus(s, student.id);
+                                      return (
+                                        <td key={s.id} className="p-2 text-center border-r border-slate-50">
+                                          {status === 'present' && (
+                                            <div className="w-7 h-7 mx-auto rounded-lg bg-green-50 flex items-center justify-center">
+                                              <CheckCircle2 size={14} className="text-green-600" />
+                                            </div>
+                                          )}
+                                          {status === 'absent' && <div className="w-7 h-7 mx-auto rounded-lg bg-red-50 flex items-center justify-center"><XCircle size={14} className="text-red-500" /></div>}
+                                          {status === 'unknown' && <div className="w-7 h-7 mx-auto rounded-lg bg-slate-50 flex items-center justify-center"><span className="text-slate-300 text-xs">—</span></div>}
+                                        </td>
+                                      );
+                                    })}
+                                    <td className="p-3 text-center">
+                                      <span className={`text-xs font-bold px-2 py-1 rounded-full ${rate >= 75 ? 'bg-green-100 text-green-700' : rate >= 50 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
+                                        {rate}%
+                                      </span>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
                     );
                   })}
-                </tbody>
-              </table>
-            </div>
+                </div>
+              );
+            })
           )}
         </div>
       )}
