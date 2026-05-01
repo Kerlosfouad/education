@@ -257,9 +257,15 @@ export default function GradesPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <button onClick={async () => {
-            if (!selectedSubject || selectedSubject === 'all') { toast.error('Select a subject first'); return; }
-            if (!confirm('Delete ALL grades for this subject? This cannot be undone.')) return;
-            await fetch(`/api/doctor/grades?subjectId=${selectedSubject}`, { method: 'DELETE' });
+            if (!confirm('Delete ALL grades for all subjects? This cannot be undone.')) return;
+            if (selectedSubject === 'all') {
+              // Delete grades for all subjects
+              await Promise.all(subjects.map(s =>
+                fetch(`/api/doctor/grades?subjectId=${s.id}`, { method: 'DELETE' })
+              ));
+            } else {
+              await fetch(`/api/doctor/grades?subjectId=${selectedSubject}`, { method: 'DELETE' });
+            }
             toast.success('All grades cleared');
             loadStudents(selectedSubject);
           }}
