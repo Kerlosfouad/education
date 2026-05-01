@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { GraduationCap, Download, Loader2, Check, Pencil, Plus, X } from 'lucide-react';
+import { GraduationCap, Download, Loader2, Check, Pencil, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Subject { id: string; name: string; code: string; department: { name: string }; academicYear: number; semester: number; }
@@ -23,6 +23,7 @@ export default function GradesPage() {
   const [editingStudent, setEditingStudent] = useState<StudentGrade | null>(null);
   const [editGrades, setEditGrades] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState('');
   const [examMaxes, setExamMaxes] = useState<Record<string, number>>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -150,6 +151,12 @@ export default function GradesPage() {
   const getTotal = (grades: Record<string, number>) => examTypes.reduce((sum, t) => sum + (grades[t.key] ?? 0), 0);
   const hasGrades = (s: StudentGrade) => examTypes.some(t => s.grades[t.key] !== undefined);
 
+  const filterStudents = (list: StudentGrade[]) =>
+    list.filter(s =>
+      s.name.toLowerCase().includes(search.toLowerCase()) ||
+      s.studentCode.includes(search)
+    );
+
   const exportExcel = async () => {
     if (!students.length) return;
     const name = subjectInfo?.name || 'All Subjects';
@@ -201,38 +208,35 @@ export default function GradesPage() {
   };
 
   // Reusable student table
-  const StudentTable = ({ list, subjId }: { list: StudentGrade[]; subjId?: string }) => (
-    <div className="divide-y divide-slate-50 dark:divide-slate-700/50">
-      {list.map(s => {
-        const total = getTotal(s.grades);
-        const graded = hasGrades(s);
-        return (
-          <div key={`${s.id}-${subjId}`} className={`grid grid-cols-[2fr_1fr_repeat(4,1fr)_1fr_auto] gap-2 items-center px-6 py-4 transition-colors ${graded ? 'bg-green-50/30 dark:bg-green-900/10' : 'hover:bg-slate-50 dark:hover:bg-slate-700/20'}`}>
-            <span className="font-semibold text-slate-800 dark:text-slate-100 text-sm truncate">{s.name}</span>
-            <span className="text-xs text-slate-400">{s.studentCode}</span>
-            {examTypes.map(t => (
-              <span key={t.key} className={`text-sm font-bold ${s.grades[t.key] !== undefined ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-300'}`}>
-                {s.grades[t.key] !== undefined ? s.grades[t.key] : '—'}
-              </span>
-            ))}
-            <span className={`text-sm font-black ${graded ? 'text-green-600' : 'text-slate-300'}`}>
-              {graded ? `${total}/${maxTotal}` : '—'}
-            </span>
-            <button onClick={() => openEdit(s)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${graded ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 hover:bg-indigo-200' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}>
-              {graded ? <><Pencil size={12} /> Edit</> : <><Check size={12} /> Set</>}
-            </button>
-          </div>
-        );
-      })}
-    </div>
-  );
+  const StudentTable = ({ list, subjId }: { list: StudentGrade[]; subjId?: string }) => {
+    const filtered = filterStudents(list);
+    return (
+      <div className="divide-y divide-slate-50 dark:divide-slate-700/50 max-h-[480px] overflow-y-auto">
+        {filtered.length === 0 ? (
+          <div className="text-center py-10 text-slate-400 text-sm">No students match your search.</div>
+        ) : filtered.map(s => {
+          const graded = hasGrades(s);
+          return (
+            <div key={`${s.id}-${subjId}`} className={`flex items-center justify-between px-6 py-4 transition-colors ${graded ? 'bg-green-50/30 dark:bg-green-900/10' : 'hover:bg-slate-50 dark:hover:bg-slate-700/20'}`}>
+              <div className="flex items-center gap-4 min-w-0">
+                <span className="font-semibold text-slate-800 dark:text-slate-100 text-sm truncate">{s.name}</span>
+                <span className="text-xs text-slate-400 shrink-0">{s.studentCode}</span>
+              </div>
+              <button onClick={() => openEdit(s)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors shrink-0 ${graded ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 hover:bg-indigo-200' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}>
+                {graded ? <><Pencil size={12} /> Edit</> : <><Check size={12} /> Set</>}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
 
   const TableHeader = () => (
-    <div className="grid grid-cols-[2fr_1fr_repeat(4,1fr)_1fr_auto] gap-2 px-6 py-3 bg-slate-50 dark:bg-slate-700/30 text-xs font-bold text-slate-400 uppercase border-b border-slate-100 dark:border-slate-700">
-      <span>Student</span><span>Code</span>
-      {examTypes.map(t => <span key={t.key}>{t.label}</span>)}
-      <span>Total</span><span></span>
+    <div className="flex items-center justify-between px-6 py-3 bg-slate-50 dark:bg-slate-700/30 text-xs font-bold text-slate-400 uppercase border-b border-slate-100 dark:border-slate-700">
+      <span>Student</span>
+      <span></span>
     </div>
   );
 
@@ -268,72 +272,16 @@ export default function GradesPage() {
         </select>
       </div>
 
-      {/* Grade type legend — editable max */}
-      <div className="flex flex-wrap gap-3 items-center">
-        {examTypes.map(t => {
-          const isDefault = DEFAULT_EXAM_TYPES.some(d => d.key === t.key);
-          return (
-            <div key={t.key} className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl px-3 py-2 text-sm shadow-sm">
-              <span className="font-bold text-slate-700 dark:text-slate-200">{t.label}</span>
-              {editingMax === t.key ? (
-                <input autoFocus type="number" min={1} max={200} value={tempMax}
-                  onChange={e => setTempMax(e.target.value)}
-                  onBlur={() => { const v = Number(tempMax); if (v > 0) setExamMaxes(p => ({ ...p, [t.key]: v })); setEditingMax(null); }}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') { const v = Number(tempMax); if (v > 0) setExamMaxes(p => ({ ...p, [t.key]: v })); setEditingMax(null); }
-                    if (e.key === 'Escape') setEditingMax(null);
-                  }}
-                  className="w-14 text-center border border-indigo-300 rounded-lg px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400"
-                />
-              ) : (
-                <span className="text-slate-400">/ {t.max}</span>
-              )}
-              <button onClick={() => { setEditingMax(t.key); setTempMax(String(t.max)); }} className="text-slate-300 hover:text-indigo-500 transition-colors">
-                <Pencil size={12} />
-              </button>
-              <button onClick={() => {
-                  if (isDefault) {
-                    setHiddenDefaults(p => [...p, t.key]);
-                  } else {
-                    setCustomTypes(p => p.filter(c => c.key !== t.key));
-                  }
-                }}
-                className="text-slate-300 hover:text-red-500 transition-colors ml-1">
-                <X size={12} />
-              </button>            </div>
-          );
-        })}
-        <div className="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 rounded-xl px-4 py-2 text-sm shadow-sm">
-          <span className="font-bold text-indigo-700 dark:text-indigo-300">Total</span>
-          <span className="text-indigo-400">/ {maxTotal}</span>
-        </div>
-
-        {/* Add new type */}
-        <div className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-600 rounded-xl px-3 py-2 shadow-sm">
-          <input value={newTypeName} onChange={e => setNewTypeName(e.target.value)}
-            placeholder="Name"
-            className="w-20 text-xs border-none outline-none bg-transparent text-slate-700 dark:text-slate-200 placeholder-slate-400"
-          />
-          <span className="text-slate-300">/</span>
-          <input value={newTypeMax} onChange={e => setNewTypeMax(e.target.value)}
-            placeholder="Max" type="number" min={1}
-            className="w-12 text-xs border-none outline-none bg-transparent text-slate-700 dark:text-slate-200 placeholder-slate-400"
-          />
-          <button
-            onClick={() => {
-              const label = newTypeName.trim();
-              const max = Number(newTypeMax);
-              if (!label || !max) return;
-              const key = `CUSTOM_${label.toUpperCase().replace(/\s+/g, '_')}_${Date.now()}`;
-              setCustomTypes(p => [...p, { key, label, max }]);
-              setExamMaxes(p => ({ ...p, [key]: max }));
-              setNewTypeName('');
-              setNewTypeMax('');
-            }}
-            className="w-6 h-6 bg-indigo-600 text-white rounded-full flex items-center justify-center hover:bg-indigo-700 transition-colors flex-shrink-0">
-            <Plus size={12} />
-          </button>
-        </div>
+      {/* Search */}
+      <div className="relative">
+        <input
+          type="text"
+          placeholder="Search by name or code..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:text-white"
+        />
+        <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
       </div>
 
       {/* Students list */}
