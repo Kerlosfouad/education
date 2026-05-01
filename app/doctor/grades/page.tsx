@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { GraduationCap, Download, Loader2, Check, Pencil, X } from 'lucide-react';
+import { GraduationCap, Download, Loader2, Check, Pencil, Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Subject { id: string; name: string; code: string; department: { name: string }; academicYear: number; semester: number; }
@@ -23,7 +23,6 @@ export default function GradesPage() {
   const [editingStudent, setEditingStudent] = useState<StudentGrade | null>(null);
   const [editGrades, setEditGrades] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
-  const [search, setSearch] = useState('');
   const [examMaxes, setExamMaxes] = useState<Record<string, number>>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -55,6 +54,7 @@ export default function GradesPage() {
   });
   const [newTypeName, setNewTypeName] = useState('');
   const [newTypeMax, setNewTypeMax] = useState('');
+  const [search, setSearch] = useState('');
 
   const examTypes = [
     ...DEFAULT_EXAM_TYPES.filter(t => !hiddenDefaults.includes(t.key)).map(t => ({ ...t, max: examMaxes[t.key] })),
@@ -162,12 +162,9 @@ export default function GradesPage() {
     const name = subjectInfo?.name || 'All Subjects';
 
     const border = 'border:1px solid #2E4DA0';
-    const buildHtmlTable = (list: StudentGrade[], subjName: string, subj?: Subject) => {
+    const buildHtmlTable = (list: StudentGrade[], subjName: string) => {
       const headers = ['#', 'Student Name', 'Code', ...examTypes.map(t => `${t.label} (/${t.max})`), 'Total'];
       const colCount = headers.length;
-      const subjectMeta = subj
-        ? `${subj.department?.name ?? ''} · Level ${subj.academicYear} · Semester ${subj.semester}`
-        : '';
       const rows = list.map((s, i) => {
         const total = getTotal(s.grades);
         const graded = hasGrades(s);
@@ -182,8 +179,7 @@ export default function GradesPage() {
         </tr>`;
       }).join('');
       return `<table style="border-collapse:collapse;width:100%">
-        <tr><td colspan="${colCount}" style="background:#1F3864;color:white;font-size:14pt;font-weight:bold;text-align:center;padding:10px;${border}">${subjName}</td></tr>
-        ${subjectMeta ? `<tr><td colspan="${colCount}" style="background:#2E4DA0;color:#cce0ff;font-size:10pt;text-align:center;padding:5px;${border}">${subjectMeta}</td></tr>` : ''}
+        <tr><td colspan="${colCount}" style="background:#1F3864;color:white;font-size:14pt;font-weight:bold;text-align:center;padding:10px;${border}">Grade Sheet - ${subjName}</td></tr>
         <tr><td colspan="${colCount}" style="padding:4px"></td></tr>
         <tr>${headers.map(h => `<th style="background:#2E4DA0;color:white;font-weight:bold;text-align:center;${border};padding:7px">${h}</th>`).join('')}</tr>
         ${rows}
@@ -196,10 +192,10 @@ export default function GradesPage() {
     if (selectedSubject === 'all') {
       html = subjects.map(subj => {
         const list = students.filter(s => s.subjectId === subj.id);
-        return list.length ? buildHtmlTable(list, subj.name, subj) : '';
+        return list.length ? buildHtmlTable(list, subj.name) : '';
       }).filter(Boolean).join('<br/><br/>');
     } else {
-      html = buildHtmlTable(students, name, subjectInfo ?? undefined);
+      html = buildHtmlTable(students, name);
     }
 
     const blob = new Blob([`<html><head><meta charset="utf-8"></head><body>${html}</body></html>`], { type: 'application/vnd.ms-excel;charset=utf-8' });
@@ -215,19 +211,26 @@ export default function GradesPage() {
   const StudentTable = ({ list, subjId }: { list: StudentGrade[]; subjId?: string }) => {
     const filtered = filterStudents(list);
     return (
-      <div className="divide-y divide-slate-50 dark:divide-slate-700/50 max-h-[480px] overflow-y-auto">
+      <div className="divide-y divide-slate-50 dark:divide-slate-700/50">
         {filtered.length === 0 ? (
           <div className="text-center py-10 text-slate-400 text-sm">No students match your search.</div>
         ) : filtered.map(s => {
+          const total = getTotal(s.grades);
           const graded = hasGrades(s);
           return (
-            <div key={`${s.id}-${subjId}`} className={`flex items-center justify-between px-6 py-4 transition-colors ${graded ? 'bg-green-50/30 dark:bg-green-900/10' : 'hover:bg-slate-50 dark:hover:bg-slate-700/20'}`}>
-              <div className="flex items-center gap-4 min-w-0">
-                <span className="font-semibold text-slate-800 dark:text-slate-100 text-sm truncate">{s.name}</span>
-                <span className="text-xs text-slate-400 shrink-0">{s.studentCode}</span>
-              </div>
+            <div key={`${s.id}-${subjId}`} className={`grid grid-cols-[2fr_1fr_repeat(4,1fr)_1fr_auto] gap-2 items-center px-6 py-4 transition-colors ${graded ? 'bg-green-50/30 dark:bg-green-900/10' : 'hover:bg-slate-50 dark:hover:bg-slate-700/20'}`}>
+              <span className="font-semibold text-slate-800 dark:text-slate-100 text-sm truncate">{s.name}</span>
+              <span className="text-xs text-slate-400">{s.studentCode}</span>
+              {examTypes.map(t => (
+                <span key={t.key} className={`text-sm font-bold ${s.grades[t.key] !== undefined ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-300'}`}>
+                  {s.grades[t.key] !== undefined ? s.grades[t.key] : '—'}
+                </span>
+              ))}
+              <span className={`text-sm font-black ${graded ? 'text-green-600' : 'text-slate-300'}`}>
+                {graded ? `${total}/${maxTotal}` : '—'}
+              </span>
               <button onClick={() => openEdit(s)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors shrink-0 ${graded ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 hover:bg-indigo-200' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}>
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${graded ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 hover:bg-indigo-200' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}>
                 {graded ? <><Pencil size={12} /> Edit</> : <><Check size={12} /> Set</>}
               </button>
             </div>
@@ -238,47 +241,30 @@ export default function GradesPage() {
   };
 
   const TableHeader = () => (
-    <div className="flex items-center justify-between px-6 py-3 bg-slate-50 dark:bg-slate-700/30 text-xs font-bold text-slate-400 uppercase border-b border-slate-100 dark:border-slate-700">
-      <span>Student</span>
-      <span></span>
+    <div className="grid grid-cols-[2fr_1fr_repeat(4,1fr)_1fr_auto] gap-2 px-6 py-3 bg-slate-50 dark:bg-slate-700/30 text-xs font-bold text-slate-400 uppercase border-b border-slate-100 dark:border-slate-700">
+      <span>Student</span><span>Code</span>
+      {examTypes.map(t => <span key={t.key}>{t.label}</span>)}
+      <span>Total</span><span></span>
     </div>
   );
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in duration-500">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <GraduationCap className="text-indigo-600 shrink-0" size={28} />
+          <GraduationCap className="text-indigo-600" size={28} />
           <div>
-            <h2 className="text-2xl md:text-3xl font-black text-slate-800 dark:text-slate-100">Grades</h2>
+            <h2 className="text-3xl font-black text-slate-800 dark:text-slate-100">Grades</h2>
             <p className="text-slate-500 text-sm mt-0.5">Set and manage student grades by subject</p>
           </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <button onClick={async () => {
-            if (!confirm('Delete ALL grades for all subjects? This cannot be undone.')) return;
-            if (selectedSubject === 'all') {
-              // Delete grades for all subjects
-              await Promise.all(subjects.map(s =>
-                fetch(`/api/doctor/grades?subjectId=${s.id}`, { method: 'DELETE' })
-              ));
-            } else {
-              await fetch(`/api/doctor/grades?subjectId=${selectedSubject}`, { method: 'DELETE' });
-            }
-            toast.success('All grades cleared');
-            loadStudents(selectedSubject);
-          }}
-            className="flex items-center gap-2 px-4 py-2.5 bg-red-500 text-white font-bold rounded-2xl hover:bg-red-600 transition-colors text-sm">
-            <X size={16} /> Clear Grades
+        {students.length > 0 && (
+          <button onClick={exportExcel}
+            className="flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white font-bold rounded-2xl hover:bg-green-700 transition-colors shadow-lg shadow-green-100">
+            <Download size={18} /> Export Excel
           </button>
-          {students.length > 0 && (
-            <button onClick={exportExcel}
-              className="flex items-center gap-2 px-4 py-2.5 bg-green-600 text-white font-bold rounded-2xl hover:bg-green-700 transition-colors shadow-lg shadow-green-100 text-sm">
-              <Download size={16} /> Export Excel
-            </button>
-          )}
-        </div>
+        )}
       </div>
 
       {/* Subject selector */}
@@ -304,6 +290,74 @@ export default function GradesPage() {
           className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:text-white"
         />
         <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      </div>
+
+      {/* Grade type legend — editable max */}
+      <div className="flex flex-wrap gap-3 items-center">
+        {examTypes.map(t => {
+          const isDefault = DEFAULT_EXAM_TYPES.some(d => d.key === t.key);
+          return (
+            <div key={t.key} className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl px-3 py-2 text-sm shadow-sm">
+              <span className="font-bold text-slate-700 dark:text-slate-200">{t.label}</span>
+              {editingMax === t.key ? (
+                <input autoFocus type="number" min={1} max={200} value={tempMax}
+                  onChange={e => setTempMax(e.target.value)}
+                  onBlur={() => { const v = Number(tempMax); if (v > 0) setExamMaxes(p => ({ ...p, [t.key]: v })); setEditingMax(null); }}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') { const v = Number(tempMax); if (v > 0) setExamMaxes(p => ({ ...p, [t.key]: v })); setEditingMax(null); }
+                    if (e.key === 'Escape') setEditingMax(null);
+                  }}
+                  className="w-14 text-center border border-indigo-300 rounded-lg px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                />
+              ) : (
+                <span className="text-slate-400">/ {t.max}</span>
+              )}
+              <button onClick={() => { setEditingMax(t.key); setTempMax(String(t.max)); }} className="text-slate-300 hover:text-indigo-500 transition-colors">
+                <Pencil size={12} />
+              </button>
+              <button onClick={() => {
+                  if (isDefault) {
+                    setHiddenDefaults(p => [...p, t.key]);
+                  } else {
+                    setCustomTypes(p => p.filter(c => c.key !== t.key));
+                  }
+                }}
+                className="text-slate-300 hover:text-red-500 transition-colors ml-1">
+                <X size={12} />
+              </button>            </div>
+          );
+        })}
+        <div className="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 rounded-xl px-4 py-2 text-sm shadow-sm">
+          <span className="font-bold text-indigo-700 dark:text-indigo-300">Total</span>
+          <span className="text-indigo-400">/ {maxTotal}</span>
+        </div>
+
+        {/* Add new type */}
+        <div className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-600 rounded-xl px-3 py-2 shadow-sm">
+          <input value={newTypeName} onChange={e => setNewTypeName(e.target.value)}
+            placeholder="Name"
+            className="w-20 text-xs border-none outline-none bg-transparent text-slate-700 dark:text-slate-200 placeholder-slate-400"
+          />
+          <span className="text-slate-300">/</span>
+          <input value={newTypeMax} onChange={e => setNewTypeMax(e.target.value)}
+            placeholder="Max" type="number" min={1}
+            className="w-12 text-xs border-none outline-none bg-transparent text-slate-700 dark:text-slate-200 placeholder-slate-400"
+          />
+          <button
+            onClick={() => {
+              const label = newTypeName.trim();
+              const max = Number(newTypeMax);
+              if (!label || !max) return;
+              const key = `CUSTOM_${label.toUpperCase().replace(/\s+/g, '_')}_${Date.now()}`;
+              setCustomTypes(p => [...p, { key, label, max }]);
+              setExamMaxes(p => ({ ...p, [key]: max }));
+              setNewTypeName('');
+              setNewTypeMax('');
+            }}
+            className="w-6 h-6 bg-indigo-600 text-white rounded-full flex items-center justify-center hover:bg-indigo-700 transition-colors flex-shrink-0">
+            <Plus size={12} />
+          </button>
+        </div>
       </div>
 
       {/* Students list */}
