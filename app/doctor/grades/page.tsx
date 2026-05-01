@@ -247,33 +247,32 @@ export default function GradesPage() {
   return (
     <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in duration-500">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <GraduationCap className="text-indigo-600" size={28} />
+          <GraduationCap className="text-indigo-600 shrink-0" size={28} />
           <div>
-            <h2 className="text-3xl font-black text-slate-800 dark:text-slate-100">Grades</h2>
+            <h2 className="text-2xl md:text-3xl font-black text-slate-800 dark:text-slate-100">Grades</h2>
             <p className="text-slate-500 text-sm mt-0.5">Set and manage student grades by subject</p>
           </div>
         </div>
-        {students.length > 0 && (
-          <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <button onClick={async () => {
+            if (!selectedSubject || selectedSubject === 'all') { toast.error('Select a subject first'); return; }
+            if (!confirm('Delete ALL grades for this subject? This cannot be undone.')) return;
+            await fetch(`/api/doctor/grades?subjectId=${selectedSubject}`, { method: 'DELETE' });
+            toast.success('All grades cleared');
+            loadStudents(selectedSubject);
+          }}
+            className="flex items-center gap-2 px-4 py-2.5 bg-red-500 text-white font-bold rounded-2xl hover:bg-red-600 transition-colors text-sm">
+            <X size={16} /> Clear Grades
+          </button>
+          {students.length > 0 && (
             <button onClick={exportExcel}
-              className="flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white font-bold rounded-2xl hover:bg-green-700 transition-colors shadow-lg shadow-green-100">
-              <Download size={18} /> Export Excel
+              className="flex items-center gap-2 px-4 py-2.5 bg-green-600 text-white font-bold rounded-2xl hover:bg-green-700 transition-colors shadow-lg shadow-green-100 text-sm">
+              <Download size={16} /> Export Excel
             </button>
-            {selectedSubject !== 'all' && (
-              <button onClick={async () => {
-                if (!confirm('Delete ALL grades for this subject? This cannot be undone.')) return;
-                await fetch(`/api/doctor/grades?subjectId=${selectedSubject}`, { method: 'DELETE' });
-                toast.success('All grades cleared');
-                loadStudents(selectedSubject);
-              }}
-                className="flex items-center gap-2 px-5 py-2.5 bg-red-500 text-white font-bold rounded-2xl hover:bg-red-600 transition-colors">
-                <X size={18} /> Clear Grades
-              </button>
-            )}
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Subject selector */}
