@@ -256,10 +256,23 @@ export default function GradesPage() {
           </div>
         </div>
         {students.length > 0 && (
-          <button onClick={exportExcel}
-            className="flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white font-bold rounded-2xl hover:bg-green-700 transition-colors shadow-lg shadow-green-100">
-            <Download size={18} /> Export Excel
-          </button>
+          <div className="flex gap-2">
+            <button onClick={exportExcel}
+              className="flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white font-bold rounded-2xl hover:bg-green-700 transition-colors shadow-lg shadow-green-100">
+              <Download size={18} /> Export Excel
+            </button>
+            {selectedSubject !== 'all' && (
+              <button onClick={async () => {
+                if (!confirm('Delete ALL grades for this subject? This cannot be undone.')) return;
+                await fetch(`/api/doctor/grades?subjectId=${selectedSubject}`, { method: 'DELETE' });
+                toast.success('All grades cleared');
+                loadStudents(selectedSubject);
+              }}
+                className="flex items-center gap-2 px-5 py-2.5 bg-red-500 text-white font-bold rounded-2xl hover:bg-red-600 transition-colors">
+                <X size={18} /> Clear Grades
+              </button>
+            )}
+          </div>
         )}
       </div>
 

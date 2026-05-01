@@ -108,3 +108,17 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ success: true, grade });
 }
+
+// DELETE: clear all grades for a subject
+export async function DELETE(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user || !['DOCTOR', 'ADMIN'].includes(session.user.role))
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const subjectId = req.nextUrl.searchParams.get('subjectId');
+  if (!subjectId) return NextResponse.json({ error: 'subjectId required' }, { status: 400 });
+
+  await db.examResult.deleteMany({ where: { subjectId } });
+
+  return NextResponse.json({ success: true });
+}
