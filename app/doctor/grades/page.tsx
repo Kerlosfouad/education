@@ -207,11 +207,35 @@ export default function GradesPage() {
     URL.revokeObjectURL(url);
   };
 
+  const clearAllGrades = async () => {
+    if (!confirm('Are you sure you want to clear all grades for this subject? This cannot be undone.')) return;
+    const subjectId = selectedSubject;
+    if (!subjectId || subjectId === 'all') { toast.error('Please select a specific subject'); return; }
+    setLoading(true);
+    try {
+      const res = await fetch('/api/doctor/grades', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subjectId }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        toast.success('All grades cleared');
+        loadStudents(selectedSubject);
+      } else {
+        toast.error('Failed to clear grades');
+      }
+    } catch {
+      toast.error('Failed to clear grades');
+    }
+    setLoading(false);
+  };
+
   // Reusable student table
   const StudentTable = ({ list, subjId }: { list: StudentGrade[]; subjId?: string }) => {
     const filtered = filterStudents(list);
     return (
-      <div className="divide-y divide-slate-50 dark:divide-slate-700/50">
+      <div className="divide-y divide-slate-50 dark:divide-slate-700/50 max-h-[480px] overflow-y-auto">
         {filtered.length === 0 ? (
           <div className="text-center py-10 text-slate-400 text-sm">No students match your search.</div>
         ) : filtered.map(s => {
@@ -259,12 +283,20 @@ export default function GradesPage() {
             <p className="text-slate-500 text-sm mt-0.5">Set and manage student grades by subject</p>
           </div>
         </div>
-        {students.length > 0 && (
-          <button onClick={exportExcel}
-            className="flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white font-bold rounded-2xl hover:bg-green-700 transition-colors shadow-lg shadow-green-100">
-            <Download size={18} /> Export Excel
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          {students.length > 0 && selectedSubject !== 'all' && (
+            <button onClick={clearAllGrades}
+              className="flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white font-bold rounded-2xl hover:bg-red-700 transition-colors shadow-lg shadow-red-100">
+              <X size={18} /> Clear All
+            </button>
+          )}
+          {students.length > 0 && (
+            <button onClick={exportExcel}
+              className="flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white font-bold rounded-2xl hover:bg-green-700 transition-colors shadow-lg shadow-green-100">
+              <Download size={18} /> Export Excel
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Subject selector */}
