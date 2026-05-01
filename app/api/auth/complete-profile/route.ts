@@ -6,7 +6,10 @@ import QRCode from 'qrcode';
 import { z } from 'zod';
 
 const schema = z.object({
-  fullName: z.string().trim().min(1),
+  fullName: z.string().trim().min(1).refine(
+    (val) => val.trim().split(/\s+/).length >= 2,
+    { message: 'Please enter at least two names (e.g. John Smith)' }
+  ),
   departmentId: z.string().min(1),
   academicYear: z.number().min(0).max(5),
   studentCode: z

@@ -98,6 +98,12 @@ export default function RegisterPage() {
       return;
     }
 
+    if (formData.name.trim().split(/\s+/).length < 2) {
+      setError('Please enter at least two names (e.g. John Smith)');
+      setIsLoading(false);
+      return;
+    }
+
     if (formData.password.length < 8) {
       setError('Password must be at least 8 characters long');
       setIsLoading(false);
