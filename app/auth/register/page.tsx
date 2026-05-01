@@ -38,6 +38,7 @@ export default function RegisterPage() {
     studentCode: '',
     departmentId: '',
     academicYear: '',
+    semester: '',
   });
 
   const selectedDept = departments.find(d => d.id === formData.departmentId);
@@ -122,6 +123,7 @@ export default function RegisterPage() {
           studentCode: formData.studentCode || undefined,
           departmentId: formData.departmentId,
           academicYear: parseInt(formData.academicYear),
+          semester: formData.semester ? parseInt(formData.semester) : 1,
         }),
       });
 
@@ -367,6 +369,24 @@ export default function RegisterPage() {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Semester *</Label>
+                <Select
+                  value={formData.semester}
+                  onValueChange={(value) => handleChange('semester', value)}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger className="w-full">
+                    <GraduationCap className="w-4 h-4 mr-2 text-muted-foreground shrink-0" />
+                    <SelectValue placeholder="Select semester" />
+                  </SelectTrigger>
+                  <SelectContent className="z-[9999] bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-700">
+                    <SelectItem value="1" className="dark:text-white dark:focus:bg-slate-700">Semester 1</SelectItem>
+                    <SelectItem value="2" className="dark:text-white dark:focus:bg-slate-700">Semester 2</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Subjects preview */}

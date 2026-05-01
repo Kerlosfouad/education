@@ -97,6 +97,7 @@ model Student {
   studentCode       String   @unique
   departmentId      String
   academicYear      Int
+  semester          Int      @default(1)
   phone             String?
   barcode           String?  @unique
   qrCode            String?  @unique

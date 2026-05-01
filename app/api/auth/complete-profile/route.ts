@@ -17,6 +17,7 @@ const schema = z.object({
     .trim()
     .regex(/^\d{5}$/, 'Student code must be exactly 5 digits'),
   phone: z.string().optional(),
+  semester: z.number().min(1).max(2).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -31,7 +32,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: result.error.errors[0].message }, { status: 400 });
   }
 
-  const { fullName, departmentId, academicYear, studentCode, phone } = result.data;
+  const { fullName, departmentId, academicYear, studentCode, phone, semester } = result.data;
 
   const user = await db.user.findUnique({
     where: { email: session.user.email },
@@ -56,6 +57,7 @@ export async function POST(req: NextRequest) {
       qrCode,
       departmentId,
       academicYear,
+      semester: semester ?? 1,
       phone: phone || null,
     },
   });

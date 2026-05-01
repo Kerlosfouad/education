@@ -17,6 +17,7 @@ const registerSchema = z.object({
   studentCode: z.string().optional(),
   departmentId: z.string().optional(),
   academicYear: z.number().optional(),
+  semester: z.number().min(1).max(2).optional(),
 });
 
 /** Generate a unique 6-digit numeric student code */
@@ -54,7 +55,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { name, email, password, phone, studentCode: inputCode, departmentId, academicYear } = result.data;
+    const { name, email, password, phone, studentCode: inputCode, departmentId, academicYear, semester } = result.data;
     const normalizedEmail = email.toLowerCase();
     const isDoctor = isDoctorEmail(normalizedEmail);
 
@@ -110,6 +111,7 @@ export async function POST(req: NextRequest) {
           qrCode,
           departmentId,
           academicYear,
+          semester: semester ?? 1,
           phone: phone || null,
         },
       });
