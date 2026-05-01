@@ -307,7 +307,8 @@ export default function AttendancePage() {
               if (deptStudents.length === 0) return null;
 
               // Group by level
-              const levels = [...new Set(deptStudents.map(s => s.academicYear))].sort((a, b) => a - b);
+              const levelSet = new Set(deptStudents.map(s => s.academicYear));
+              const levels = Array.from(levelSet).sort((a, b) => a - b);
 
               return (
                 <div key={dept.id}>
