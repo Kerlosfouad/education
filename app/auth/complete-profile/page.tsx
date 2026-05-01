@@ -34,6 +34,7 @@ export default function CompleteProfilePage() {
   const [academicYear, setAcademicYear] = useState('');
   const [studentCode, setStudentCode] = useState('');
   const [phone, setPhone] = useState('');
+  const [semester, setSemester] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [isDone, setIsDone] = useState(false);
@@ -99,6 +100,7 @@ export default function CompleteProfilePage() {
           academicYear: parseInt(academicYear),
           studentCode: studentCode.trim(),
           phone: phone || undefined,
+          semester: semester ? parseInt(semester) : 1,
         }),
       });
 
@@ -223,6 +225,20 @@ export default function CompleteProfilePage() {
                     {academicYears.map(y => (
                       <SelectItem key={y.value} value={y.value} className="dark:text-white dark:focus:bg-slate-700">{y.label}</SelectItem>
                     ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Semester *</Label>
+                <Select value={semester} onValueChange={setSemester} disabled={isLoading}>
+                  <SelectTrigger>
+                    <GraduationCap className="w-4 h-4 mr-2 text-muted-foreground" />
+                    <SelectValue placeholder="Select semester" />
+                  </SelectTrigger>
+                  <SelectContent className="z-[9999] bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-700">
+                    <SelectItem value="1" className="dark:text-white dark:focus:bg-slate-700">Semester 1</SelectItem>
+                    <SelectItem value="2" className="dark:text-white dark:focus:bg-slate-700">Semester 2</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
