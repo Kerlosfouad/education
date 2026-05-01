@@ -41,7 +41,26 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       department = await db.department.findUnique({ where: { id: departmentId }, select: { name: true } });
     }
 
-    return NextResponse.json({ success: true, data: { ...assignment, department, academicYear } });
+    // Get total submission count per student across all assignments
+    const studentIds = assignment.submissions.map(s => s.student.id);
+    const submissionCounts = studentIds.length > 0
+      ? await db.assignmentSubmission.groupBy({
+          by: ['studentId'],
+          where: { studentId: { in: studentIds } },
+          _count: { id: true },
+        })
+      : [];
+    const submissionCountMap: Record<string, number> = {};
+    for (const row of submissionCounts) {
+      submissionCountMap[row.studentId] = row._count.id;
+    }
+
+    const submissionsWithCount = assignment.submissions.map(s => ({
+      ...s,
+      totalSubmissions: submissionCountMap[s.student.id] ?? 0,
+    }));
+
+    return NextResponse.json({ success: true, data: { ...assignment, submissions: submissionsWithCount, department, academicYear } });
   } catch (error) {
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }

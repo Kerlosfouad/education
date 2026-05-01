@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import {
   Plus, FileText, ExternalLink, Users,
-  History, X, Trash2, ChevronRight, Loader2, Download, Search, Filter
+  History, X, Trash2, ChevronRight, Loader2, Search, Filter
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import {
@@ -20,6 +20,7 @@ interface Submission {
   submittedAt: string;
   fileUrl: string | null;
   gradedAt: string | null;
+  totalSubmissions: number;
   student: {
     id: string;
     studentCode: string;
@@ -241,7 +242,7 @@ setNewAssignment({ title: '', departmentId: '', academicYear: '', durationDays: 
               </div>
 
               {/* Stats */}
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="bg-slate-50 dark:bg-slate-700/50 rounded-2xl p-3 text-center">
                   <p className="text-2xl font-black text-slate-800 dark:text-slate-100">{selected.submissions.length}</p>
                   <p className="text-xs text-slate-400 mt-0.5">Submitted</p>
@@ -249,10 +250,6 @@ setNewAssignment({ title: '', departmentId: '', academicYear: '', durationDays: 
                 <div className="bg-green-50 dark:bg-green-900/20 rounded-2xl p-3 text-center">
                   <p className="text-2xl font-black text-green-700 dark:text-green-400">{selected.submissions.filter(s => s.status === 'GRADED').length}</p>
                   <p className="text-xs text-slate-400 mt-0.5">Graded</p>
-                </div>
-                <div className="bg-orange-50 dark:bg-orange-900/20 rounded-2xl p-3 text-center">
-                  <p className="text-2xl font-black text-orange-600 dark:text-orange-400">{selected.submissions.filter(s => s.status !== 'GRADED').length}</p>
-                  <p className="text-xs text-slate-400 mt-0.5">Pending</p>
                 </div>
               </div>
 
@@ -263,7 +260,7 @@ setNewAssignment({ title: '', departmentId: '', academicYear: '', durationDays: 
                   <p className="text-sm">{t('noSubmissionsYet')}</p>
                 </div>
               ) : (
-                <div className="space-y-4 max-h-[420px] overflow-y-auto pr-1">
+                <div className="space-y-4 pr-1">
                   {/* Filter Bar */}
                   <div className="flex flex-wrap gap-2">
                     <select value={filterDept} onChange={e => { setFilterDept(e.target.value); setFilterLevel(''); }}
@@ -318,10 +315,9 @@ setNewAssignment({ title: '', departmentId: '', academicYear: '', durationDays: 
                                   className="flex items-center gap-1 text-xs bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 font-bold px-2.5 py-1.5 rounded-xl hover:bg-indigo-100 transition-colors">
                                   <ExternalLink size={11} /> View
                                 </a>
-                                <a href={sub.fileUrl} download
-                                  className="flex items-center gap-1 text-xs bg-green-50 dark:bg-green-900/30 text-green-600 font-bold px-2.5 py-1.5 rounded-xl hover:bg-green-100 transition-colors">
-                                  <Download size={11} /> Save
-                                </a>
+                                <span className="flex items-center gap-1 text-xs bg-slate-100 dark:bg-slate-600 text-slate-600 dark:text-slate-300 font-bold px-2.5 py-1.5 rounded-xl">
+                                  <FileText size={11} /> {sub.totalSubmissions}
+                                </span>
                               </div>
                             ) : (
                               <span className="text-xs text-slate-400 bg-slate-100 dark:bg-slate-600 px-2 py-1 rounded-full">No file</span>
