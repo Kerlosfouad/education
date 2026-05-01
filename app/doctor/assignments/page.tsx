@@ -260,7 +260,7 @@ setNewAssignment({ title: '', departmentId: '', academicYear: '', durationDays: 
                   <p className="text-sm">{t('noSubmissionsYet')}</p>
                 </div>
               ) : (
-                <div className="space-y-4 pr-1">
+                <div className="space-y-4 max-h-[420px] overflow-y-auto pr-1">
                   {/* Filter Bar */}
                   <div className="flex flex-wrap gap-2">
                     <select value={filterDept} onChange={e => { setFilterDept(e.target.value); setFilterLevel(''); }}
