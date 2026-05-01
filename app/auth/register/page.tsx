@@ -71,12 +71,13 @@ export default function RegisterPage() {
   useEffect(() => {
     if (!formData.departmentId || !formData.academicYear) { setSubjects([]); return; }
     setLoadingSubjects(true);
-    fetch(`/api/subjects?departmentId=${formData.departmentId}&academicYear=${formData.academicYear}`)
+    const semesterParam = formData.semester ? `&semester=${formData.semester}` : '';
+    fetch(`/api/subjects?departmentId=${formData.departmentId}&academicYear=${formData.academicYear}${semesterParam}`)
       .then(r => r.json())
       .then(json => setSubjects(json.success ? json.data : []))
       .catch(() => setSubjects([]))
       .finally(() => setLoadingSubjects(false));
-  }, [formData.departmentId, formData.academicYear]);
+  }, [formData.departmentId, formData.academicYear, formData.semester]);
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({

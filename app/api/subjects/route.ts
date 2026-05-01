@@ -7,12 +7,15 @@ export async function GET(req: NextRequest) {
     const departmentId = searchParams.get('departmentId');
     const academicYearRaw = searchParams.get('academicYear');
     const academicYear = academicYearRaw ? Number(academicYearRaw) : null;
+    const semesterRaw = searchParams.get('semester');
+    const semester = semesterRaw ? Number(semesterRaw) : null;
 
     const subjects = await db.subject.findMany({
       where: {
         isActive: true,
         ...(departmentId ? { departmentId } : {}),
         ...(academicYear !== null ? { academicYear } : {}),
+        ...(semester !== null ? { semester } : {}),
       },
       select: { id: true, name: true, code: true, departmentId: true, department: { select: { name: true } } },
       orderBy: { name: 'asc' },

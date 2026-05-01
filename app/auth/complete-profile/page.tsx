@@ -66,12 +66,13 @@ export default function CompleteProfilePage() {
   useEffect(() => {
     if (!departmentId || !academicYear) { setSubjects([]); return; }
     setLoadingSubjects(true);
-    fetch(`/api/subjects?departmentId=${departmentId}&academicYear=${academicYear}`)
+    const semesterParam = semester ? `&semester=${semester}` : '';
+    fetch(`/api/subjects?departmentId=${departmentId}&academicYear=${academicYear}${semesterParam}`)
       .then(r => r.json())
       .then(json => setSubjects(json.success ? json.data : []))
       .catch(() => setSubjects([]))
       .finally(() => setLoadingSubjects(false));
-  }, [departmentId, academicYear]);
+  }, [departmentId, academicYear, semester]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
