@@ -14,8 +14,14 @@ export async function GET() {
   });
   if (!student) return NextResponse.json({ error: 'Student not found' }, { status: 404 });
 
+  const semesterRows = await db.$queryRaw<{semester: number}[]>`SELECT semester FROM students WHERE id = ${student.id}`;
+  const semester = semesterRows[0]?.semester ?? null;
+
+  const subjectWhere: any = { departmentId: student.departmentId, academicYear: student.academicYear };
+  if (semester) subjectWhere.semester = semester;
+
   const subjects = await db.subject.findMany({
-    where: { departmentId: student.departmentId, academicYear: student.academicYear },
+    where: subjectWhere,
     select: { id: true, name: true, code: true, semester: true },
   });
 

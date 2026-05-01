@@ -22,24 +22,36 @@ export async function GET() {
 
     const now = new Date();
 
-    // Quizzes available - filtered by student's department and year
+    // Get student's semester
+    const semesterRows = await db.$queryRaw<{semester: number}[]>`SELECT semester FROM students WHERE id = ${student.id}`;
+    const semester = semesterRows[0]?.semester ?? null;
+
+    // Get subject IDs for student's dept+year+semester
+    const subjectWhere: any = { departmentId: student.departmentId, academicYear: student.academicYear };
+    if (semester) subjectWhere.semester = semester;
+    const studentSubjects = await db.subject.findMany({ where: subjectWhere, select: { id: true } });
+    const subjectIds = studentSubjects.map(s => s.id);
+
+    // Quizzes available - filtered by student's department, year and semester
     const quizzes = await db.quiz.findMany({
       where: {
         isPublished: true,
         departmentId: student.departmentId,
         academicYear: student.academicYear,
+        OR: [{ subjectId: null }, { subjectId: { in: subjectIds } }],
       },
       include: { subject: { select: { name: true } } },
       orderBy: { createdAt: 'desc' },
       take: 5,
     });
 
-    // Assignments - filtered by student's department and year
+    // Assignments - filtered by student's department, year and semester
     const assignments = await db.assignment.findMany({
       where: {
         isActive: true,
         departmentId: student.departmentId,
         academicYear: student.academicYear,
+        OR: [{ subjectId: null }, { subjectId: { in: subjectIds } }],
       },
       include: { subject: { select: { name: true } } },
       orderBy: { deadline: 'asc' },
@@ -116,13 +128,13 @@ export async function GET() {
       alreadyMarked = !!existing;
     }
 
-    // Videos - filtered by student's department and year
+    // Videos - filtered by student's department, year and semester
     const videos = await db.lectureSlide.findMany({
       where: {
         fileType: 'video',
         OR: [
           { subjectId: null },
-          { subject: { departmentId: student.departmentId, academicYear: student.academicYear } },
+          { subject: { departmentId: student.departmentId, academicYear: student.academicYear, ...(semester ? { semester } : {}) } },
         ],
       },
       include: { subject: { select: { name: true } } },

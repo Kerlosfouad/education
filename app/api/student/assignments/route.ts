@@ -9,10 +9,22 @@ export async function GET() {
     if (!session?.user?.id) return NextResponse.json({ success: false }, { status: 401 });
     const student = await db.student.findUnique({ where: { userId: session.user.id } });
     if (!student) return NextResponse.json({ success: true, data: [] });
+
+    // Get student's semester via raw SQL
+    const semesterRows = await db.$queryRaw<{semester: number}[]>`SELECT semester FROM students WHERE id = ${student.id}`;
+    const semester = semesterRows[0]?.semester ?? null;
+
+    // Get subject IDs for student's dept+year+semester
+    const subjectWhere: any = { departmentId: student.departmentId, academicYear: student.academicYear };
+    if (semester) subjectWhere.semester = semester;
+    const subjects = await db.subject.findMany({ where: subjectWhere, select: { id: true } });
+    const subjectIds = subjects.map(s => s.id);
+
     const assignments = await db.assignment.findMany({
       where: {
         OR: [
-          { departmentId: student.departmentId, academicYear: student.academicYear },
+          { departmentId: student.departmentId, academicYear: student.academicYear, subjectId: { in: subjectIds } },
+          { departmentId: student.departmentId, academicYear: student.academicYear, subjectId: null },
           { departmentId: null },
         ],
       },

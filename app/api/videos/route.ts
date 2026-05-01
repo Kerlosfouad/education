@@ -10,13 +10,16 @@ export async function GET() {
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     // Students should only see videos for their department/year (plus "General" videos with no subject).
-    let studentFilter: { departmentId: string; academicYear: number } | null = null;
+    let studentFilter: { departmentId: string; academicYear: number; semester?: number } | null = null;
     if (session.user.role === 'STUDENT') {
       const student = await db.student.findUnique({
         where: { userId: session.user.id },
-        select: { departmentId: true, academicYear: true },
+        select: { departmentId: true, academicYear: true, id: true },
       });
-      if (student) studentFilter = student;
+      if (student) {
+        const semesterRows = await db.$queryRaw<{semester: number}[]>`SELECT semester FROM students WHERE id = ${student.id}`;
+        studentFilter = { departmentId: student.departmentId, academicYear: student.academicYear, semester: semesterRows[0]?.semester };
+      }
     }
 
     const videos = await db.lectureSlide.findMany({
@@ -26,7 +29,7 @@ export async function GET() {
           ? {
               OR: [
                 { subjectId: null },
-                { subject: { departmentId: studentFilter.departmentId, academicYear: studentFilter.academicYear } },
+                { subject: { departmentId: studentFilter.departmentId, academicYear: studentFilter.academicYear, ...(studentFilter.semester ? { semester: studentFilter.semester } : {}) } },
               ],
             }
           : {}),

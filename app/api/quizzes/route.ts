@@ -42,12 +42,17 @@ export async function GET(req: NextRequest) {
       const student = await getOrCreateStudent(session.user.id);
       if (!student) return NextResponse.json({ error: 'No department found' }, { status: 404 });
 
+      const semesterRows = await db.$queryRaw<{semester: number}[]>`SELECT semester FROM students WHERE id = ${student.id}`;
+      const studentSemester = semesterRows[0]?.semester ?? null;
+
       const quizzesWithAttempts = await Promise.all(
         quizzesWithDept
-          .filter((quiz: any) =>
-            quiz.departmentId === student.departmentId &&
-            quiz.academicYear === student.academicYear
-          )
+          .filter((quiz: any) => {
+            const matchDeptYear = quiz.departmentId === student.departmentId && quiz.academicYear === student.academicYear;
+            if (!matchDeptYear) return false;
+            if (!studentSemester || !quiz.subject) return true;
+            return quiz.subject.semester === studentSemester;
+          })
           .map(async (quiz: any) => {
             const attempts = await db.quizAttempt.findMany({
               where: { quizId: quiz.id, studentId: student.id },
