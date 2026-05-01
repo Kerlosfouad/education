@@ -162,9 +162,12 @@ export default function GradesPage() {
     const name = subjectInfo?.name || 'All Subjects';
 
     const border = 'border:1px solid #2E4DA0';
-    const buildHtmlTable = (list: StudentGrade[], subjName: string) => {
+    const buildHtmlTable = (list: StudentGrade[], subjName: string, subj?: Subject) => {
       const headers = ['#', 'Student Name', 'Code', ...examTypes.map(t => `${t.label} (/${t.max})`), 'Total'];
       const colCount = headers.length;
+      const subjectMeta = subj
+        ? `${subj.department?.name ?? ''} · Level ${subj.academicYear} · Semester ${subj.semester}`
+        : '';
       const rows = list.map((s, i) => {
         const total = getTotal(s.grades);
         const graded = hasGrades(s);
@@ -179,7 +182,8 @@ export default function GradesPage() {
         </tr>`;
       }).join('');
       return `<table style="border-collapse:collapse;width:100%">
-        <tr><td colspan="${colCount}" style="background:#1F3864;color:white;font-size:14pt;font-weight:bold;text-align:center;padding:10px;${border}">Grade Sheet - ${subjName}</td></tr>
+        <tr><td colspan="${colCount}" style="background:#1F3864;color:white;font-size:14pt;font-weight:bold;text-align:center;padding:10px;${border}">${subjName}</td></tr>
+        ${subjectMeta ? `<tr><td colspan="${colCount}" style="background:#2E4DA0;color:#cce0ff;font-size:10pt;text-align:center;padding:5px;${border}">${subjectMeta}</td></tr>` : ''}
         <tr><td colspan="${colCount}" style="padding:4px"></td></tr>
         <tr>${headers.map(h => `<th style="background:#2E4DA0;color:white;font-weight:bold;text-align:center;${border};padding:7px">${h}</th>`).join('')}</tr>
         ${rows}
@@ -192,10 +196,10 @@ export default function GradesPage() {
     if (selectedSubject === 'all') {
       html = subjects.map(subj => {
         const list = students.filter(s => s.subjectId === subj.id);
-        return list.length ? buildHtmlTable(list, subj.name) : '';
+        return list.length ? buildHtmlTable(list, subj.name, subj) : '';
       }).filter(Boolean).join('<br/><br/>');
     } else {
-      html = buildHtmlTable(students, name);
+      html = buildHtmlTable(students, name, subjectInfo ?? undefined);
     }
 
     const blob = new Blob([`<html><head><meta charset="utf-8"></head><body>${html}</body></html>`], { type: 'application/vnd.ms-excel;charset=utf-8' });
