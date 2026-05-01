@@ -62,28 +62,36 @@ export async function GET(req: NextRequest) {
         where,
         include: {
           subject: true,
-          _count: {
-            select: {
-              attendances: true,
-            },
-          },
+          _count: { select: { attendances: true } },
         },
-        orderBy: {
-          createdAt: 'desc',
-        },
+        orderBy: { createdAt: 'desc' },
       });
 
-      // Fetch department info separately for sessions that have departmentId
-      const departmentIds = Array.from(new Set(sessions.map((s: any) => s.departmentId).filter(Boolean)));
+      // Fetch departmentId and academicYear via raw SQL (stored outside Prisma schema)
+      const sessionIds = sessions.map((s: any) => s.id);
+      const rawSessions = sessionIds.length > 0
+        ? await db.$queryRaw<{ id: string; departmentId: string | null; academicYear: number | null }[]>`
+            SELECT id, "departmentId", "academicYear" FROM attendance_sessions WHERE id = ANY(${sessionIds}::text[])
+          `
+        : [];
+      const rawMap = Object.fromEntries(rawSessions.map(r => [r.id, r]));
+
+      // Fetch department info
+      const departmentIds = Array.from(new Set(rawSessions.map(r => r.departmentId).filter(Boolean)));
       const departments = departmentIds.length > 0
         ? await db.department.findMany({ where: { id: { in: departmentIds as string[] } }, select: { id: true, name: true, nameAr: true } })
         : [];
       const deptMap = Object.fromEntries(departments.map((d: any) => [d.id, d]));
 
-      const sessionsWithDept = sessions.map((s: any) => ({
-        ...s,
-        department: s.departmentId ? deptMap[s.departmentId] ?? null : null,
-      }));
+      const sessionsWithDept = sessions.map((s: any) => {
+        const raw = rawMap[s.id];
+        return {
+          ...s,
+          departmentId: raw?.departmentId ?? null,
+          academicYear: raw?.academicYear ?? null,
+          department: raw?.departmentId ? deptMap[raw.departmentId] ?? null : null,
+        };
+      });
 
       return NextResponse.json({ success: true, data: sessionsWithDept });
     }
