@@ -50,17 +50,19 @@ export async function POST(req: NextRequest) {
   const qrUrl = `${process.env.QR_CODE_BASE_URL || 'http://localhost:3000'}/student/${studentCode}`;
   const qrCode = await QRCode.toDataURL(qrUrl, { width: 300, margin: 2 });
 
-  await db.student.create({
+  const newStudent = await db.student.create({
     data: {
       userId: user.id,
       studentCode,
       qrCode,
       departmentId,
       academicYear,
-      semester: semester ?? 1,
       phone: phone || null,
-    },
+    } as any,
   });
+
+  // Update semester separately since it may not be in generated types yet
+  await db.$executeRaw`UPDATE students SET semester = ${semester ?? 1} WHERE id = ${newStudent.id}`;
 
   // Update user name with the provided full name
   await db.user.update({

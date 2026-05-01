@@ -104,17 +104,19 @@ export async function POST(req: NextRequest) {
       }
       const qrCode = await generateQRCode(studentCode);
 
-      await db.student.create({
+      const newStudent = await db.student.create({
         data: {
           userId: user.id,
           studentCode,
           qrCode,
           departmentId,
           academicYear,
-          semester: semester ?? 1,
           phone: phone || null,
-        },
+        } as any,
       });
+
+      // Update semester separately since it may not be in generated types yet
+      await db.$executeRaw`UPDATE students SET semester = ${semester ?? 1} WHERE id = ${newStudent.id}`;
     }
 
     return NextResponse.json(
