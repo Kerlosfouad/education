@@ -24,7 +24,7 @@ export async function PATCH(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { name, studentCode, departmentId, academicYear } = await request.json();
+  const { name, studentCode, departmentId, academicYear, semester } = await request.json();
   if (!name?.trim() || !studentCode?.trim())
     return NextResponse.json({ error: 'Name and student code are required' }, { status: 400 });
 
@@ -39,9 +39,14 @@ export async function PATCH(request: Request) {
         studentCode: studentCode.trim(),
         ...(departmentId ? { departmentId } : {}),
         ...(academicYear !== undefined ? { academicYear: Number(academicYear) } : {}),
-      },
+      } as any,
     }),
   ]);
+
+  // Update semester via raw SQL to bypass stale prisma types
+  if (semester !== undefined) {
+    await db.$executeRaw`UPDATE students SET semester = ${Number(semester)} WHERE id = ${student.id}`;
+  }
 
   return NextResponse.json({ success: true });
 }

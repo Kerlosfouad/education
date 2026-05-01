@@ -10,6 +10,7 @@ export default function SettingsPage() {
   const [studentCode, setStudentCode] = useState('');
   const [departmentId, setDepartmentId] = useState('');
   const [academicYear, setAcademicYear] = useState('');
+  const [semester, setSemester] = useState('1');
   const [departments, setDepartments] = useState<Department[]>([]);
   const [availableLevels, setAvailableLevels] = useState<number[]>([1, 2, 3, 4]);
   const [loading, setLoading] = useState(true);
@@ -27,6 +28,7 @@ export default function SettingsPage() {
         setStudentCode(profileJson.data.studentCode || '');
         setDepartmentId(profileJson.data.departmentId || '');
         setAcademicYear(String(profileJson.data.academicYear ?? ''));
+        setSemester(String(profileJson.data.semester ?? '1'));
       }
       if (deptsJson.success) setDepartments(deptsJson.data);
     }).finally(() => setLoading(false));
@@ -56,6 +58,7 @@ export default function SettingsPage() {
           studentCode: studentCode.trim(),
           departmentId: departmentId || undefined,
           academicYear: academicYear !== '' ? Number(academicYear) : undefined,
+          semester: Number(semester),
         }),
       });
       const json = await res.json();
@@ -121,6 +124,18 @@ export default function SettingsPage() {
                 className="w-full pl-9 pr-4 py-3 bg-slate-50 dark:bg-[#0a1628]/60 border border-slate-200 dark:border-[#1a2f4a] rounded-xl text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 appearance-none">
                 <option value="">Select level</option>
                 {availableLevels.map(l => <option key={l} value={String(l)}>Level {l}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Semester</label>
+            <div className="relative">
+              <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+              <select value={semester} onChange={e => setSemester(e.target.value)}
+                className="w-full pl-9 pr-4 py-3 bg-slate-50 dark:bg-[#0a1628]/60 border border-slate-200 dark:border-[#1a2f4a] rounded-xl text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 appearance-none">
+                <option value="1">Semester 1</option>
+                <option value="2">Semester 2</option>
               </select>
             </div>
           </div>
