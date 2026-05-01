@@ -43,7 +43,7 @@ export default function AttendancePage() {
   const fetchData = useCallback(async () => {
     try {
       const [sessRes, subRes, stuRes] = await Promise.all([
-        fetch('/api/attendance'), fetch('/api/subjects'), fetch('/api/students?limit=200'),
+        fetch('/api/attendance'), fetch('/api/subjects'), fetch('/api/students'),
       ]);
       const [sessJson, subJson, stuJson] = await Promise.all([sessRes.json(), subRes.json(), stuRes.json()]);
       if (sessJson.success) {
