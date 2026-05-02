@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import {
@@ -287,7 +287,7 @@ export default function StudentsPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-bold text-slate-800 dark:text-white truncate">{s.user.name}</p>
-                        <p className="text-[10px] text-slate-400 truncate">{s.user.email} G�� {timeAgo(s.user.createdAt)}</p>
+                        <p className="text-[10px] text-slate-400 truncate">{s.user.email} ΓÇó {timeAgo(s.user.createdAt)}</p>
                       </div>
                     </div>
                     <div className="space-y-1.5 text-xs mb-3 ml-13">
@@ -403,6 +403,7 @@ export default function StudentsPage() {
                     <th className="p-5 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Quiz Performance</th>
                     <th className="p-5 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Meeting Presence</th>
                     <th className="p-5 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
+                    <th className="p-5 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50 dark:divide-[#1a2f4a]">
@@ -441,6 +442,11 @@ export default function StudentsPage() {
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${status.cls}`}>
                             {status.label}
                           </span>
+                        </td>
+                        <td className="p-3 text-center">
+                          <button className="text-slate-400 hover:text-blue-600 transition-colors p-1">
+                            <MoreVertical size={15} />
+                          </button>
                         </td>
                       </tr>
                     );

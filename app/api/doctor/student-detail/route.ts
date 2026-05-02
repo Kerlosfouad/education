@@ -40,5 +40,33 @@ export async function GET(req: NextRequest) {
 
   if (!student) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  return NextResponse.json({ success: true, data: student });
+  // Get enrolled subjects based on department and academic year
+  const enrolledSubjects = await db.subject.findMany({
+    where: {
+      departmentId: student.departmentId,
+      academicYear: student.academicYear,
+      isActive: true,
+    },
+    select: {
+      id: true,
+      name: true,
+      code: true,
+      doctor: {
+        select: {
+          user: {
+            select: { name: true }
+          }
+        }
+      }
+    },
+    orderBy: { name: 'asc' },
+  });
+
+  return NextResponse.json({ 
+    success: true, 
+    data: { 
+      ...student, 
+      enrolledSubjects 
+    } 
+  });
 }
