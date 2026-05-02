@@ -93,10 +93,18 @@ export async function POST(req: NextRequest) {
       // Use provided code or generate one
       let studentCode: string;
       if (inputCode && inputCode.trim()) {
-        const existing = await db.student.findUnique({ where: { studentCode: inputCode.trim() } });
-        if (existing) {
+        const existing = await db.student.findUnique({
+          where: { studentCode: inputCode.trim() },
+          include: { user: { select: { status: true } } },
+        });
+        // Block only if the existing student is ACTIVE or PENDING
+        if (existing && existing.user.status !== 'REJECTED') {
           await db.user.delete({ where: { id: user.id } });
           return NextResponse.json({ error: 'Student code already in use' }, { status: 409 });
+        }
+        // If rejected student had this code, delete them to free it up
+        if (existing && existing.user.status === 'REJECTED') {
+          await db.student.delete({ where: { studentCode: inputCode.trim() } });
         }
         studentCode = inputCode.trim();
       } else {
