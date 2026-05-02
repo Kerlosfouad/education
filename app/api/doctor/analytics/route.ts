@@ -21,16 +21,19 @@ export async function GET() {
     });
 
     // Fetch all sessions, quizzes, assignments in bulk
-    const [allSessions, allQuizzes, allAssignments] = await Promise.all([
-      (db.attendanceSession.findMany as any)({ select: { id: true, departmentId: true, academicYear: true } }),
+    const [allSessionsRaw, allQuizzes, allAssignments] = await Promise.all([
+      db.$queryRaw<{ id: string; departmentId: string | null; academicYear: number | null }[]>`
+        SELECT id, "departmentId", "academicYear" FROM attendance_sessions
+      `,
       db.quiz.findMany({ where: { isPublished: true }, select: { id: true, departmentId: true, academicYear: true } }),
       db.assignment.findMany({ where: { isActive: true }, select: { id: true, departmentId: true, academicYear: true } }),
     ]);
 
     type SessionRow = { id: string; departmentId: string | null; academicYear: number | null };
+    const allSessions = allSessionsRaw as SessionRow[];
 
     const data = students.map(student => {
-      const totalSessions = (allSessions as SessionRow[]).filter(s =>
+      const totalSessions = allSessions.filter(s =>
         !s.departmentId ||
         (s.departmentId === student.departmentId && (s.academicYear === student.academicYear || s.academicYear === null))
       ).length;
