@@ -58,7 +58,7 @@ export default function AssignmentsPage() {
   const [detailLoading, setDetailLoading] = useState(false);
   
   // Grading state
-  const [gradingScores, setGradingScores] = useState<Record<string, string>>({});
+  const [globalScore, setGlobalScore] = useState<string>('');
   const [gradingLoading, setGradingLoading] = useState<string | null>(null);
 
   const academicYearsByDept: Record<string, { value: string; label: string }[]> = {
@@ -150,12 +150,11 @@ setNewAssignment({ title: '', departmentId: '', academicYear: '', durationDays: 
   };
 
   const handleGradeSubmission = async (submissionId: string, maxScore: number) => {
-    const scoreStr = gradingScores[submissionId];
-    if (!scoreStr || scoreStr.trim() === '') {
-      alert('Please enter a score');
+    if (!globalScore || globalScore.trim() === '') {
+      alert('Please enter a score in the input field above');
       return;
     }
-    const score = Number(scoreStr);
+    const score = Number(globalScore);
     if (isNaN(score) || score < 0 || score > maxScore) {
       alert(`Score must be between 0 and ${maxScore}`);
       return;
@@ -172,12 +171,6 @@ setNewAssignment({ title: '', departmentId: '', academicYear: '', durationDays: 
       if (json.success) {
         // Refresh details
         if (selected) await openDetails(selected.id);
-        // Clear the score input
-        setGradingScores(prev => {
-          const newScores = { ...prev };
-          delete newScores[submissionId];
-          return newScores;
-        });
       } else {
         alert('Error: ' + (json.error || 'Failed to grade'));
       }
@@ -302,7 +295,27 @@ setNewAssignment({ title: '', departmentId: '', academicYear: '', durationDays: 
                   <p className="text-sm">{t('noSubmissionsYet')}</p>
                 </div>
               ) : (
-                <div className="space-y-4 max-h-[420px] overflow-y-auto pr-1">
+                <div className="space-y-4">
+                  {/* Global Score Input */}
+                  <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl p-4 border-2 border-indigo-200 dark:border-indigo-800">
+                    <label className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase mb-2 block">
+                      Set Score (Max: {selected.maxScore})
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max={selected.maxScore}
+                      placeholder={`Enter score (0-${selected.maxScore})`}
+                      value={globalScore}
+                      onChange={e => setGlobalScore(e.target.value)}
+                      className="w-full bg-white dark:bg-slate-700 border-2 border-indigo-300 dark:border-indigo-700 rounded-xl px-4 py-3 text-base font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                      Enter the score above, then click "Approve" next to each student to assign this score
+                    </p>
+                  </div>
+
+                  <div className="max-h-[420px] overflow-y-auto pr-1 space-y-4">
                   {/* Filter Bar */}
                   <div className="flex flex-wrap gap-2">
                     <select value={filterDept} onChange={e => { setFilterDept(e.target.value); setFilterLevel(''); }}
@@ -389,23 +402,11 @@ setNewAssignment({ title: '', departmentId: '', academicYear: '', durationDays: 
                                 </div>
                               </div>
                             ) : (
-                              <div className="flex items-center gap-2">
-                                <div className="flex-1">
-                                  <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Score</label>
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    max={selected.maxScore}
-                                    placeholder={`0-${selected.maxScore}`}
-                                    value={gradingScores[sub.id] || ''}
-                                    onChange={e => setGradingScores(prev => ({ ...prev, [sub.id]: e.target.value }))}
-                                    className="w-full bg-white dark:bg-slate-600 border border-slate-200 dark:border-slate-500 rounded-xl px-3 py-2 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                                  />
-                                </div>
+                              <div className="flex justify-end">
                                 <button
                                   onClick={() => handleGradeSubmission(sub.id, selected.maxScore)}
-                                  disabled={gradingLoading === sub.id || !gradingScores[sub.id]}
-                                  className="mt-5 flex items-center gap-1.5 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                  disabled={gradingLoading === sub.id || !globalScore}
+                                  className="flex items-center gap-1.5 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                                   {gradingLoading === sub.id ? (
                                     <Loader2 size={13} className="animate-spin" />
                                   ) : (
@@ -422,6 +423,7 @@ setNewAssignment({ title: '', departmentId: '', academicYear: '', durationDays: 
                       </div>
                     </div>
                   ))}
+                </div>
                 </div>
               )}
             </div>
