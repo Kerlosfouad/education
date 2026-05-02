@@ -50,6 +50,7 @@ export async function getAssignmentsAction() {
       orderBy: { createdAt: 'desc' },
       include: {
         _count: { select: { submissions: true } },
+        department: { select: { name: true } },
       },
     });
   } catch {
