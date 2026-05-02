@@ -17,7 +17,13 @@ export async function GET() {
 
   if (!student) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  return NextResponse.json({ success: true, data: student });
+  // Fetch semester via raw SQL since it may not be in generated Prisma types
+  const semesterResult = await db.$queryRaw<{ semester: number }[]>`
+    SELECT semester FROM students WHERE id = ${student.id}
+  `;
+  const semester = semesterResult[0]?.semester ?? 1;
+
+  return NextResponse.json({ success: true, data: { ...student, semester } });
 }
 
 export async function PATCH(request: Request) {
