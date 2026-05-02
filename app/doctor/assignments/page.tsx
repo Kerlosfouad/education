@@ -56,6 +56,10 @@ export default function AssignmentsPage() {
   // Details panel
   const [selected, setSelected] = useState<AssignmentDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  
+  // Grading state
+  const [gradingScores, setGradingScores] = useState<Record<string, string>>({});
+  const [gradingLoading, setGradingLoading] = useState<string | null>(null);
 
   const academicYearsByDept: Record<string, { value: string; label: string }[]> = {
     PREP: [{ value: '0', label: 'Level 0' }],
@@ -143,6 +147,44 @@ setNewAssignment({ title: '', departmentId: '', academicYear: '', durationDays: 
       refreshData();
       if (selected?.id === id) setSelected(null);
     }
+  };
+
+  const handleGradeSubmission = async (submissionId: string, maxScore: number) => {
+    const scoreStr = gradingScores[submissionId];
+    if (!scoreStr || scoreStr.trim() === '') {
+      alert('Please enter a score');
+      return;
+    }
+    const score = Number(scoreStr);
+    if (isNaN(score) || score < 0 || score > maxScore) {
+      alert(`Score must be between 0 and ${maxScore}`);
+      return;
+    }
+
+    setGradingLoading(submissionId);
+    try {
+      const res = await fetch(`/api/assignments/${selected?.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ submissionId, score }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        // Refresh details
+        if (selected) await openDetails(selected.id);
+        // Clear the score input
+        setGradingScores(prev => {
+          const newScores = { ...prev };
+          delete newScores[submissionId];
+          return newScores;
+        });
+      } else {
+        alert('Error: ' + (json.error || 'Failed to grade'));
+      }
+    } catch (error) {
+      alert('Error grading submission');
+    }
+    setGradingLoading(null);
   };
 
   return (
@@ -299,28 +341,81 @@ setNewAssignment({ title: '', departmentId: '', academicYear: '', durationDays: 
                       <p className="text-xs font-black text-slate-400 uppercase mb-2 px-1">{groupKey}</p>
                       <div className="space-y-2">
                         {subs.map(sub => (
-                          <div key={sub.id} className="flex items-center justify-between bg-slate-50 dark:bg-slate-700/40 rounded-2xl p-3">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 font-bold text-xs">
-                                {sub.student.user.name?.charAt(0)}
+                          <div key={sub.id} className="bg-slate-50 dark:bg-slate-700/40 rounded-2xl p-3 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 font-bold text-xs">
+                                  {sub.student.user.name?.charAt(0)}
+                                </div>
+                                <div>
+                                  <p className="font-bold text-slate-800 dark:text-slate-100 text-sm">{sub.student.user.name}</p>
+                                  <p className="text-xs text-slate-400">{sub.student.studentCode} · {new Date(sub.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
+                                </div>
                               </div>
-                              <div>
-                                <p className="font-bold text-slate-800 dark:text-slate-100 text-sm">{sub.student.user.name}</p>
-                                <p className="text-xs text-slate-400">{sub.student.studentCode} · {new Date(sub.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
-                              </div>
+                              {sub.fileUrl ? (
+                                <div className="flex gap-1.5">
+                                  <a href={sub.fileUrl} target="_blank" rel="noopener noreferrer"
+                                    className="flex items-center gap-1 text-xs bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 font-bold px-2.5 py-1.5 rounded-xl hover:bg-indigo-100 transition-colors">
+                                    <ExternalLink size={11} /> View
+                                  </a>
+                                  <span className="flex items-center gap-1 text-xs bg-slate-100 dark:bg-slate-600 text-slate-600 dark:text-slate-300 font-bold px-2.5 py-1.5 rounded-xl">
+                                    <FileText size={11} /> {sub.totalSubmissions}
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className="text-xs text-slate-400 bg-slate-100 dark:bg-slate-600 px-2 py-1 rounded-full">No file</span>
+                              )}
                             </div>
-                            {sub.fileUrl ? (
-                              <div className="flex gap-1.5">
-                                <a href={sub.fileUrl} target="_blank" rel="noopener noreferrer"
-                                  className="flex items-center gap-1 text-xs bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 font-bold px-2.5 py-1.5 rounded-xl hover:bg-indigo-100 transition-colors">
-                                  <ExternalLink size={11} /> View
-                                </a>
-                                <span className="flex items-center gap-1 text-xs bg-slate-100 dark:bg-slate-600 text-slate-600 dark:text-slate-300 font-bold px-2.5 py-1.5 rounded-xl">
-                                  <FileText size={11} /> {sub.totalSubmissions}
-                                </span>
+                            
+                            {/* Grading Section */}
+                            {sub.status === 'GRADED' ? (
+                              <div className="flex items-center justify-between bg-green-50 dark:bg-green-900/20 rounded-xl p-2.5">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-6 h-6 rounded-lg bg-green-100 dark:bg-green-900/40 flex items-center justify-center">
+                                    <svg className="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  </div>
+                                  <div>
+                                    <p className="text-xs font-bold text-green-700 dark:text-green-400">Graded</p>
+                                    <p className="text-[10px] text-slate-400">
+                                      {sub.gradedAt && new Date(sub.gradedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-lg font-black text-green-700 dark:text-green-400">{sub.score}</p>
+                                  <p className="text-[10px] text-slate-400">/ {selected.maxScore}</p>
+                                </div>
                               </div>
                             ) : (
-                              <span className="text-xs text-slate-400 bg-slate-100 dark:bg-slate-600 px-2 py-1 rounded-full">No file</span>
+                              <div className="flex items-center gap-2">
+                                <div className="flex-1">
+                                  <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Score</label>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    max={selected.maxScore}
+                                    placeholder={`0-${selected.maxScore}`}
+                                    value={gradingScores[sub.id] || ''}
+                                    onChange={e => setGradingScores(prev => ({ ...prev, [sub.id]: e.target.value }))}
+                                    className="w-full bg-white dark:bg-slate-600 border border-slate-200 dark:border-slate-500 rounded-xl px-3 py-2 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                                  />
+                                </div>
+                                <button
+                                  onClick={() => handleGradeSubmission(sub.id, selected.maxScore)}
+                                  disabled={gradingLoading === sub.id || !gradingScores[sub.id]}
+                                  className="mt-5 flex items-center gap-1.5 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                  {gradingLoading === sub.id ? (
+                                    <Loader2 size={13} className="animate-spin" />
+                                  ) : (
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  )}
+                                  Approve
+                                </button>
+                              </div>
                             )}
                           </div>
                         ))}
