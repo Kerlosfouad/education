@@ -239,22 +239,15 @@ export default function GradesPage() {
         {filtered.length === 0 ? (
           <div className="text-center py-10 text-slate-400 text-sm">No students match your search.</div>
         ) : filtered.map(s => {
-          const total = getTotal(s.grades);
           const graded = hasGrades(s);
           return (
-            <div key={`${s.id}-${subjId}`} className={`grid grid-cols-[2fr_1fr_repeat(4,1fr)_1fr_auto] gap-2 items-center px-6 py-4 transition-colors ${graded ? 'bg-green-50/30 dark:bg-green-900/10' : 'hover:bg-slate-50 dark:hover:bg-slate-700/20'}`}>
-              <span className="font-semibold text-slate-800 dark:text-slate-100 text-sm truncate">{s.name}</span>
-              <span className="text-xs text-slate-400">{s.studentCode}</span>
-              {examTypes.map(t => (
-                <span key={t.key} className={`text-sm font-bold ${s.grades[t.key] !== undefined ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-300'}`}>
-                  {s.grades[t.key] !== undefined ? s.grades[t.key] : '—'}
-                </span>
-              ))}
-              <span className={`text-sm font-black ${graded ? 'text-green-600' : 'text-slate-300'}`}>
-                {graded ? `${total}/${maxTotal}` : '—'}
-              </span>
+            <div key={`${s.id}-${subjId}`} className={`flex items-center justify-between px-6 py-4 transition-colors ${graded ? 'bg-green-50/30 dark:bg-green-900/10' : 'hover:bg-slate-50 dark:hover:bg-slate-700/20'}`}>
+              <div className="flex items-center gap-4 min-w-0">
+                <span className="font-semibold text-slate-800 dark:text-slate-100 text-sm truncate">{s.name}</span>
+                <span className="text-xs text-slate-400 shrink-0">{s.studentCode}</span>
+              </div>
               <button onClick={() => openEdit(s)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${graded ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 hover:bg-indigo-200' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}>
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors shrink-0 ${graded ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 hover:bg-indigo-200' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}>
                 {graded ? <><Pencil size={12} /> Edit</> : <><Check size={12} /> Set</>}
               </button>
             </div>
@@ -265,10 +258,9 @@ export default function GradesPage() {
   };
 
   const TableHeader = () => (
-    <div className="grid grid-cols-[2fr_1fr_repeat(4,1fr)_1fr_auto] gap-2 px-6 py-3 bg-slate-50 dark:bg-slate-700/30 text-xs font-bold text-slate-400 uppercase border-b border-slate-100 dark:border-slate-700">
-      <span>Student</span><span>Code</span>
-      {examTypes.map(t => <span key={t.key}>{t.label}</span>)}
-      <span>Total</span><span></span>
+    <div className="flex items-center justify-between px-6 py-3 bg-slate-50 dark:bg-slate-700/30 text-xs font-bold text-slate-400 uppercase border-b border-slate-100 dark:border-slate-700">
+      <span>Student</span>
+      <span></span>
     </div>
   );
 
