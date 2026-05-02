@@ -54,7 +54,7 @@ export async function getAssignmentsAction() {
     });
 
     // Get department names for assignments that have departmentId
-    const deptIds = [...new Set(assignments.map(a => a.departmentId).filter(Boolean))] as string[];
+    const deptIds = Array.from(new Set(assignments.map(a => a.departmentId).filter((id): id is string => id !== null)));
     const departments = deptIds.length > 0
       ? await db.department.findMany({ where: { id: { in: deptIds } }, select: { id: true, name: true } })
       : [];
