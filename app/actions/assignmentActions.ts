@@ -46,13 +46,24 @@ export async function createAssignmentAction(data: {
 
 export async function getAssignmentsAction() {
   try {
-    return await db.assignment.findMany({
+    const assignments = await db.assignment.findMany({
       orderBy: { createdAt: 'desc' },
       include: {
         _count: { select: { submissions: true } },
-        department: { select: { name: true } },
       },
     });
+
+    // Get department names for assignments that have departmentId
+    const deptIds = [...new Set(assignments.map(a => a.departmentId).filter(Boolean))] as string[];
+    const departments = deptIds.length > 0
+      ? await db.department.findMany({ where: { id: { in: deptIds } }, select: { id: true, name: true } })
+      : [];
+    const deptMap = Object.fromEntries(departments.map(d => [d.id, d.name]));
+
+    return assignments.map(a => ({
+      ...a,
+      department: a.departmentId ? { name: deptMap[a.departmentId] ?? '' } : null,
+    }));
   } catch {
     return [];
   }
