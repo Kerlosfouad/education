@@ -28,7 +28,13 @@ export async function GET() {
           { departmentId: null },
         ],
       },
-      include: { subject: { select: { name: true } }, submissions: { where: { studentId: student.id } } },
+      include: {
+        subject: { select: { name: true } },
+        submissions: {
+          where: { studentId: student.id },
+          select: { id: true, status: true, fileUrl: true, score: true, gradedAt: true },
+        },
+      },
       orderBy: { createdAt: 'desc' },
     });
     return NextResponse.json({ success: true, data: assignments });

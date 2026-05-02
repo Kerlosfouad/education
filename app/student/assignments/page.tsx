@@ -10,7 +10,8 @@ interface Assignment {
   title: string;
   description: string | null;
   deadline: string;
-  submissions: { id: string; status: string; fileUrl: string | null }[];
+  maxScore: number;
+  submissions: { id: string; status: string; fileUrl: string | null; score: number | null; gradedAt: string | null }[];
 }
 
 export default function StudentAssignmentsPage() {
@@ -171,9 +172,25 @@ export default function StudentAssignmentsPage() {
                 )}
 
                 {isDone && (
-                  <div className="flex items-center gap-2 bg-green-50 dark:bg-green-900/20 rounded-xl px-4 py-3 mt-2">
-                    <CheckCircle2 className="text-green-600" size={18} />
-                    <p className="text-sm font-bold text-green-700 dark:text-green-400">Assignment submitted successfully</p>
+                  <div className="mt-2 space-y-2">
+                    <div className="flex items-center gap-2 bg-green-50 dark:bg-green-900/20 rounded-xl px-4 py-3">
+                      <CheckCircle2 className="text-green-600 shrink-0" size={18} />
+                      <p className="text-sm font-bold text-green-700 dark:text-green-400">Assignment submitted successfully</p>
+                    </div>
+                    {a.submissions[0]?.status === 'GRADED' && a.submissions[0]?.score !== null && (
+                      <div className="flex items-center justify-between bg-indigo-50 dark:bg-indigo-900/20 rounded-xl px-4 py-3">
+                        <div>
+                          <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase">Grade</p>
+                          <p className="text-xs text-slate-400 mt-0.5">
+                            {a.submissions[0].gradedAt && new Date(a.submissions[0].gradedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-2xl font-black text-indigo-600 dark:text-indigo-400">{a.submissions[0].score}</p>
+                          <p className="text-xs text-slate-400">/ {a.maxScore}</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
