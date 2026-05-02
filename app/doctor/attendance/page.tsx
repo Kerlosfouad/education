@@ -338,7 +338,8 @@ export default function AttendancePage() {
                     const visibleSessions = sessions.filter(s => {
                       const deptMatch = !s.department || s.department.name === dept.name;
                       const levelMatch = s.academicYear === null || s.academicYear === undefined || s.academicYear === level;
-                      const semesterMatch = !filterSemester || String((s as any).semester) === filterSemester;
+                      const sem = (s as any).semester ?? 1;
+                      const semesterMatch = !filterSemester || String(sem) === filterSemester;
                       return deptMatch && levelMatch && semesterMatch;
                     });
 
