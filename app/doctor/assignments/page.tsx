@@ -325,37 +325,31 @@ setNewAssignment({ title: '', departmentId: '', academicYear: '', durationDays: 
               ) : (
                 <div className="space-y-4">
                   {/* Max Score Input */}
-                  <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl p-4 border-2 border-indigo-200 dark:border-indigo-800">
-                    <label className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase mb-2 block">
-                      Assignment Max Score
-                    </label>
-                    <div className="flex gap-2">
+                  <div className="flex items-end gap-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl p-3 border border-indigo-200 dark:border-indigo-800">
+                    <div className="flex-1">
+                      <label className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase mb-1.5 block">
+                        Max Score (current: {selected.maxScore})
+                      </label>
                       <input
                         type="number"
                         min="1"
-                        placeholder="Enter max score"
+                        placeholder={String(selected.maxScore)}
                         value={maxScoreInput}
                         onChange={e => setMaxScoreInput(e.target.value)}
-                        className="flex-1 bg-white dark:bg-slate-700 border-2 border-indigo-300 dark:border-indigo-700 rounded-xl px-4 py-3 text-base font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full bg-white dark:bg-slate-700 border border-indigo-300 dark:border-indigo-700 rounded-xl px-3 py-2 text-sm font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       />
-                      <button
-                        onClick={handleUpdateMaxScore}
-                        disabled={updatingMaxScore || maxScoreInput === String(selected.maxScore)}
-                        className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
-                        {updatingMaxScore ? (
-                          <Loader2 size={16} className="animate-spin" />
-                        ) : (
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                        )}
-                        Set
-                      </button>
                     </div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-                      Current max score: <span className="font-bold text-indigo-600 dark:text-indigo-400">{selected.maxScore}</span>. 
-                      Change it above and click "Set", then click "Approve" next to each student to give them full marks.
-                    </p>
+                    <button
+                      onClick={handleUpdateMaxScore}
+                      disabled={updatingMaxScore || maxScoreInput === String(selected.maxScore)}
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold transition-colors disabled:opacity-50 flex items-center gap-1.5 shrink-0">
+                      {updatingMaxScore ? <Loader2 size={14} className="animate-spin" /> : (
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                      Set
+                    </button>
                   </div>
 
                   <div className="max-h-[420px] overflow-y-auto pr-1 space-y-4">

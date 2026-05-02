@@ -623,19 +623,22 @@ export default function GradesPage() {
                     detailStudent.assignmentSubmissions.length === 0 ? (
                       <div className="text-center py-10 text-slate-400 text-sm">No assignment submissions.</div>
                     ) : (
-                      detailStudent.assignmentSubmissions.map(sub => (
-                        <div key={sub.id} className="flex items-center justify-between px-4 py-3 rounded-xl bg-blue-50 dark:bg-blue-900/20">
-                          <div>
-                            <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">{sub.assignment.title}</p>
-                            <p className="text-xs text-slate-400 mt-0.5">
-                              {sub.assignment.subject?.name} · {new Date(sub.submittedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
-                            </p>
+                      detailStudent.assignmentSubmissions.map(sub => {
+                        const isGraded = sub.score !== null;
+                        return (
+                          <div key={sub.id} className={`flex items-center justify-between px-4 py-3 rounded-xl ${isGraded ? 'bg-green-50 dark:bg-green-900/20' : 'bg-blue-50 dark:bg-blue-900/20'}`}>
+                            <div>
+                              <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">{sub.assignment.title}</p>
+                              <p className="text-xs text-slate-400 mt-0.5">
+                                {sub.assignment.subject?.name} · {new Date(sub.submittedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                              </p>
+                            </div>
+                            <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${isGraded ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400'}`}>
+                              {isGraded ? `${sub.score} / ${sub.assignment.maxScore ?? '?'}` : 'Submitted'}
+                            </span>
                           </div>
-                          <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-blue-100 text-blue-700">
-                            {sub.score !== null ? `${sub.score}/${sub.assignment.maxScore ?? '?'}` : 'Submitted'}
-                          </span>
-                        </div>
-                      ))
+                        );
+                      })
                     )
                   )}
 
