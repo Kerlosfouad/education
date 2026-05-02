@@ -96,6 +96,16 @@ export default function GradesPage() {
     setDetailLoading(false);
   };
 
+  // Lock body scroll when detail modal is open
+  useEffect(() => {
+    if (detailLoading || detailStudent) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [detailLoading, detailStudent]);
+
   const examTypes = [
     ...DEFAULT_EXAM_TYPES.filter(t => !hiddenDefaults.includes(t.key)).map(t => ({ ...t, max: examMaxes[t.key] })),
     ...customTypes,
@@ -170,10 +180,24 @@ export default function GradesPage() {
     if (!subjectId || subjectId === 'all') { toast.error('Cannot save without a subject'); return; }
     setSaving(true);
     try {
+      // Check if all fields are empty → delete all grades (reset to Set state)
+      const allEmpty = examTypes.every(t => editGrades[t.key] === '' || editGrades[t.key] === undefined);
+      if (allEmpty) {
+        await fetch('/api/doctor/grades', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subjectId, studentId: editingStudent.id }),
+        });
+        toast.success('Grades cleared');
+        setEditingStudent(null);
+        loadStudents(selectedSubject);
+        setSaving(false);
+        return;
+      }
+      // Save each exam type — empty fields save as 0
       for (const t of examTypes) {
         const val = editGrades[t.key];
-        if (val === '' || val === undefined) continue;
-        const score = Number(val);
+        const score = val === '' || val === undefined ? 0 : Number(val);
         if (isNaN(score)) continue;
         await fetch('/api/doctor/grades', {
           method: 'POST',

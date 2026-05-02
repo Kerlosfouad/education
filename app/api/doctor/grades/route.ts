@@ -87,21 +87,23 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  // Notify the student about their new/updated grade
+  // Notify the student once after all grades are saved (not per exam type)
   const student = await db.student.findUnique({
     where: { id: studentId },
     select: { userId: true },
   });
   if (student) {
-    const examLabel: Record<string, string> = {
-      MIDTERM: 'Midterm', FINAL: 'Final', QUIZ: 'Quiz', PROJECT: 'Project',
-    };
+    // Delete old grade notifications for this subject to avoid duplicates
+    await db.notification.deleteMany({
+      where: { userId: student.userId, type: 'EXAM_RESULT', message: { contains: subject.name } },
+    });
     await db.notification.create({
       data: {
         userId: student.userId,
         title: '📊 Grade Published',
-        message: `Your ${examLabel[examType] || examType} grade for ${subject.name} has been published: ${score}/${max} (${pct}%)`,
+        message: `Your grades for ${subject.name} have been updated. Tap to view.`,
         type: 'EXAM_RESULT',
+        data: { link: '/student/grades' },
       },
     });
   }
@@ -109,16 +111,42 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ success: true, grade });
 }
 
-// DELETE: clear all grades for a subject
+// DELETE: clear all grades for a subject (or a specific student in a subject)
 export async function DELETE(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user || !['DOCTOR', 'ADMIN'].includes(session.user.role))
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const subjectId = req.nextUrl.searchParams.get('subjectId');
+  // Try body first (for student-specific delete), then query params
+  let subjectId: string | null = null;
+  let studentId: string | null = null;
+
+  const contentType = req.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    try {
+      const body = await req.json();
+      subjectId = body.subjectId ?? null;
+      studentId = body.studentId ?? null;
+    } catch {}
+  }
+
+  if (!subjectId) subjectId = req.nextUrl.searchParams.get('subjectId');
   if (!subjectId) return NextResponse.json({ error: 'subjectId required' }, { status: 400 });
 
-  await db.examResult.deleteMany({ where: { subjectId } });
+  const where: any = { subjectId };
+  if (studentId) where.studentId = studentId;
+
+  await db.examResult.deleteMany({ where });
+
+  // If deleting a specific student's grades, also delete related notifications
+  if (studentId) {
+    const student = await db.student.findUnique({ where: { id: studentId }, select: { userId: true } });
+    if (student) {
+      await db.notification.deleteMany({
+        where: { userId: student.userId, type: 'EXAM_RESULT' },
+      });
+    }
+  }
 
   return NextResponse.json({ success: true });
 }

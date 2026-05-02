@@ -116,7 +116,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
     if (n.type === 'ASSIGNMENT') return '/student/assignments';
     if (n.type === 'QUIZ') return '/student/quizzes';
     if (n.type === 'ATTENDANCE') return '/student/attendance';
-    if (n.type === 'EXAM_RESULT') return '/student/dashboard';
+    if (n.type === 'EXAM_RESULT') return '/student/grades';
 
     // ANNOUNCEMENT/GENERAL fallback using message hints
     const content = `${n.title} ${n.message}`.toLowerCase();
