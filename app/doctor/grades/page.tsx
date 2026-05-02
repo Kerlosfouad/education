@@ -558,43 +558,47 @@ export default function GradesPage() {
 
       {/* Student Detail Modal */}
       {(detailLoading || detailStudent) && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setDetailStudent(null)}>
-          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center sm:p-4" onClick={() => setDetailStudent(null)}>
+          <div className="bg-white dark:bg-slate-800 rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:max-w-lg max-h-[90vh] sm:max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
             {detailLoading ? (
               <div className="flex items-center justify-center py-20">
                 <Loader2 className="animate-spin text-indigo-600" size={32} />
               </div>
             ) : detailStudent && (
               <>
+                {/* drag handle on mobile */}
+                <div className="sm:hidden w-10 h-1 bg-slate-200 dark:bg-slate-600 rounded-full mx-auto mt-3 shrink-0" />
+
                 {/* Header */}
-                <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between shrink-0">
-                  <div>
-                    <h3 className="font-black text-slate-800 dark:text-slate-100 text-lg">{detailStudent.user.name}</h3>
-                    <p className="text-xs text-slate-400 mt-0.5">#{detailStudent.studentCode} · {detailStudent.department.name} · Level {detailStudent.academicYear}</p>
+                <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between shrink-0">
+                  <div className="min-w-0 flex-1 pr-2">
+                    <h3 className="font-black text-slate-800 dark:text-slate-100 text-base sm:text-lg truncate">{detailStudent.user.name}</h3>
+                    <p className="text-xs text-slate-400 mt-0.5 truncate">#{detailStudent.studentCode} · {detailStudent.department.name} · Level {detailStudent.academicYear}</p>
                   </div>
-                  <button onClick={() => setDetailStudent(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors">
+                  <button onClick={() => setDetailStudent(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors shrink-0">
                     <X size={18} className="text-slate-400" />
                   </button>
                 </div>
 
                 {/* Tabs */}
-                <div className="flex gap-1 px-6 pt-4 shrink-0">
+                <div className="flex gap-1 px-4 sm:px-6 pt-3 sm:pt-4 shrink-0">
                   {([
                     { key: 'attendance', label: 'Attendance', icon: CalendarCheck2, count: detailStudent.attendances.filter(a => a.verificationMethod !== 'ABSENT').length },
                     { key: 'assignments', label: 'Assignments', icon: BookOpen, count: detailStudent.assignmentSubmissions.length },
                     { key: 'quizzes', label: 'Quizzes', icon: Trophy, count: detailStudent.quizAttempts.length },
                   ] as const).map(tab => (
                     <button key={tab.key} onClick={() => setDetailTab(tab.key)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${detailTab === tab.key ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-200'}`}>
+                      className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition-colors flex-1 justify-center sm:flex-none ${detailTab === tab.key ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-200'}`}>
                       <tab.icon size={12} />
-                      {tab.label}
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${detailTab === tab.key ? 'bg-white/20' : 'bg-slate-200 dark:bg-slate-600'}`}>{tab.count}</span>
+                      <span className="hidden sm:inline">{tab.label}</span>
+                      <span className="sm:hidden">{tab.label.slice(0, 6)}</span>
+                      <span className={`text-[10px] px-1 sm:px-1.5 py-0.5 rounded-full font-black ${detailTab === tab.key ? 'bg-white/20' : 'bg-slate-200 dark:bg-slate-600'}`}>{tab.count}</span>
                     </button>
                   ))}
                 </div>
 
                 {/* Content */}
-                <div className="overflow-y-auto flex-1 px-6 py-4 space-y-2">
+                <div className="overflow-y-auto flex-1 px-4 sm:px-6 py-4 space-y-2">
 
                   {/* Attendance Tab */}
                   {detailTab === 'attendance' && (
