@@ -1,11 +1,38 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { GraduationCap, Download, Loader2, Check, Pencil, Plus, X } from 'lucide-react';
+import { GraduationCap, Download, Loader2, Check, Pencil, Plus, X, ChevronRight, BookOpen, CalendarCheck2, Trophy } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Subject { id: string; name: string; code: string; department: { name: string }; academicYear: number; semester: number; }
 interface StudentGrade { id: string; name: string; studentCode: string; grades: Record<string, number>; subjectId?: string; subjectName?: string; }
+
+interface StudentDetail {
+  id: string;
+  studentCode: string;
+  academicYear: number;
+  user: { name: string; email: string };
+  department: { name: string };
+  assignmentSubmissions: {
+    id: string;
+    submittedAt: string;
+    score: number | null;
+    assignment: { title: string; maxScore: number | null; subject: { name: string } | null };
+  }[];
+  quizAttempts: {
+    id: string;
+    score: number | null;
+    percentage: number | null;
+    completedAt: string | null;
+    quiz: { title: string; subject: { name: string } | null };
+  }[];
+  attendances: {
+    id: string;
+    verificationMethod: string;
+    timestamp: string;
+    session: { title: string | null; openTime: string; closeTime: string };
+  }[];
+}
 
 const DEFAULT_EXAM_TYPES = [
   { key: 'MIDTERM', label: 'Midterm', max: 20 },
@@ -55,6 +82,19 @@ export default function GradesPage() {
   const [newTypeName, setNewTypeName] = useState('');
   const [newTypeMax, setNewTypeMax] = useState('');
   const [search, setSearch] = useState('');
+  const [detailStudent, setDetailStudent] = useState<StudentDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailTab, setDetailTab] = useState<'attendance' | 'assignments' | 'quizzes'>('attendance');
+
+  const openStudentDetail = async (studentId: string) => {
+    setDetailLoading(true);
+    setDetailStudent(null);
+    setDetailTab('attendance');
+    const res = await fetch(`/api/doctor/student-detail?studentId=${studentId}`);
+    const json = await res.json();
+    if (json.success) setDetailStudent(json.data);
+    setDetailLoading(false);
+  };
 
   const examTypes = [
     ...DEFAULT_EXAM_TYPES.filter(t => !hiddenDefaults.includes(t.key)).map(t => ({ ...t, max: examMaxes[t.key] })),
@@ -242,10 +282,14 @@ export default function GradesPage() {
           const graded = hasGrades(s);
           return (
             <div key={`${s.id}-${subjId}`} className={`flex items-center justify-between px-6 py-4 transition-colors ${graded ? 'bg-green-50/30 dark:bg-green-900/10' : 'hover:bg-slate-50 dark:hover:bg-slate-700/20'}`}>
-              <div className="flex items-center gap-4 min-w-0">
+              <button
+                onClick={() => openStudentDetail(s.id)}
+                className="flex items-center gap-4 min-w-0 flex-1 text-left hover:opacity-70 transition-opacity"
+              >
                 <span className="font-semibold text-slate-800 dark:text-slate-100 text-sm truncate">{s.name}</span>
                 <span className="text-xs text-slate-400 shrink-0">{s.studentCode}</span>
-              </div>
+                <ChevronRight size={14} className="text-slate-300 shrink-0" />
+              </button>
               <button onClick={() => openEdit(s)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors shrink-0 ${graded ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 hover:bg-indigo-200' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}>
                 {graded ? <><Pencil size={12} /> Edit</> : <><Check size={12} /> Set</>}
@@ -484,6 +528,122 @@ export default function GradesPage() {
                 {saving ? 'Saving...' : 'Save Grades'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Student Detail Modal */}
+      {(detailLoading || detailStudent) && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setDetailStudent(null)}>
+          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            {detailLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="animate-spin text-indigo-600" size={32} />
+              </div>
+            ) : detailStudent && (
+              <>
+                {/* Header */}
+                <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between shrink-0">
+                  <div>
+                    <h3 className="font-black text-slate-800 dark:text-slate-100 text-lg">{detailStudent.user.name}</h3>
+                    <p className="text-xs text-slate-400 mt-0.5">#{detailStudent.studentCode} · {detailStudent.department.name} · Level {detailStudent.academicYear}</p>
+                  </div>
+                  <button onClick={() => setDetailStudent(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors">
+                    <X size={18} className="text-slate-400" />
+                  </button>
+                </div>
+
+                {/* Tabs */}
+                <div className="flex gap-1 px-6 pt-4 shrink-0">
+                  {([
+                    { key: 'attendance', label: 'Attendance', icon: CalendarCheck2, count: detailStudent.attendances.filter(a => a.verificationMethod !== 'ABSENT').length },
+                    { key: 'assignments', label: 'Assignments', icon: BookOpen, count: detailStudent.assignmentSubmissions.length },
+                    { key: 'quizzes', label: 'Quizzes', icon: Trophy, count: detailStudent.quizAttempts.length },
+                  ] as const).map(tab => (
+                    <button key={tab.key} onClick={() => setDetailTab(tab.key)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${detailTab === tab.key ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-200'}`}>
+                      <tab.icon size={12} />
+                      {tab.label}
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${detailTab === tab.key ? 'bg-white/20' : 'bg-slate-200 dark:bg-slate-600'}`}>{tab.count}</span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Content */}
+                <div className="overflow-y-auto flex-1 px-6 py-4 space-y-2">
+
+                  {/* Attendance Tab */}
+                  {detailTab === 'attendance' && (
+                    detailStudent.attendances.length === 0 ? (
+                      <div className="text-center py-10 text-slate-400 text-sm">No attendance records.</div>
+                    ) : (
+                      detailStudent.attendances.map(a => {
+                        const present = a.verificationMethod !== 'ABSENT';
+                        return (
+                          <div key={a.id} className={`flex items-center justify-between px-4 py-3 rounded-xl ${present ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20'}`}>
+                            <div>
+                              <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">{a.session.title || 'Session'}</p>
+                              <p className="text-xs text-slate-400 mt-0.5">{new Date(a.session.openTime).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</p>
+                            </div>
+                            <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${present ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                              {present ? '✓ Present' : '✗ Absent'}
+                            </span>
+                          </div>
+                        );
+                      })
+                    )
+                  )}
+
+                  {/* Assignments Tab */}
+                  {detailTab === 'assignments' && (
+                    detailStudent.assignmentSubmissions.length === 0 ? (
+                      <div className="text-center py-10 text-slate-400 text-sm">No assignment submissions.</div>
+                    ) : (
+                      detailStudent.assignmentSubmissions.map(sub => (
+                        <div key={sub.id} className="flex items-center justify-between px-4 py-3 rounded-xl bg-blue-50 dark:bg-blue-900/20">
+                          <div>
+                            <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">{sub.assignment.title}</p>
+                            <p className="text-xs text-slate-400 mt-0.5">
+                              {sub.assignment.subject?.name} · {new Date(sub.submittedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                            </p>
+                          </div>
+                          <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-blue-100 text-blue-700">
+                            {sub.score !== null ? `${sub.score}/${sub.assignment.maxScore ?? '?'}` : 'Submitted'}
+                          </span>
+                        </div>
+                      ))
+                    )
+                  )}
+
+                  {/* Quizzes Tab */}
+                  {detailTab === 'quizzes' && (
+                    detailStudent.quizAttempts.length === 0 ? (
+                      <div className="text-center py-10 text-slate-400 text-sm">No quiz attempts.</div>
+                    ) : (
+                      detailStudent.quizAttempts.map(attempt => (
+                        <div key={attempt.id} className="flex items-center justify-between px-4 py-3 rounded-xl bg-purple-50 dark:bg-purple-900/20">
+                          <div>
+                            <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">{attempt.quiz.title}</p>
+                            <p className="text-xs text-slate-400 mt-0.5">
+                              {attempt.quiz.subject?.name}
+                              {attempt.completedAt && ` · ${new Date(attempt.completedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}`}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${(attempt.percentage ?? 0) >= 60 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                              {attempt.score ?? 0} pts
+                            </span>
+                            {attempt.percentage !== null && (
+                              <p className="text-[10px] text-slate-400 mt-1">{attempt.percentage}%</p>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    )
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
