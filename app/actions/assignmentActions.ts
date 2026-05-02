@@ -9,6 +9,7 @@ export async function createAssignmentAction(data: {
   title: string;
   departmentId: string;
   academicYear: number;
+  semester: number;
   durationDays: number;
 }) {
   try {
@@ -21,6 +22,7 @@ export async function createAssignmentAction(data: {
         title: data.title,
         departmentId: data.departmentId,
         academicYear: data.academicYear,
+        semester: data.semester,
         deadline: new Date(Date.now() + data.durationDays * 24 * 60 * 60 * 1000),
         allowUpload: true,
       },

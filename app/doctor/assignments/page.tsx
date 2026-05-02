@@ -45,12 +45,13 @@ export default function AssignmentsPage() {
   const { t } = useI18n();
   const [assignments, setAssignments] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newAssignment, setNewAssignment] = useState({ title: '', departmentId: '', academicYear: '', durationDays: '7' });
+  const [newAssignment, setNewAssignment] = useState({ title: '', departmentId: '', academicYear: '', semester: '1', durationDays: '7' });
   const [loading, setLoading] = useState(false);
   const [departments, setDepartments] = useState<{ id: string; name: string; code: string }[]>([]);
   const [search, setSearch] = useState('');
   const [filterDept, setFilterDept] = useState('');
   const [filterLevel, setFilterLevel] = useState('');
+  const [filterSemester, setFilterSemester] = useState('');
   const [filterAvailableLevels, setFilterAvailableLevels] = useState<{ value: string; label: string }[]>([]);
 
   // Details panel
@@ -97,7 +98,8 @@ export default function AssignmentsPage() {
     const matchSearch = !search || a.title.toLowerCase().includes(search.toLowerCase());
     const matchDept = !filterDept || a.department?.name === filterDept;
     const matchLevel = !filterLevel || String(a.academicYear) === filterLevel;
-    return matchSearch && matchDept && matchLevel;
+    const matchSemester = !filterSemester || String(a.semester) === filterSemester;
+    return matchSearch && matchDept && matchLevel && matchSemester;
   });
 
   const refreshData = async () => {
@@ -132,11 +134,12 @@ export default function AssignmentsPage() {
       title: newAssignment.title,
       departmentId: newAssignment.departmentId,
       academicYear: parseInt(newAssignment.academicYear),
+      semester: parseInt(newAssignment.semester),
       durationDays: parseInt(newAssignment.durationDays),
     });
     if (res.success) {
       setIsModalOpen(false);
-setNewAssignment({ title: '', departmentId: '', academicYear: '', durationDays: '7' });
+      setNewAssignment({ title: '', departmentId: '', academicYear: '', semester: '1', durationDays: '7' });
       refreshData();
     } else {
       alert('Error: ' + res.error);
@@ -229,14 +232,47 @@ setNewAssignment({ title: '', departmentId: '', academicYear: '', durationDays: 
             <History className="text-indigo-500" size={20} />
             <h3 className="font-bold text-slate-800 dark:text-slate-100">{t('allAssignments')}</h3>
           </div>
-          {assignments.length === 0 ? (
+
+          {/* Filter Bar on Assignments */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            <div className="relative flex-1 min-w-[140px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+              <input type="text" placeholder="Search..." value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="w-full pl-8 pr-3 py-2 bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-600 rounded-xl text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20" />
+            </div>
+            <select value={filterDept} onChange={e => { setFilterDept(e.target.value); setFilterLevel(''); }}
+              className="px-3 py-2 bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-600 rounded-xl text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+              <option value="">All Depts</option>
+              {departments.map(d => <option key={d.id} value={d.name}>{d.name}</option>)}
+            </select>
+            <select value={filterLevel} onChange={e => setFilterLevel(e.target.value)}
+              className="px-3 py-2 bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-600 rounded-xl text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+              <option value="">All Levels</option>
+              {filterAvailableLevels.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
+            </select>
+            <select value={filterSemester} onChange={e => setFilterSemester(e.target.value)}
+              className="px-3 py-2 bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-600 rounded-xl text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+              <option value="">All Semesters</option>
+              <option value="1">Semester 1</option>
+              <option value="2">Semester 2</option>
+            </select>
+            {(filterDept || filterLevel || filterSemester || search) && (
+              <button onClick={() => { setFilterDept(''); setFilterLevel(''); setFilterSemester(''); setSearch(''); }}
+                className="flex items-center gap-1 px-3 py-2 text-xs text-red-500 bg-red-50 dark:bg-red-900/20 rounded-xl hover:bg-red-100 transition-colors">
+                <X size={13} /> Reset
+              </button>
+            )}
+          </div>
+
+          {filteredAssignments.length === 0 ? (
             <div className="text-center py-16 text-slate-400">
               <FileText size={40} className="mx-auto mb-3 opacity-30" />
-              <p>{t('noAssignmentsYet')}</p>
+              <p>{assignments.length === 0 ? t('noAssignmentsYet') : 'No assignments match filters'}</p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {assignments.map(a => {
+            <div className="space-y-3 max-h-[520px] overflow-y-auto pr-1">
+              {filteredAssignments.map(a => {
                 const isNew = Date.now() - new Date(a.createdAt).getTime() < 24 * 60 * 60 * 1000;
                 const isSelected = selected?.id === a.id;
                 return (
@@ -353,33 +389,9 @@ setNewAssignment({ title: '', departmentId: '', academicYear: '', durationDays: 
                   </div>
 
                   <div className="max-h-[420px] overflow-y-auto pr-1 space-y-4">
-                  {/* Filter Bar */}
-                  <div className="flex flex-wrap gap-2">
-                    <select value={filterDept} onChange={e => { setFilterDept(e.target.value); setFilterLevel(''); }}
-                      className="px-3 py-2 bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-600 rounded-xl text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
-                      <option value="">All Departments</option>
-                      {departments.map(d => <option key={d.id} value={d.name}>{d.name}</option>)}
-                    </select>
-                    <select value={filterLevel} onChange={e => setFilterLevel(e.target.value)}
-                      className="px-3 py-2 bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-600 rounded-xl text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
-                      <option value="">All Levels</option>
-                      {filterAvailableLevels.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
-                    </select>
-                    {(filterDept || filterLevel) && (
-                      <button onClick={() => { setFilterDept(''); setFilterLevel(''); }}
-                        className="flex items-center gap-1 px-3 py-2 text-xs text-red-500 bg-red-50 dark:bg-red-900/20 rounded-xl hover:bg-red-100 transition-colors">
-                        <X size={13} /> Reset
-                      </button>
-                    )}
-                  </div>
                   {/* Group by department + year */}
                   {Object.entries(
                     selected.submissions
-                      .filter(sub => {
-                        const matchDept = !filterDept || sub.student.department?.name === filterDept;
-                        const matchLevel = !filterLevel || String(sub.student.academicYear) === filterLevel;
-                        return matchDept && matchLevel;
-                      })
                       .reduce((groups, sub) => {
                       const key = `${sub.student.department?.name ?? 'General'} - Level ${sub.student.academicYear}`;
                       if (!groups[key]) groups[key] = [];
@@ -511,6 +523,18 @@ setNewAssignment({ title: '', departmentId: '', academicYear: '', durationDays: 
                 >
                   <option value="">Select year...</option>
                   {academicYears.map(y => <option key={y.value} value={y.value}>{y.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-400 uppercase mb-2 block">Semester *</label>
+                <select
+                  required
+                  className="w-full bg-slate-50 dark:bg-slate-700 dark:text-slate-100 border-none rounded-xl p-4 text-sm focus:ring-2 focus:ring-indigo-200 outline-none"
+                  value={newAssignment.semester}
+                  onChange={e => setNewAssignment(p => ({ ...p, semester: e.target.value }))}
+                >
+                  <option value="1">Semester 1</option>
+                  <option value="2">Semester 2</option>
                 </select>
               </div>
               <div>

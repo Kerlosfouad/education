@@ -245,6 +245,7 @@ model Assignment {
   subjectId     String?
   departmentId  String?
   academicYear  Int?
+  semester      Int      @default(1)
   title         String
   description   String?  @db.Text
   deadline      DateTime
