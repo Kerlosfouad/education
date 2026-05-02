@@ -52,7 +52,7 @@ export default function StudentAssignmentsPage() {
         setDoneId(assignmentId);
         setAssignments(prev => prev.map(a =>
           a.id === assignmentId
-            ? { ...a, submissions: [{ id: json.data.id, status: 'SUBMITTED', fileUrl: uploaded[0].url }] }
+            ? { ...a, submissions: [{ id: json.data.id, status: 'SUBMITTED', fileUrl: uploaded[0].url, score: null, gradedAt: null }] }
             : a
         ));
         setSelectedFile(prev => { const n = { ...prev }; delete n[assignmentId]; return n; });
