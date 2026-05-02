@@ -11,6 +11,7 @@ interface AttendanceSession {
   _count: { attendances: number }; attendances?: AttendanceRecord[];
   department?: { name: string } | null;
   academicYear?: number | null;
+  semester?: number | null;
 }
 interface Student { 
   id: string; 
@@ -33,10 +34,11 @@ export default function AttendancePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'sessions' | 'table'>('sessions');
-  const [form, setForm] = useState({ subjectId: '', departmentId: '', academicYear: '', title: '', durationHours: '1', durationMinutes: '0' });
+  const [form, setForm] = useState({ subjectId: '', departmentId: '', academicYear: '', semester: '1', title: '', durationHours: '1', durationMinutes: '0' });
   const [menuSessionId, setMenuSessionId] = useState<string | null>(null);
   const [filterDept, setFilterDept] = useState('');
   const [filterLevel, setFilterLevel] = useState('');
+  const [filterSemester, setFilterSemester] = useState('');
   const [tableAvailableLevels, setTableAvailableLevels] = useState<number[]>([]);
   const [search, setSearch] = useState('');
 
@@ -113,12 +115,13 @@ export default function AttendancePage() {
           title: form.title || undefined,
           departmentId: form.departmentId || undefined,
           academicYear: form.academicYear !== '' ? Number(form.academicYear) : undefined,
+          semester: Number(form.semester),
           openTime: now.toISOString(),
           closeTime: closeTime.toISOString(),
         }),
       });
       const json = await res.json();
-      if (json.success) { setShowModal(false); setForm({ subjectId: '', departmentId: '', academicYear: '', title: '', durationHours: '1', durationMinutes: '0' }); fetchData(); }
+      if (json.success) { setShowModal(false); setForm({ subjectId: '', departmentId: '', academicYear: '', semester: '1', title: '', durationHours: '1', durationMinutes: '0' }); fetchData(); }
       else setError(json.error || t('errorOccurred'));
     } catch { setError('Network error'); }
     setSaving(false);
@@ -145,7 +148,7 @@ export default function AttendancePage() {
   };
 
   const openModal = () => {
-    setForm({ subjectId: '', departmentId: '', academicYear: '', title: '', durationHours: '1', durationMinutes: '0' });
+    setForm({ subjectId: '', departmentId: '', academicYear: '', semester: '1', title: '', durationHours: '1', durationMinutes: '0' });
     setError(''); setShowModal(true);
   };
 
@@ -154,9 +157,7 @@ export default function AttendancePage() {
     const matchLevel = !filterLevel || String(student.academicYear) === filterLevel;
     const matchSearch = !search || student.user.name.toLowerCase().includes(search.toLowerCase()) || student.studentCode.includes(search);
     return matchDept && matchLevel && matchSearch;
-  });
-
-  const getStatus = (session: AttendanceSession, studentId: string) => {
+  });  const getStatus = (session: AttendanceSession, studentId: string) => {
     const record = session.attendances?.find(a => a.studentId === studentId);
     if (!record) return 'unknown';
     if (record.verificationMethod === 'ABSENT') return 'absent';
@@ -287,10 +288,26 @@ export default function AttendancePage() {
                   className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 w-52"
                 />
               </div>
-              {search && (
-                <button onClick={() => setSearch('')}
+              <select value={filterDept} onChange={e => { setFilterDept(e.target.value); setFilterLevel(''); }}
+                className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+                <option value="">All Departments</option>
+                {departments.map(d => <option key={d.id} value={d.name}>{d.name}</option>)}
+              </select>
+              <select value={filterLevel} onChange={e => setFilterLevel(e.target.value)}
+                className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+                <option value="">All Levels</option>
+                {tableAvailableLevels.map(l => <option key={l} value={String(l)}>Level {l}</option>)}
+              </select>
+              <select value={filterSemester} onChange={e => setFilterSemester(e.target.value)}
+                className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+                <option value="">All Semesters</option>
+                <option value="1">Semester 1</option>
+                <option value="2">Semester 2</option>
+              </select>
+              {(filterDept || filterLevel || filterSemester || search) && (
+                <button onClick={() => { setFilterDept(''); setFilterLevel(''); setFilterSemester(''); setSearch(''); }}
                   className="flex items-center gap-1.5 px-3 py-2 text-sm text-red-500 bg-red-50 rounded-xl hover:bg-red-100 transition-colors">
-                  <X size={14} /> Clear Search
+                  <X size={14} /> Clear
                 </button>
               )}
             </div>
@@ -302,18 +319,29 @@ export default function AttendancePage() {
               <p>{t('notEnoughData')}</p>
             </div>
           ) : (
-            departments.map(dept => {
+            departments
+              .filter(dept => !filterDept || dept.name === filterDept)
+              .map(dept => {
               const deptStudents = students.filter(s => s.department.name === dept.name);
               if (deptStudents.length === 0) return null;
 
-              // Group by level
               const levelSet = new Set(deptStudents.map(s => s.academicYear));
-              const levels = Array.from(levelSet).sort((a, b) => a - b);
+              const levels = Array.from(levelSet).sort((a, b) => a - b)
+                .filter(l => !filterLevel || String(l) === filterLevel);
 
               return (
                 <div key={dept.id}>
                   {levels.map(level => {
                     const levelStudents = deptStudents.filter(s => s.academicYear === level);
+
+                    // Filter sessions by semester if selected
+                    const visibleSessions = sessions.filter(s => {
+                      const deptMatch = !s.department || s.department.name === dept.name;
+                      const levelMatch = s.academicYear === null || s.academicYear === undefined || s.academicYear === level;
+                      const semesterMatch = !filterSemester || String((s as any).semester) === filterSemester;
+                      return deptMatch && levelMatch && semesterMatch;
+                    });
+
                     const filteredLevelStudents = levelStudents.filter(student => {
                       const matchSearch = !search || student.user.name.toLowerCase().includes(search.toLowerCase()) || student.studentCode.includes(search);
                       return matchSearch;
@@ -337,7 +365,7 @@ export default function AttendancePage() {
                               <tr className="bg-slate-50">
                                 <th className="p-4 text-xs font-bold text-slate-500 text-left sticky left-0 bg-slate-50 z-10 border-b border-slate-100 min-w-[200px]">Student</th>
                                 <th className="p-4 text-xs font-bold text-slate-500 text-left border-b border-slate-100 min-w-[100px]">Code</th>
-                                {sessions.map(s => (
+                                {visibleSessions.map(s => (
                                   <th key={s.id} className="p-3 text-[10px] font-bold text-slate-400 text-center border-b border-slate-100 min-w-[100px]">
                                     <div>{s.title || s.subject?.name || 'Session'}</div>
                                     <div className="text-slate-300 font-normal">{new Date(s.openTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
@@ -348,7 +376,7 @@ export default function AttendancePage() {
                             </thead>
                             <tbody className="divide-y divide-slate-50">
                               {filteredLevelStudents.map(student => {
-                                const studentSessions = sessions.filter(s => sessionAppliesToStudent(s, student));
+                                const studentSessions = visibleSessions.filter(s => sessionAppliesToStudent(s, student));
                                 const presentCount = studentSessions.filter(s => getStatus(s, student.id) === 'present').length;
                                 const rate = studentSessions.length > 0 ? Math.round((presentCount / studentSessions.length) * 100) : 0;
                                 return (
@@ -362,7 +390,7 @@ export default function AttendancePage() {
                                       </div>
                                     </td>
                                     <td className="p-4 text-sm font-mono text-slate-500 border-r border-slate-100">{student.studentCode}</td>
-                                    {sessions.map(s => {
+                                    {visibleSessions.map(s => {
                                       if (!sessionAppliesToStudent(s, student)) {
                                         return (
                                           <td key={s.id} className="p-2 text-center border-r border-slate-50">
@@ -438,6 +466,14 @@ export default function AttendancePage() {
                   className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
                   <option value="">All Levels</option>
                   {availableLevels.map(l => <option key={l} value={l}>Level {l}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Semester</label>
+                <select value={form.semester} onChange={e => setForm(f => ({ ...f, semester: e.target.value }))}
+                  className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+                  <option value="1">Semester 1</option>
+                  <option value="2">Semester 2</option>
                 </select>
               </div>
               <div>

@@ -70,8 +70,8 @@ export async function GET(req: NextRequest) {
       // Fetch departmentId and academicYear via raw SQL (stored outside Prisma schema)
       const sessionIds = sessions.map((s: any) => s.id);
       const rawSessions = sessionIds.length > 0
-        ? await db.$queryRaw<{ id: string; departmentId: string | null; academicYear: number | null }[]>`
-            SELECT id, "departmentId", "academicYear" FROM attendance_sessions WHERE id = ANY(${sessionIds}::text[])
+        ? await db.$queryRaw<{ id: string; departmentId: string | null; academicYear: number | null; semester: number | null }[]>`
+            SELECT id, "departmentId", "academicYear", "semester" FROM attendance_sessions WHERE id = ANY(${sessionIds}::text[])
           `
         : [];
       const rawMap = Object.fromEntries(rawSessions.map(r => [r.id, r]));
@@ -89,6 +89,7 @@ export async function GET(req: NextRequest) {
           ...s,
           departmentId: raw?.departmentId ?? null,
           academicYear: raw?.academicYear ?? null,
+          semester: raw?.semester ?? null,
           department: raw?.departmentId ? deptMap[raw.departmentId] ?? null : null,
         };
       });
@@ -170,11 +171,13 @@ export async function POST(req: NextRequest) {
         });
 
         const academicYear = body.academicYear !== undefined && body.academicYear !== '' ? Number(body.academicYear) : null;
+        const semester = body.semester !== undefined ? Number(body.semester) : 1;
         if (departmentId || academicYear !== null) {
           await db.$executeRawUnsafe(
-            `UPDATE attendance_sessions SET "departmentId" = $1, "academicYear" = $2 WHERE id = $3`,
+            `UPDATE attendance_sessions SET "departmentId" = $1, "academicYear" = $2, "semester" = $3 WHERE id = $4`,
             departmentId || null,
             academicYear,
+            semester,
             attendanceSession.id
           );
         }
