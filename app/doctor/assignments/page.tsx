@@ -58,7 +58,8 @@ export default function AssignmentsPage() {
   const [detailLoading, setDetailLoading] = useState(false);
   
   // Grading state
-  const [globalScore, setGlobalScore] = useState<string>('');
+  const [maxScoreInput, setMaxScoreInput] = useState<string>('');
+  const [updatingMaxScore, setUpdatingMaxScore] = useState(false);
   const [gradingLoading, setGradingLoading] = useState<string | null>(null);
 
   const academicYearsByDept: Record<string, { value: string; label: string }[]> = {
@@ -109,7 +110,10 @@ export default function AssignmentsPage() {
     setSelected(null);
     const res = await fetch(`/api/assignments/${id}`);
     const json = await res.json();
-    if (json.success) setSelected(json.data);
+    if (json.success) {
+      setSelected(json.data);
+      setMaxScoreInput(String(json.data.maxScore));
+    }
     setDetailLoading(false);
   };
 
@@ -149,28 +153,52 @@ setNewAssignment({ title: '', departmentId: '', academicYear: '', durationDays: 
     }
   };
 
-  const handleGradeSubmission = async (submissionId: string, maxScore: number) => {
-    if (!globalScore || globalScore.trim() === '') {
-      alert('Please enter a score in the input field above');
+  const handleUpdateMaxScore = async () => {
+    if (!maxScoreInput || maxScoreInput.trim() === '') {
+      alert('Please enter a max score');
       return;
     }
-    const score = Number(globalScore);
-    if (isNaN(score) || score < 0 || score > maxScore) {
-      alert(`Score must be between 0 and ${maxScore}`);
+    const newMaxScore = Number(maxScoreInput);
+    if (isNaN(newMaxScore) || newMaxScore <= 0) {
+      alert('Max score must be a positive number');
       return;
     }
 
-    setGradingLoading(submissionId);
+    setUpdatingMaxScore(true);
     try {
       const res = await fetch(`/api/assignments/${selected?.id}`, {
-        method: 'PATCH',
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ submissionId, score }),
+        body: JSON.stringify({ maxScore: newMaxScore }),
       });
       const json = await res.json();
       if (json.success) {
         // Refresh details
         if (selected) await openDetails(selected.id);
+        alert('Max score updated successfully!');
+      } else {
+        alert('Error: ' + (json.error || 'Failed to update'));
+      }
+    } catch (error) {
+      alert('Error updating max score');
+    }
+    setUpdatingMaxScore(false);
+  };
+
+  const handleGradeSubmission = async (submissionId: string) => {
+    if (!selected) return;
+    
+    setGradingLoading(submissionId);
+    try {
+      const res = await fetch(`/api/assignments/${selected.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ submissionId, score: selected.maxScore }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        // Refresh details
+        await openDetails(selected.id);
       } else {
         alert('Error: ' + (json.error || 'Failed to grade'));
       }
@@ -296,22 +324,37 @@ setNewAssignment({ title: '', departmentId: '', academicYear: '', durationDays: 
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {/* Global Score Input */}
+                  {/* Max Score Input */}
                   <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl p-4 border-2 border-indigo-200 dark:border-indigo-800">
                     <label className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase mb-2 block">
-                      Set Score (Max: {selected.maxScore})
+                      Assignment Max Score
                     </label>
-                    <input
-                      type="number"
-                      min="0"
-                      max={selected.maxScore}
-                      placeholder={`Enter score (0-${selected.maxScore})`}
-                      value={globalScore}
-                      onChange={e => setGlobalScore(e.target.value)}
-                      className="w-full bg-white dark:bg-slate-700 border-2 border-indigo-300 dark:border-indigo-700 rounded-xl px-4 py-3 text-base font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        min="1"
+                        placeholder="Enter max score"
+                        value={maxScoreInput}
+                        onChange={e => setMaxScoreInput(e.target.value)}
+                        className="flex-1 bg-white dark:bg-slate-700 border-2 border-indigo-300 dark:border-indigo-700 rounded-xl px-4 py-3 text-base font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                      <button
+                        onClick={handleUpdateMaxScore}
+                        disabled={updatingMaxScore || maxScoreInput === String(selected.maxScore)}
+                        className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                        {updatingMaxScore ? (
+                          <Loader2 size={16} className="animate-spin" />
+                        ) : (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                        Set
+                      </button>
+                    </div>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-                      Enter the score above, then click "Approve" next to each student to assign this score
+                      Current max score: <span className="font-bold text-indigo-600 dark:text-indigo-400">{selected.maxScore}</span>. 
+                      Change it above and click "Set", then click "Approve" next to each student to give them full marks.
                     </p>
                   </div>
 
@@ -404,8 +447,8 @@ setNewAssignment({ title: '', departmentId: '', academicYear: '', durationDays: 
                             ) : (
                               <div className="flex justify-end">
                                 <button
-                                  onClick={() => handleGradeSubmission(sub.id, selected.maxScore)}
-                                  disabled={gradingLoading === sub.id || !globalScore}
+                                  onClick={() => handleGradeSubmission(sub.id)}
+                                  disabled={gradingLoading === sub.id}
                                   className="flex items-center gap-1.5 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                                   {gradingLoading === sub.id ? (
                                     <Loader2 size={13} className="animate-spin" />
@@ -414,7 +457,7 @@ setNewAssignment({ title: '', departmentId: '', academicYear: '', durationDays: 
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                     </svg>
                                   )}
-                                  Approve
+                                  Approve ({selected.maxScore})
                                 </button>
                               </div>
                             )}

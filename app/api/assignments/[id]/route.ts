@@ -96,6 +96,30 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 }
 
+// PUT /api/assignments/[id] - update assignment max score
+export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || (session.user.role !== 'DOCTOR' && session.user.role !== 'ADMIN')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { maxScore } = await req.json();
+    if (maxScore === undefined || maxScore <= 0) {
+      return NextResponse.json({ error: 'Invalid max score' }, { status: 400 });
+    }
+
+    const updated = await db.assignment.update({
+      where: { id: params.id },
+      data: { maxScore: Number(maxScore) },
+    });
+
+    return NextResponse.json({ success: true, data: updated });
+  } catch (error) {
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+  }
+}
+
 // POST /api/assignments/[id] - student submits assignment with PDF
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
