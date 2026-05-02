@@ -16,6 +16,21 @@ export async function GET() {
     });
     if (!student) return NextResponse.json({ error: 'Student not found' }, { status: 404 });
 
+    // Get student's semester via raw SQL
+    const semesterRows = await db.$queryRaw<{ semester: number }[]>`
+      SELECT semester FROM students WHERE id = ${student.id}
+    `;
+    const semester = semesterRows[0]?.semester ?? null;
+
+    // Fetch subjects for this student
+    const subjectWhere: any = { departmentId: student.departmentId, academicYear: student.academicYear };
+    if (semester) subjectWhere.semester = semester;
+    const subjects = await db.subject.findMany({
+      where: subjectWhere,
+      select: { name: true, code: true },
+      orderBy: { name: 'asc' },
+    });
+
     const qrCodeDataUrl = await generateStudentQRCode(student.id);
     const registeredAt = (student.approvedAt || student.user.createdAt).toISOString().slice(0, 10);
 
@@ -59,6 +74,13 @@ export async function GET() {
   <div class="info-row"><span class="info-label">Student Code</span><span class="info-value">${safeCode}</span></div>
   <div class="info-row"><span class="info-label">Department</span><span class="info-value">${safeDept}</span></div>
   <div class="info-row"><span class="info-label">Academic Year</span><span class="info-value">Level ${student.academicYear}</span></div>
+  ${subjects.length > 0 ? `
+  <div class="info-row" style="align-items:flex-start;">
+    <span class="info-label" style="padding-top:4px;">Subjects</span>
+    <div style="display:flex;flex-wrap:wrap;gap:5px;justify-content:flex-end;max-width:65%;">
+      ${subjects.map(s => `<span style="background:#eff6ff;color:#2563eb;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:bold;">${escapeHtml(s.name)}</span>`).join('')}
+    </div>
+  </div>` : ''}
   <div class="info-row"><span class="info-label">Phone</span><span class="info-value">${safePhone}</span></div>
   <div class="info-row"><span class="info-label">Email</span><span class="info-value">${safeEmail}</span></div>
   <div class="info-row"><span class="info-label">Registered</span><span class="info-value">${registeredAt}</span></div>
