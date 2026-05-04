@@ -18,6 +18,7 @@ interface Student {
   studentCode: string; 
   academicYear: number;
   semester?: number;
+  semesters?: number[];
   user: { name: string; email: string }; 
   department: { name: string };
 }
@@ -325,7 +326,10 @@ export default function AttendancePage() {
               .map(dept => {
               const deptStudents = students.filter(s => {
                 const matchDept = s.department.name === dept.name;
-                const matchSemester = !filterSemester || String(s.semester ?? 1) === filterSemester;
+                const matchSemester = !filterSemester || 
+                  (s.semesters && s.semesters.length > 0 
+                    ? s.semesters.map(String).includes(filterSemester)
+                    : String(s.semester ?? 1) === filterSemester);
                 return matchDept && matchSemester;
               });
               if (deptStudents.length === 0) return null;

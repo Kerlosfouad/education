@@ -29,15 +29,21 @@ export async function GET(request: Request) {
     db.student.count({ where: { user: { status: 'ACTIVE' } } }),
   ]);
 
-  // Fetch semester for each student via raw SQL
-  const studentIds = students.map(s => s.id);
-  const semesterRows = studentIds.length > 0
-    ? await db.$queryRaw<{ id: string; semester: number }[]>`
-        SELECT id, semester FROM students WHERE id = ANY(${studentIds}::text[])
-      `
-    : [];
-  const semesterMap = Object.fromEntries(semesterRows.map(r => [r.id, r.semester]));
-  const studentsWithSemester = students.map(s => ({ ...s, semester: semesterMap[s.id] ?? 1 }));
+  // For each student, find which semesters they have subjects in
+  // based on subjects matching their department + academicYear
+  const studentsWithSemester = await Promise.all(students.map(async s => {
+    const subjectSemesters = await db.subject.findMany({
+      where: {
+        departmentId: s.departmentId,
+        academicYear: s.academicYear,
+        isActive: true,
+      },
+      select: { semester: true },
+    });
+    // Get unique semesters from subjects
+    const semesters = Array.from(new Set(subjectSemesters.map(sub => sub.semester)));
+    return { ...s, semesters };
+  }));
 
   return NextResponse.json({
     success: true,
