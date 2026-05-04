@@ -16,8 +16,12 @@ export async function GET(req: NextRequest) {
     FROM attendance_sessions ORDER BY "openTime" DESC LIMIT 20
   `;
   const attendanceSample = await db.$queryRaw`
-    SELECT a."verificationMethod", COUNT(*)::int as count
-    FROM attendances a GROUP BY a."verificationMethod"
+    SELECT a."studentId", a."verificationMethod", s."studentCode"
+    FROM attendances a 
+    JOIN students s ON s.id = a."studentId"
+    JOIN attendance_sessions sess ON sess.id = a."sessionId"
+    WHERE sess."academicYear" = 1 AND sess."semester" = 2
+    LIMIT 10
   `;
   const totalAttendances = await db.$queryRaw`SELECT COUNT(*)::int as total FROM attendances`;
   return NextResponse.json({ departments, sessions, attendanceSample, totalAttendances });
