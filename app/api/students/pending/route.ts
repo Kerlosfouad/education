@@ -30,6 +30,7 @@ export async function GET() {
             id: true,
             studentCode: true,
             academicYear: true,
+            departmentId: true,
             department: { select: { name: true } },
           },
         },
@@ -37,21 +38,37 @@ export async function GET() {
       orderBy: { createdAt: 'desc' },
     });
 
-    // Normalize to a consistent shape
-    const data = pendingUsers.map(u => ({
-      id: u.student!.id,
-      userId: u.id,
-      studentCode: u.student!.studentCode,
-      academicYear: u.student!.academicYear,
-      department: { name: u.student!.department.name },
-      user: {
-        name: u.name ?? '',
-        email: u.email,
-        image: u.image ?? null,
-        status: u.status,
-        createdAt: u.createdAt.toISOString(),
-      },
+    // Get all unique dept+year combos to batch fetch subjects
+    const combos = Array.from(new Set(pendingUsers.map(u => `${u.student!.departmentId}|${u.student!.academicYear}`)));
+    const subjectMap: Record<string, string[]> = {};
+    await Promise.all(combos.map(async combo => {
+      const [deptId, year] = combo.split('|');
+      const subs = await db.subject.findMany({
+        where: { departmentId: deptId, academicYear: Number(year), isActive: true },
+        select: { name: true },
+      });
+      subjectMap[combo] = subs.map(s => s.name);
     }));
+
+    // Normalize to a consistent shape
+    const data = pendingUsers.map(u => {
+      const key = `${u.student!.departmentId}|${u.student!.academicYear}`;
+      return {
+        id: u.student!.id,
+        userId: u.id,
+        studentCode: u.student!.studentCode,
+        academicYear: u.student!.academicYear,
+        department: { name: u.student!.department.name },
+        subjects: subjectMap[key] ?? [],
+        user: {
+          name: u.name ?? '',
+          email: u.email,
+          image: u.image ?? null,
+          status: u.status,
+          createdAt: u.createdAt.toISOString(),
+        },
+      };
+    });
 
     return NextResponse.json({ success: true, data });
   } catch (error) {

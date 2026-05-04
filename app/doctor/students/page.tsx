@@ -23,6 +23,7 @@ interface StudentRecord {
   studentCode: string;
   academicYear: number;
   department: { name: string };
+  subjects?: string[];
   user: { name: string; email: string; image: string | null; createdAt: string; status: string };
 }
 
@@ -303,6 +304,16 @@ export default function StudentsPage() {
                         <span className="text-slate-400 font-medium">Level</span>
                         <span className="font-semibold text-slate-700 dark:text-slate-200">Level {s.academicYear}</span>
                       </div>
+                      {s.subjects && s.subjects.length > 0 && (
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="text-slate-400 font-medium shrink-0">Subjects</span>
+                          <div className="flex flex-wrap gap-1 justify-end">
+                            {s.subjects.map(sub => (
+                              <span key={sub} className="text-[10px] bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full font-medium">{sub}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <div className="flex gap-2">
                       <button onClick={() => handleAction(s.id, s.userId, 'approve')} disabled={!!actionLoading}
