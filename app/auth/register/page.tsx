@@ -118,6 +118,12 @@ export default function RegisterPage() {
       return;
     }
 
+    if (!formData.phone.trim()) {
+      setError('Phone number is required');
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
@@ -127,7 +133,7 @@ export default function RegisterPage() {
           email: formData.email,
           password: formData.password,
           phone: formData.phone,
-          studentCode: formData.studentCode || undefined,
+          studentCode: formData.studentCode.trim(),
           departmentId: formData.departmentId,
           academicYear: parseInt(formData.academicYear),
           semester: formData.semester ? parseInt(formData.semester) : 1,
@@ -304,7 +310,7 @@ export default function RegisterPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
+                <Label htmlFor="phone">Phone Number *</Label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
@@ -314,6 +320,7 @@ export default function RegisterPage() {
                     value={formData.phone}
                     onChange={(e) => handleChange('phone', e.target.value)}
                     className="pl-10"
+                    required
                     disabled={isLoading}
                   />
                 </div>
