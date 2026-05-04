@@ -272,14 +272,17 @@ export default function CompleteProfilePage() {
               )}
 
               <div className="space-y-2">
-                <Label>Student Code *</Label>                <Input
-                  type="tel"
+                <Label>Student Code *</Label>
+                <Input
+                  type="text"
                   inputMode="numeric"
-                  placeholder="e.g. 971304"
+                  placeholder="e.g. 24179"
                   value={studentCode}
-                  onChange={e => setStudentCode(e.target.value)}
+                  onChange={e => setStudentCode(e.target.value.replace(/\D/g, '').slice(0, 5))}
+                  maxLength={5}
                   disabled={isLoading}
                 />
+                <p className="text-xs text-muted-foreground">5 digits only</p>
               </div>
 
               <div className="space-y-2">
