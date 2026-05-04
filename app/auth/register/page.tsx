@@ -112,6 +112,12 @@ export default function RegisterPage() {
       return;
     }
 
+    if (!/^\d{5}$/.test(formData.studentCode.trim())) {
+      setError('Student code must be exactly 5 digits');
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
@@ -314,18 +320,23 @@ export default function RegisterPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="studentCode">Student Code <span className="text-xs text-muted-foreground font-normal">(optional - leave empty to auto-generate)</span></Label>
+                <Label htmlFor="studentCode">Student Code *</Label>
                 <div className="relative">
                   <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     id="studentCode"
-                    placeholder="Enter your student code"
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="5 digits e.g. 24179"
                     value={formData.studentCode}
-                    onChange={(e) => handleChange('studentCode', e.target.value)}
+                    onChange={e => handleChange('studentCode', e.target.value.replace(/\D/g, '').slice(0, 5))}
                     className="pl-10"
+                    required
+                    maxLength={5}
                     disabled={isLoading}
                   />
                 </div>
+                <p className="text-xs text-muted-foreground">Must be exactly 5 digits</p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
