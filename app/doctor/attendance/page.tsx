@@ -380,8 +380,7 @@ export default function AttendancePage() {
                               {filteredLevelStudents.map(student => {
                                 const studentSessions = visibleSessions.filter(s => sessionAppliesToStudent(s, student));
                                 const presentCount = studentSessions.filter(s => getStatus(s, student.id) === 'present').length;
-                                const rate = studentSessions.length > 0 ? Math.round((presentCount / studentSessions.length) * 100) : 0;
-                                return (
+                                const rate = studentSessions.length > 0 ? Math.round((presentCount / studentSessions.length) * 100) : 0;                                return (
                                   <tr key={student.id} className="hover:bg-slate-50/50 transition-colors">
                                     <td className="p-4 sticky left-0 bg-white z-10 border-r border-slate-100">
                                       <div className="flex items-center gap-3">
@@ -396,8 +395,8 @@ export default function AttendancePage() {
                                       if (!sessionAppliesToStudent(s, student)) {
                                         return (
                                           <td key={s.id} className="p-2 text-center border-r border-slate-50">
-                                            <div className="w-7 h-7 mx-auto rounded-lg bg-slate-50 flex items-center justify-center">
-                                              <span className="text-slate-200 text-xs">N/A</span>
+                                            <div className="w-7 h-7 mx-auto rounded-lg bg-red-50 flex items-center justify-center">
+                                              <XCircle size={14} className="text-red-500" />
                                             </div>
                                           </td>
                                         );
@@ -410,8 +409,11 @@ export default function AttendancePage() {
                                               <CheckCircle2 size={14} className="text-green-600" />
                                             </div>
                                           )}
-                                          {status === 'absent' && <div className="w-7 h-7 mx-auto rounded-lg bg-red-50 flex items-center justify-center"><XCircle size={14} className="text-red-500" /></div>}
-                                          {status === 'unknown' && <div className="w-7 h-7 mx-auto rounded-lg bg-slate-50 flex items-center justify-center"><span className="text-slate-300 text-xs">—</span></div>}
+                                          {(status === 'absent' || status === 'unknown') && (
+                                            <div className="w-7 h-7 mx-auto rounded-lg bg-red-50 flex items-center justify-center">
+                                              <XCircle size={14} className="text-red-500" />
+                                            </div>
+                                          )}
                                         </td>
                                       );
                                     })}
