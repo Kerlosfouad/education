@@ -29,9 +29,19 @@ export async function GET(request: Request) {
     db.student.count({ where: { user: { status: 'ACTIVE' } } }),
   ]);
 
+  // Fetch semester for each student via raw SQL
+  const studentIds = students.map(s => s.id);
+  const semesterRows = studentIds.length > 0
+    ? await db.$queryRaw<{ id: string; semester: number }[]>`
+        SELECT id, semester FROM students WHERE id = ANY(${studentIds}::text[])
+      `
+    : [];
+  const semesterMap = Object.fromEntries(semesterRows.map(r => [r.id, r.semester]));
+  const studentsWithSemester = students.map(s => ({ ...s, semester: semesterMap[s.id] ?? 1 }));
+
   return NextResponse.json({
     success: true,
-    data: students,
+    data: studentsWithSemester,
     pagination: { page, limit, total, pages: limit ? Math.ceil(total / limit) : 1 },
   });
 }

@@ -17,6 +17,7 @@ interface Student {
   id: string; 
   studentCode: string; 
   academicYear: number;
+  semester?: number;
   user: { name: string; email: string }; 
   department: { name: string };
 }
@@ -322,7 +323,11 @@ export default function AttendancePage() {
             departments
               .filter(dept => !filterDept || dept.name === filterDept)
               .map(dept => {
-              const deptStudents = students.filter(s => s.department.name === dept.name);
+              const deptStudents = students.filter(s => {
+                const matchDept = s.department.name === dept.name;
+                const matchSemester = !filterSemester || String(s.semester ?? 1) === filterSemester;
+                return matchDept && matchSemester;
+              });
               if (deptStudents.length === 0) return null;
 
               const levelSet = new Set(deptStudents.map(s => s.academicYear));
