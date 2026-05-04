@@ -34,6 +34,11 @@ export async function PATCH(request: Request) {
   if (!name?.trim() || !studentCode?.trim())
     return NextResponse.json({ error: 'Name and student code are required' }, { status: 400 });
 
+  // Validate student code: exactly 5 digits
+  const codeStr = String(studentCode).trim();
+  if (!/^\d{5}$/.test(codeStr))
+    return NextResponse.json({ error: 'Student code must be exactly 5 digits' }, { status: 400 });
+
   const student = await db.student.findUnique({ where: { userId: session.user.id } });
   if (!student) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
@@ -42,7 +47,7 @@ export async function PATCH(request: Request) {
     db.student.update({
       where: { id: student.id },
       data: {
-        studentCode: studentCode.trim(),
+        studentCode: codeStr,
         ...(departmentId ? { departmentId } : {}),
         ...(academicYear !== undefined ? { academicYear: Number(academicYear) } : {}),
       } as any,

@@ -99,9 +99,21 @@ export default function SettingsPage() {
             <label className="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Student Code</label>
             <div className="relative">
               <Hash className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-              <input type="text" value={studentCode} onChange={e => setStudentCode(e.target.value)} required placeholder="e.g. 24179"
+              <input
+                type="text"
+                value={studentCode}
+                onChange={e => {
+                  const val = e.target.value.replace(/\D/g, '').slice(0, 5);
+                  setStudentCode(val);
+                }}
+                required
+                placeholder="e.g. 24179"
+                maxLength={5}
+                pattern="\d{5}"
+                inputMode="numeric"
                 className="w-full pl-9 pr-4 py-3 bg-slate-50 dark:bg-[#0a1628]/60 border border-slate-200 dark:border-[#1a2f4a] rounded-xl text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
             </div>
+            <p className="text-[11px] text-slate-400 mt-1">5 digits only</p>
           </div>
 
           <div>
