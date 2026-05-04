@@ -343,14 +343,12 @@ export default function AttendancePage() {
                   {levels.map(level => {
                     const levelStudents = deptStudents.filter(s => s.academicYear === level);
 
-                    // Filter sessions by semester if selected
+                    // Show ALL sessions for this dept/level regardless of semester filter
+                    // (semester filter only affects which students are shown)
                     const visibleSessions = sessions.filter(s => {
                       const deptMatch = !s.department || s.department.name === dept.name;
                       const levelMatch = s.academicYear === null || s.academicYear === undefined || s.academicYear === level;
-                      const sem = (s as any).semester;
-                      // If session has no semester set (null/undefined), show in all semesters
-                      const semesterMatch = !filterSemester || sem === null || sem === undefined || String(sem) === filterSemester;
-                      return deptMatch && levelMatch && semesterMatch;
+                      return deptMatch && levelMatch;
                     });
 
                     const filteredLevelStudents = levelStudents.filter(student => {
