@@ -27,6 +27,7 @@ interface StudentDetail {
   studentCode: string;
   academicYear: number;
   qrCode: string | null;
+  subjects?: string[];
   user: { name: string; email: string; image: string | null };
   department: { name: string };
 }
@@ -355,6 +356,13 @@ export default function DoctorDashboardPage() {
                   <p className="font-semibold text-slate-800 dark:text-white text-sm">
                     Level {selectedStudent.academicYear}
                   </p>
+                  {selectedStudent.subjects && selectedStudent.subjects.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {selectedStudent.subjects.map((sub: string) => (
+                        <span key={sub} className="text-[10px] bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full font-medium">{sub}</span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-3 p-2.5 bg-slate-50 dark:bg-[#0a1628]/60 rounded-xl">
