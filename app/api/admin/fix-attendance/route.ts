@@ -18,7 +18,16 @@ export async function POST(req: NextRequest) {
     if (!dept[0]) return NextResponse.json({ error: 'Department not found' }, { status: 404 });
     const deptId = dept[0].id;
 
-    // Preview before
+    // Step 0: migrate sessions from semester 1 -> 2
+    const migrated = await db.$executeRaw`
+      UPDATE attendance_sessions
+      SET "semester" = 2
+      WHERE "departmentId" = ${deptId}
+        AND "academicYear" = 1
+        AND "semester" = 1
+    `;
+
+    // Preview before swap
     const before = await db.$queryRaw<{ method: string; count: number }[]>`
       SELECT a."verificationMethod" as method, COUNT(*)::int as count
       FROM attendances a
@@ -70,7 +79,7 @@ export async function POST(req: NextRequest) {
       GROUP BY a."verificationMethod"
     `;
 
-    return NextResponse.json({ success: true, before, after });
+    return NextResponse.json({ success: true, migratedSessions: migrated, before, after });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
