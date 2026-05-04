@@ -19,7 +19,8 @@ export async function GET(req: NextRequest) {
     SELECT a."verificationMethod", COUNT(*)::int as count
     FROM attendances a GROUP BY a."verificationMethod"
   `;
-  return NextResponse.json({ departments, sessions, attendanceSample });
+  const totalAttendances = await db.$queryRaw`SELECT COUNT(*)::int as total FROM attendances`;
+  return NextResponse.json({ departments, sessions, attendanceSample, totalAttendances });
 }
 
 export async function POST(req: NextRequest) {
