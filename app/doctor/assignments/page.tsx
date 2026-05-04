@@ -45,7 +45,7 @@ export default function AssignmentsPage() {
   const { t } = useI18n();
   const [assignments, setAssignments] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newAssignment, setNewAssignment] = useState({ title: '', departmentId: '', academicYear: '', semester: '1', durationDays: '7' });
+  const [newAssignment, setNewAssignment] = useState({ title: '', departmentId: '', academicYear: '', semester: '1', startDate: '', startTime: '00:00', endDate: '', endTime: '23:59' });
   const [loading, setLoading] = useState(false);
   const [departments, setDepartments] = useState<{ id: string; name: string; code: string }[]>([]);
   const [search, setSearch] = useState('');
@@ -130,16 +130,21 @@ export default function AssignmentsPage() {
       return;
     }
     setLoading(true);
+    const startDate = newAssignment.startDate && newAssignment.startTime
+      ? new Date(`${newAssignment.startDate}T${newAssignment.startTime}`).toISOString()
+      : new Date().toISOString();
+    const deadline = new Date(`${newAssignment.endDate}T${newAssignment.endTime}`).toISOString();
     const res = await createAssignmentAction({
       title: newAssignment.title,
       departmentId: newAssignment.departmentId,
       academicYear: parseInt(newAssignment.academicYear),
       semester: parseInt(newAssignment.semester),
-      durationDays: parseInt(newAssignment.durationDays),
+      startDate,
+      deadline,
     });
     if (res.success) {
       setIsModalOpen(false);
-      setNewAssignment({ title: '', departmentId: '', academicYear: '', semester: '1', durationDays: '7' });
+      setNewAssignment({ title: '', departmentId: '', academicYear: '', semester: '1', startDate: '', startTime: '00:00', endDate: '', endTime: '23:59' });
       refreshData();
     } else {
       alert('Error: ' + res.error);
@@ -538,13 +543,34 @@ export default function AssignmentsPage() {
                 </select>
               </div>
               <div>
-                <label className="text-xs font-bold text-slate-400 uppercase mb-2 block">Duration (Days) *</label>
-                <input required type="number" min="1" max="30"
-                  className="w-full bg-slate-50 dark:bg-slate-700 dark:text-slate-100 border-none rounded-xl p-4 text-sm focus:ring-2 focus:ring-indigo-200 outline-none"
-                  placeholder="e.g., 7"
-                  value={newAssignment.durationDays}
-                  onChange={e => setNewAssignment({ ...newAssignment, durationDays: e.target.value })}
-                />
+                <label className="text-xs font-bold text-slate-400 uppercase mb-2 block">Start Date & Time *</label>
+                <div className="flex gap-2">
+                  <input required type="date"
+                    className="flex-1 bg-slate-50 dark:bg-slate-700 dark:text-slate-100 border-none rounded-xl p-4 text-sm focus:ring-2 focus:ring-indigo-200 outline-none"
+                    value={newAssignment.startDate}
+                    onChange={e => setNewAssignment({ ...newAssignment, startDate: e.target.value })}
+                  />
+                  <input required type="time"
+                    className="w-32 bg-slate-50 dark:bg-slate-700 dark:text-slate-100 border-none rounded-xl p-4 text-sm focus:ring-2 focus:ring-indigo-200 outline-none"
+                    value={newAssignment.startTime}
+                    onChange={e => setNewAssignment({ ...newAssignment, startTime: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-400 uppercase mb-2 block">End Date & Time (Deadline) *</label>
+                <div className="flex gap-2">
+                  <input required type="date"
+                    className="flex-1 bg-slate-50 dark:bg-slate-700 dark:text-slate-100 border-none rounded-xl p-4 text-sm focus:ring-2 focus:ring-indigo-200 outline-none"
+                    value={newAssignment.endDate}
+                    onChange={e => setNewAssignment({ ...newAssignment, endDate: e.target.value })}
+                  />
+                  <input required type="time"
+                    className="w-32 bg-slate-50 dark:bg-slate-700 dark:text-slate-100 border-none rounded-xl p-4 text-sm focus:ring-2 focus:ring-indigo-200 outline-none"
+                    value={newAssignment.endTime}
+                    onChange={e => setNewAssignment({ ...newAssignment, endTime: e.target.value })}
+                  />
+                </div>
               </div>
               <button type="submit" disabled={loading}
                 className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold mt-2 hover:bg-indigo-700 transition-all shadow-lg disabled:opacity-50 flex items-center justify-center gap-2">

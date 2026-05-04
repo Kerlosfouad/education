@@ -10,7 +10,8 @@ export async function createAssignmentAction(data: {
   departmentId: string;
   academicYear: number;
   semester: number;
-  durationDays: number;
+  startDate: string;
+  deadline: string;
 }) {
   try {
     const session = await getServerSession(authOptions);
@@ -23,7 +24,7 @@ export async function createAssignmentAction(data: {
         departmentId: data.departmentId,
         academicYear: data.academicYear,
         semester: data.semester,
-        deadline: new Date(Date.now() + data.durationDays * 24 * 60 * 60 * 1000),
+        deadline: new Date(data.deadline),
         allowUpload: true,
       },
     });
