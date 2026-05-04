@@ -32,6 +32,7 @@ interface StudentDetail {
   studentCode: string;
   academicYear: number;
   qrCode: string | null;
+  subjects?: string[];
   user: { name: string; email: string; image: string | null };
   department: { name: string };
 }
@@ -395,6 +396,16 @@ export default function StudentsPage() {
                             Level {s.academicYear}
                           </span>
                         </div>
+                        {s.subjects && s.subjects.length > 0 && (
+                          <div className="flex items-start justify-between gap-2 text-xs">
+                            <span className="text-slate-400 font-medium shrink-0">Subjects</span>
+                            <div className="flex flex-wrap gap-1 justify-end">
+                              {s.subjects.map((sub: string) => (
+                                <span key={sub} className="text-[10px] bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full font-medium">{sub}</span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </button>
                   );

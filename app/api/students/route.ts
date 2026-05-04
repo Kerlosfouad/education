@@ -32,17 +32,17 @@ export async function GET(request: Request) {
   // For each student, find which semesters they have subjects in
   // based on subjects matching their department + academicYear
   const studentsWithSemester = await Promise.all(students.map(async s => {
-    const subjectSemesters = await db.subject.findMany({
+    const subjectData = await db.subject.findMany({
       where: {
         departmentId: s.departmentId,
         academicYear: s.academicYear,
         isActive: true,
       },
-      select: { semester: true },
+      select: { semester: true, name: true },
     });
-    // Get unique semesters from subjects
-    const semesters = Array.from(new Set(subjectSemesters.map(sub => sub.semester)));
-    return { ...s, semesters };
+    const semesters = Array.from(new Set(subjectData.map(sub => sub.semester)));
+    const subjects = subjectData.map(sub => sub.name);
+    return { ...s, semesters, subjects };
   }));
 
   return NextResponse.json({
