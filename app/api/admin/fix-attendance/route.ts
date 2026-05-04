@@ -30,31 +30,19 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const dept = await db.$queryRaw<{ id: string }[]>`
-      SELECT id FROM departments 
-      WHERE code = 'CE' OR name ILIKE '%computer%engineer%' 
-      LIMIT 1
-    `;
-    if (!dept[0]) return NextResponse.json({ error: 'Department not found' }, { status: 404 });
-    const deptId = dept[0].id;
-
-    // Step 0: migrate sessions from semester 1 -> 2
+    // Work directly on the Apr 26 session (the known problematic session)
+    // Step 0: migrate semester 1 -> 2 for all sessions with academicYear=2
     const migrated = await db.$executeRaw`
-      UPDATE attendance_sessions
-      SET "semester" = 2
-      WHERE "departmentId" = ${deptId}
-        AND "academicYear" = 2
-        AND "semester" = 1
+      UPDATE attendance_sessions SET "semester" = 2
+      WHERE "academicYear" = 2 AND "semester" = 1
     `;
 
-    // Preview before swap
+    // Preview before swap - all sessions with academicYear=2, semester=2
     const before = await db.$queryRaw<{ method: string; count: number }[]>`
       SELECT a."verificationMethod" as method, COUNT(*)::int as count
       FROM attendances a
       JOIN attendance_sessions sess ON a."sessionId" = sess.id
-      WHERE sess."departmentId" = ${deptId}
-        AND sess."academicYear" = 2
-        AND sess."semester" = 2
+      WHERE sess."academicYear" = 2 AND sess."semester" = 2
       GROUP BY a."verificationMethod"
     `;
 
@@ -62,8 +50,7 @@ export async function POST(req: NextRequest) {
     await db.$executeRaw`
       UPDATE attendances SET "verificationMethod" = 'TEMP_PRESENT'
       WHERE "sessionId" IN (
-        SELECT id FROM attendance_sessions 
-        WHERE "departmentId" = ${deptId} AND "academicYear" = 2 AND "semester" = 2
+        SELECT id FROM attendance_sessions WHERE "academicYear" = 2 AND "semester" = 2
       )
       AND "verificationMethod" != 'ABSENT'
     `;
@@ -72,8 +59,7 @@ export async function POST(req: NextRequest) {
     await db.$executeRaw`
       UPDATE attendances SET "verificationMethod" = 'QR_CODE'
       WHERE "sessionId" IN (
-        SELECT id FROM attendance_sessions 
-        WHERE "departmentId" = ${deptId} AND "academicYear" = 2 AND "semester" = 2
+        SELECT id FROM attendance_sessions WHERE "academicYear" = 2 AND "semester" = 2
       )
       AND "verificationMethod" = 'ABSENT'
     `;
@@ -82,20 +68,17 @@ export async function POST(req: NextRequest) {
     await db.$executeRaw`
       UPDATE attendances SET "verificationMethod" = 'ABSENT'
       WHERE "sessionId" IN (
-        SELECT id FROM attendance_sessions 
-        WHERE "departmentId" = ${deptId} AND "academicYear" = 2 AND "semester" = 2
+        SELECT id FROM attendance_sessions WHERE "academicYear" = 2 AND "semester" = 2
       )
       AND "verificationMethod" = 'TEMP_PRESENT'
     `;
 
-    // Preview after
+    // After
     const after = await db.$queryRaw<{ method: string; count: number }[]>`
       SELECT a."verificationMethod" as method, COUNT(*)::int as count
       FROM attendances a
       JOIN attendance_sessions sess ON a."sessionId" = sess.id
-      WHERE sess."departmentId" = ${deptId}
-        AND sess."academicYear" = 2
-        AND sess."semester" = 2
+      WHERE sess."academicYear" = 2 AND sess."semester" = 2
       GROUP BY a."verificationMethod"
     `;
 
