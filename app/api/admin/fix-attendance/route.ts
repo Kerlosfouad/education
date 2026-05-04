@@ -3,6 +3,25 @@ import { db } from '@/lib/db';
 
 // One-time fix: swap ABSENT <-> PRESENT for Computer Engineering Year 1 Semester 2
 // Protected by secret key - DELETE THIS FILE AFTER USE
+export async function GET(req: NextRequest) {
+  const secret = req.headers.get('x-admin-secret');
+  if (secret !== process.env.NEXTAUTH_SECRET) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Diagnostic: show what's in the DB
+  const departments = await db.$queryRaw`SELECT id, name, code FROM departments`;
+  const sessions = await db.$queryRaw`
+    SELECT id, title, "departmentId", "academicYear", "semester", "openTime"::date as date
+    FROM attendance_sessions ORDER BY "openTime" DESC LIMIT 20
+  `;
+  const attendanceSample = await db.$queryRaw`
+    SELECT a."verificationMethod", COUNT(*)::int as count
+    FROM attendances a GROUP BY a."verificationMethod"
+  `;
+  return NextResponse.json({ departments, sessions, attendanceSample });
+}
+
 export async function POST(req: NextRequest) {
   const secret = req.headers.get('x-admin-secret');
   if (secret !== process.env.NEXTAUTH_SECRET) {
