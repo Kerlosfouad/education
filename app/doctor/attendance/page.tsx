@@ -300,7 +300,13 @@ export default function AttendancePage() {
                 <option value="">All Levels</option>
                 {tableAvailableLevels.map(l => <option key={l} value={String(l)}>Level {l}</option>)}
               </select>
-              {(filterDept || filterLevel || search) && (
+              <select value={filterSemester} onChange={e => setFilterSemester(e.target.value)}
+                className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+                <option value="">All Semesters</option>
+                <option value="1">Semester 1</option>
+                <option value="2">Semester 2</option>
+              </select>
+              {(filterDept || filterLevel || filterSemester || search) && (
                 <button onClick={() => { setFilterDept(''); setFilterLevel(''); setFilterSemester(''); setSearch(''); }}
                   className="flex items-center gap-1.5 px-3 py-2 text-sm text-red-500 bg-red-50 rounded-xl hover:bg-red-100 transition-colors">
                   <X size={14} /> Clear
