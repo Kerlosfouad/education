@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
       UPDATE attendance_sessions
       SET "semester" = 2
       WHERE "departmentId" = ${deptId}
-        AND "academicYear" = 1
+        AND "academicYear" = 2
         AND "semester" = 1
     `;
 
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
       FROM attendances a
       JOIN attendance_sessions sess ON a."sessionId" = sess.id
       WHERE sess."departmentId" = ${deptId}
-        AND sess."academicYear" = 1
+        AND sess."academicYear" = 2
         AND sess."semester" = 2
       GROUP BY a."verificationMethod"
     `;
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
       UPDATE attendances SET "verificationMethod" = 'TEMP_PRESENT'
       WHERE "sessionId" IN (
         SELECT id FROM attendance_sessions 
-        WHERE "departmentId" = ${deptId} AND "academicYear" = 1 AND "semester" = 2
+        WHERE "departmentId" = ${deptId} AND "academicYear" = 2 AND "semester" = 2
       )
       AND "verificationMethod" != 'ABSENT'
     `;
@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
       UPDATE attendances SET "verificationMethod" = 'QR_CODE'
       WHERE "sessionId" IN (
         SELECT id FROM attendance_sessions 
-        WHERE "departmentId" = ${deptId} AND "academicYear" = 1 AND "semester" = 2
+        WHERE "departmentId" = ${deptId} AND "academicYear" = 2 AND "semester" = 2
       )
       AND "verificationMethod" = 'ABSENT'
     `;
@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
       UPDATE attendances SET "verificationMethod" = 'ABSENT'
       WHERE "sessionId" IN (
         SELECT id FROM attendance_sessions 
-        WHERE "departmentId" = ${deptId} AND "academicYear" = 1 AND "semester" = 2
+        WHERE "departmentId" = ${deptId} AND "academicYear" = 2 AND "semester" = 2
       )
       AND "verificationMethod" = 'TEMP_PRESENT'
     `;
@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
       FROM attendances a
       JOIN attendance_sessions sess ON a."sessionId" = sess.id
       WHERE sess."departmentId" = ${deptId}
-        AND sess."academicYear" = 1
+        AND sess."academicYear" = 2
         AND sess."semester" = 2
       GROUP BY a."verificationMethod"
     `;
