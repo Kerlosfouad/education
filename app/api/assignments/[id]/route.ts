@@ -120,7 +120,26 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-// POST /api/assignments/[id] - student submits assignment with PDF
+// DELETE /api/assignments/[id] - delete or toggle isActive
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || (session.user.role !== 'DOCTOR' && session.user.role !== 'ADMIN')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const body = await req.json().catch(() => ({}));
+    if (body.toggle) {
+      const current = await db.assignment.findUnique({ where: { id: params.id }, select: { isActive: true } });
+      if (!current) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+      const updated = await db.assignment.update({ where: { id: params.id }, data: { isActive: !current.isActive } });
+      return NextResponse.json({ success: true, isActive: updated.isActive });
+    }
+    await db.assignment.delete({ where: { id: params.id } });
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+  }
+}
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions);

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import {
   Plus, FileText, ExternalLink, Users,
-  History, X, Trash2, ChevronRight, Loader2, Search, Filter
+  History, X, Trash2, ChevronRight, Loader2, Search, Filter, Lock, Unlock
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import {
@@ -154,11 +154,15 @@ export default function AssignmentsPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this assignment?')) return;
-    const res = await deleteAssignmentAction(id);
-    if (res.success) {
-      refreshData();
-      if (selected?.id === id) setSelected(null);
-    }
+    await fetch(`/api/assignments/${id}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
+    refreshData();
+    if (selected?.id === id) setSelected(null);
+  };
+
+  const handleToggleActive = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    await fetch(`/api/assignments/${id}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ toggle: true }) });
+    refreshData();
   };
 
   const handleUpdateMaxScore = async () => {
@@ -300,6 +304,11 @@ export default function AssignmentsPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       {isNew && <span className="text-[10px] font-black bg-green-100 dark:bg-green-900/30 text-green-600 px-2 py-1 rounded-full">New</span>}
+                      <button onClick={e => { e.stopPropagation(); handleToggleActive(a.id, e); }}
+                        title={a.isActive ? 'Close assignment' : 'Open assignment'}
+                        className={`p-1.5 rounded-lg transition-colors ${a.isActive ? 'text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>
+                        {a.isActive ? <Unlock size={15} /> : <Lock size={15} />}
+                      </button>
                       <button onClick={e => { e.stopPropagation(); handleDelete(a.id); }}
                         className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
                         <Trash2 size={15} />
