@@ -45,11 +45,19 @@ export async function GET(req: NextRequest) {
       const semesterRows = await db.$queryRaw<{semester: number}[]>`SELECT semester FROM students WHERE id = ${student.id}`;
       const studentSemester = semesterRows[0]?.semester ?? null;
 
+      // Get enrolled subject IDs (if any)
+      const enrolled = await db.$queryRaw<{ subjectId: string }[]>`
+        SELECT "subjectId" FROM student_subjects WHERE "studentId" = ${student.id}
+      `;
+      const enrolledIds = enrolled.length > 0 ? new Set(enrolled.map(e => e.subjectId)) : null;
+
       const quizzesWithAttempts = await Promise.all(
         quizzesWithDept
           .filter((quiz: any) => {
             const matchDeptYear = quiz.departmentId === student.departmentId && quiz.academicYear === student.academicYear;
             if (!matchDeptYear) return false;
+            // If enrolled subjects exist, filter by them
+            if (enrolledIds && quiz.subjectId) return enrolledIds.has(quiz.subjectId);
             if (!studentSemester || !quiz.subject) return true;
             return quiz.subject.semester === studentSemester;
           })

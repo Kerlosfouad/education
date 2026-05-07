@@ -14,11 +14,19 @@ export async function GET() {
     const semesterRows = await db.$queryRaw<{semester: number}[]>`SELECT semester FROM students WHERE id = ${student.id}`;
     const semester = semesterRows[0]?.semester ?? null;
 
-    // Get subject IDs for student's dept+year+semester
-    const subjectWhere: any = { departmentId: student.departmentId, academicYear: student.academicYear };
-    if (semester) subjectWhere.semester = semester;
-    const subjects = await db.subject.findMany({ where: subjectWhere, select: { id: true } });
-    const subjectIds = subjects.map(s => s.id);
+    // Get enrolled subject IDs (if any), fallback to dept+year+semester
+    const enrolled = await db.$queryRaw<{ subjectId: string }[]>`
+      SELECT "subjectId" FROM student_subjects WHERE "studentId" = ${student.id}
+    `;
+    let subjectIds: string[];
+    if (enrolled.length > 0) {
+      subjectIds = enrolled.map(e => e.subjectId);
+    } else {
+      const subjectWhere: any = { departmentId: student.departmentId, academicYear: student.academicYear };
+      if (semester) subjectWhere.semester = semester;
+      const subjects = await db.subject.findMany({ where: subjectWhere, select: { id: true } });
+      subjectIds = subjects.map(s => s.id);
+    }
 
     const assignments = await db.assignment.findMany({
       where: {
