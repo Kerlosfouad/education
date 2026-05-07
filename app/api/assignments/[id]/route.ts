@@ -150,6 +150,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const student = await db.student.findUnique({ where: { userId: session.user.id } });
     if (!student) return NextResponse.json({ error: 'Student not found' }, { status: 404 });
 
+    // Check assignment exists and is active (not locked)
+    const assignment = await db.assignment.findUnique({ where: { id: params.id }, select: { isActive: true, deadline: true } });
+    if (!assignment) return NextResponse.json({ error: 'Assignment not found' }, { status: 404 });
+    if (!assignment.isActive) return NextResponse.json({ error: 'Assignment is closed' }, { status: 403 });
+    if (assignment.deadline && new Date() > assignment.deadline) return NextResponse.json({ error: 'Deadline passed' }, { status: 403 });
+
     const body = await req.json().catch(() => ({}));
     const fileUrl = body.fileUrl || null;
 
