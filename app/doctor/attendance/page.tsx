@@ -166,11 +166,13 @@ export default function AttendancePage() {
     return 'present';
   };
 
-  // Check if a session applies to a student (by dept/level)
+  // Check if a session applies to a student (by dept/level/semester)
   const sessionAppliesToStudent = (session: AttendanceSession, student: Student) => {
     const deptMatch = !session.department || session.department.name === student.department.name;
     const levelMatch = session.academicYear === null || session.academicYear === undefined || session.academicYear === student.academicYear;
-    return deptMatch && levelMatch;
+    const studentSemester = student.semester ?? (student.semesters?.[0] ?? null);
+    const semesterMatch = !session.semester || !studentSemester || session.semester === studentSemester;
+    return deptMatch && levelMatch && semesterMatch;
   };
 
   if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="animate-spin text-blue-600" size={40} /></div>;
@@ -343,12 +345,12 @@ export default function AttendancePage() {
                   {levels.map(level => {
                     const levelStudents = deptStudents.filter(s => s.academicYear === level);
 
-                    // Show ALL sessions for this dept/level regardless of semester filter
-                    // (semester filter only affects which students are shown)
+                    // Filter sessions by dept/level AND semester if selected
                     const visibleSessions = sessions.filter(s => {
                       const deptMatch = !s.department || s.department.name === dept.name;
                       const levelMatch = s.academicYear === null || s.academicYear === undefined || s.academicYear === level;
-                      return deptMatch && levelMatch;
+                      const semesterMatch = !filterSemester || s.semester === null || s.semester === undefined || String(s.semester) === filterSemester;
+                      return deptMatch && levelMatch && semesterMatch;
                     });
 
                     const filteredLevelStudents = levelStudents.filter(student => {
