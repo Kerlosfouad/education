@@ -15,12 +15,17 @@ export async function GET() {
 
     const now = new Date();
 
-    // Count only sessions that match student's department and academicYear
+    // Get semester
+    const semesterRows = await db.$queryRaw<{semester: number}[]>`SELECT semester FROM students WHERE id = ${student.id}`;
+    const semester = semesterRows[0]?.semester ?? null;
+
+    // Count only sessions that match student's department, academicYear, and semester
     const relevantSessions = await db.$queryRaw<{ id: string }[]>`
       SELECT id FROM attendance_sessions
       WHERE "closeTime" < ${now}
       AND ("departmentId" IS NULL OR "departmentId" = ${student.departmentId})
       AND ("academicYear" IS NULL OR "academicYear" = ${student.academicYear})
+      AND ("semester" IS NULL OR "semester" = ${semester})
     `;
     const relevantSessionIds = relevantSessions.map(s => s.id);
     const total = relevantSessionIds.length;

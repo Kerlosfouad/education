@@ -30,9 +30,10 @@ export async function GET() {
 
     const assignments = await db.assignment.findMany({
       where: {
+        isActive: true,
         OR: [
           { departmentId: student.departmentId, academicYear: student.academicYear, subjectId: { in: subjectIds } },
-          { departmentId: student.departmentId, academicYear: student.academicYear, subjectId: null },
+          { departmentId: student.departmentId, academicYear: student.academicYear, subjectId: null, semester: semester ?? undefined },
           { departmentId: null },
         ],
       },

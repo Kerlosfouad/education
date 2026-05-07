@@ -12,14 +12,18 @@ export async function GET() {
 
     const student = await db.student.findUnique({
       where: { userId: session.user.id },
-      select: { departmentId: true, academicYear: true },
+      select: { departmentId: true, academicYear: true, id: true },
     });
+
+    const semesterRows = student ? await db.$queryRaw<{semester: number}[]>`SELECT semester FROM students WHERE id = ${student.id}` : [];
+    const semester = (semesterRows as any)[0]?.semester ?? null;
 
     const sessions = await db.zoomLecture.findMany({
       where: student ? {
         subject: {
           departmentId: student.departmentId,
           academicYear: student.academicYear,
+          ...(semester ? { semester } : {}),
         },
       } : {},
       include: { subject: { select: { name: true } } },
