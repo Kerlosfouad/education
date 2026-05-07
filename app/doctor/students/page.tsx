@@ -525,9 +525,31 @@ export default function StudentsPage() {
               <GraduationCap className="text-blue-600 dark:text-[#00c896]" size={16} />
               <h3 className="text-sm md:text-lg font-bold text-slate-800 dark:text-white">Subject Enrollment Requests</h3>
             </div>
-            <span className="text-xs font-bold text-blue-600 dark:text-[#00c896] px-2 py-0.5 bg-white dark:bg-[#0d1e35] rounded-full border border-blue-100 dark:border-[#1a2f4a]">
-              {enrollmentRequests.length} Requests
-            </span>
+            <div className="flex items-center gap-2">
+              {enrollmentRequests.length > 0 && (
+                <button onClick={async () => {
+                  if (!confirm(`Accept all ${enrollmentRequests.length} enrollment requests?`)) return;
+                  setEnrollmentActionLoading('accept-all');
+                  await Promise.all(enrollmentRequests.map(r =>
+                    fetch('/api/doctor/enrollment-requests', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ requestId: r.id, action: 'approve' }),
+                    })
+                  ));
+                  await fetchEnrollmentRequests();
+                  setEnrollmentActionLoading(null);
+                }}
+                  disabled={!!enrollmentActionLoading}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50">
+                  {enrollmentActionLoading === 'accept-all' ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+                  Accept All
+                </button>
+              )}
+              <span className="text-xs font-bold text-blue-600 dark:text-[#00c896] px-2 py-0.5 bg-white dark:bg-[#0d1e35] rounded-full border border-blue-100 dark:border-[#1a2f4a]">
+                {enrollmentRequests.length} Requests
+              </span>
+            </div>
           </div>
           {enrollmentRequests.length === 0 ? (
             <div className="text-center py-14 text-slate-400">
