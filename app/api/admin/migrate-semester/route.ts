@@ -19,6 +19,11 @@ export async function POST(req: NextRequest) {
       UPDATE attendance_sessions SET "semester" = 2 WHERE "semester" = 1
     `;
 
+    // 3. Students
+    const students = await db.$executeRaw`
+      UPDATE students SET semester = 2 WHERE semester = 1
+    `;
+
     // Verify
     const assignmentCheck = await db.$queryRaw<{ semester: number; count: number }[]>`
       SELECT semester, COUNT(*)::int as count FROM assignments GROUP BY semester ORDER BY semester
@@ -29,7 +34,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      updated: { assignments: Number(assignments), attendance: Number(attendance) },
+      updated: { assignments: Number(assignments), attendance: Number(attendance), students: Number(students) },
       verify: { assignments: assignmentCheck, attendance: attendanceCheck },
     });
   } catch (e: any) {
