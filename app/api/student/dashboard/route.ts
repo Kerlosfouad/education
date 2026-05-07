@@ -112,6 +112,8 @@ export async function GET() {
         AND s."openTime" <= ${now}
         AND s."closeTime" >= ${now}
         AND (s."departmentId" IS NULL OR s."departmentId" = ${student.departmentId})
+        AND (s."academicYear" IS NULL OR s."academicYear" = ${student.academicYear})
+        AND (s."semester" IS NULL OR s."semester" = ${semester})
       LIMIT 1
     `;
     const openSession = openSessionRaw[0] ? {
