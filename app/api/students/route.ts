@@ -31,11 +31,22 @@ export async function GET(request: Request) {
 
   // For each student, find which semesters they have subjects in
   // based on subjects matching their department + academicYear
+  // Get semester for each student via raw SQL
+  const studentIds = students.map(s => s.id);
+  const semesterRows = studentIds.length > 0
+    ? await db.$queryRaw<{ id: string; semester: number }[]>`
+        SELECT id, semester FROM students WHERE id = ANY(${studentIds}::text[])
+      `
+    : [];
+  const semesterMap = Object.fromEntries(semesterRows.map(r => [r.id, r.semester]));
+
   const studentsWithSemester = await Promise.all(students.map(async s => {
+    const studentSemester = semesterMap[s.id] ?? 1;
     const subjectData = await db.subject.findMany({
       where: {
         departmentId: s.departmentId,
         academicYear: s.academicYear,
+        semester: studentSemester,
         isActive: true,
       },
       select: { semester: true, name: true },

@@ -38,13 +38,24 @@ export async function GET() {
       orderBy: { createdAt: 'desc' },
     });
 
-    // Get all unique dept+year combos to batch fetch subjects
-    const combos = Array.from(new Set(pendingUsers.map(u => `${u.student!.departmentId}|${u.student!.academicYear}`)));
+    // Get all unique dept+year+semester combos to batch fetch subjects
+    const studentIds = pendingUsers.map(u => u.student!.id);
+    const semesterRows = studentIds.length > 0
+      ? await db.$queryRaw<{ id: string; semester: number }[]>`
+          SELECT id, semester FROM students WHERE id = ANY(${studentIds}::text[])
+        `
+      : [];
+    const semesterMap = Object.fromEntries(semesterRows.map(r => [r.id, r.semester]));
+
+    const combos = Array.from(new Set(pendingUsers.map(u => {
+      const sem = semesterMap[u.student!.id] ?? 1;
+      return `${u.student!.departmentId}|${u.student!.academicYear}|${sem}`;
+    })));
     const subjectMap: Record<string, string[]> = {};
     await Promise.all(combos.map(async combo => {
-      const [deptId, year] = combo.split('|');
+      const [deptId, year, sem] = combo.split('|');
       const subs = await db.subject.findMany({
-        where: { departmentId: deptId, academicYear: Number(year), isActive: true },
+        where: { departmentId: deptId, academicYear: Number(year), semester: Number(sem), isActive: true },
         select: { name: true },
       });
       subjectMap[combo] = subs.map(s => s.name);
@@ -52,7 +63,8 @@ export async function GET() {
 
     // Normalize to a consistent shape
     const data = pendingUsers.map(u => {
-      const key = `${u.student!.departmentId}|${u.student!.academicYear}`;
+      const sem = semesterMap[u.student!.id] ?? 1;
+      const key = `${u.student!.departmentId}|${u.student!.academicYear}|${sem}`;
       return {
         id: u.student!.id,
         userId: u.id,
