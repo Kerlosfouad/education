@@ -34,10 +34,28 @@ export default function SettingsPage() {
   };
 
   const fetchAvailableSubjects = async (deptId: string, year: string) => {
-    if (!deptId || !year) return;
-    const res = await fetch(`/api/subjects?departmentId=${deptId}&academicYear=${year}`);
-    const json = await res.json();
-    if (json.success) setAvailableSubjects(json.data);
+    if (!deptId) return;
+    // Fetch all subjects in student's department (any level) + PREP subjects
+    const [deptRes, prepRes] = await Promise.all([
+      fetch(`/api/subjects?departmentId=${deptId}`),
+      fetch(`/api/subjects/departments`),
+    ]);
+    const [deptJson, deptsJson] = await Promise.all([deptRes.json(), prepRes.json()]);
+    let subjects: Subject[] = deptJson.success ? deptJson.data : [];
+
+    // Add PREP subjects if student is not already in PREP
+    if (deptsJson.success) {
+      const prepDept = deptsJson.data.find((d: any) => d.code === 'PREP');
+      if (prepDept && prepDept.id !== deptId) {
+        const prepRes2 = await fetch(`/api/subjects?departmentId=${prepDept.id}`);
+        const prepJson = await prepRes2.json();
+        if (prepJson.success) {
+          const prepSubjects = prepJson.data.filter((s: Subject) => !subjects.find(x => x.id === s.id));
+          subjects = [...subjects, ...prepSubjects];
+        }
+      }
+    }
+    setAvailableSubjects(subjects);
   };
 
   useEffect(() => {

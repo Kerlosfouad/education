@@ -37,9 +37,19 @@ export async function POST(req: NextRequest) {
   const student = await db.student.findUnique({ where: { userId: session.user.id } });
   if (!student) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  // Verify subject belongs to student's dept+year
+  // Verify subject is available to student:
+  // 1. Subject belongs to student's department (any level) OR
+  // 2. Subject belongs to PREP department (available to all)
+  const prepDept = await db.department.findFirst({ where: { code: 'PREP' } });
   const subject = await db.subject.findFirst({
-    where: { id: subjectId, departmentId: student.departmentId, academicYear: student.academicYear, isActive: true },
+    where: {
+      id: subjectId,
+      isActive: true,
+      OR: [
+        { departmentId: student.departmentId },                          // same department, any level
+        ...(prepDept ? [{ departmentId: prepDept.id }] : []),           // PREP subjects for everyone
+      ],
+    },
   });
   if (!subject) return NextResponse.json({ error: 'Subject not available' }, { status: 403 });
 
