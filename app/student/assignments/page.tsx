@@ -11,6 +11,7 @@ interface Assignment {
   description: string | null;
   deadline: string;
   maxScore: number;
+  isActive: boolean;
   submissions: { id: string; status: string; fileUrl: string | null; score: number | null; gradedAt: string | null }[];
 }
 
@@ -65,7 +66,7 @@ export default function StudentAssignmentsPage() {
     setUploadingId(null);
   };
 
-  const isOverdue = (deadline: string) => new Date(deadline) < new Date();
+  const isOverdue = (deadline: string, isActive: boolean) => !isActive && new Date(deadline) < new Date();
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-[60vh]">
@@ -90,7 +91,8 @@ export default function StudentAssignmentsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {assignments.map(a => {
             const submitted = a.submissions.length > 0;
-            const overdue = isOverdue(a.deadline);
+            const overdue = isOverdue(a.deadline, a.isActive);
+            const canSubmit = a.isActive && !submitted;
             const isUploading = uploadingId === a.id;
             const file = selectedFile[a.id];
             const isDone = doneId === a.id || submitted;
@@ -126,7 +128,7 @@ export default function StudentAssignmentsPage() {
                   </span>
                 </div>
 
-                {!isDone && !overdue && (
+                {!isDone && canSubmit && (
                   <div className="space-y-3">
                     <label className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-xl cursor-pointer transition-colors ${
                       file ? 'border-indigo-400 bg-indigo-50 dark:bg-indigo-900/20' : 'border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/30'
