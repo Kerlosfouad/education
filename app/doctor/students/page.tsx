@@ -240,9 +240,9 @@ export default function StudentsPage() {
         </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+      <div className="flex flex-wrap gap-2">
         <button onClick={() => setTab('pending')}
-          className={`flex-none px-3 md:px-5 py-2 rounded-xl text-xs md:text-sm font-bold transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap ${tab === 'pending' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-[#0d1e35] text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-[#1a2f4a] hover:bg-slate-50 dark:hover:bg-[#132540]'}`}>
+          className={`flex-1 min-w-[120px] px-3 md:px-5 py-2 rounded-xl text-xs md:text-sm font-bold transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap ${tab === 'pending' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-[#0d1e35] text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-[#1a2f4a] hover:bg-slate-50 dark:hover:bg-[#132540]'}`}>
           <Clock size={13} />
           Pending
           {pending.length > 0 && (
@@ -252,12 +252,12 @@ export default function StudentsPage() {
           )}
         </button>
         <button onClick={() => setTab('active')}
-          className={`flex-none px-3 md:px-5 py-2 rounded-xl text-xs md:text-sm font-bold transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap ${tab === 'active' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-[#0d1e35] text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-[#1a2f4a] hover:bg-slate-50 dark:hover:bg-[#132540]'}`}>
+          className={`flex-1 min-w-[120px] px-3 md:px-5 py-2 rounded-xl text-xs md:text-sm font-bold transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap ${tab === 'active' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-[#0d1e35] text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-[#1a2f4a] hover:bg-slate-50 dark:hover:bg-[#132540]'}`}>
           <Users size={13} />
           All Students ({filteredStudents.length})
         </button>
         <button onClick={() => setTab('enrollment')}
-          className={`flex-none px-3 md:px-5 py-2 rounded-xl text-xs md:text-sm font-bold transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap ${tab === 'enrollment' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-[#0d1e35] text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-[#1a2f4a] hover:bg-slate-50 dark:hover:bg-[#132540]'}`}>
+          className={`flex-1 min-w-[120px] px-3 md:px-5 py-2 rounded-xl text-xs md:text-sm font-bold transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap ${tab === 'enrollment' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-[#0d1e35] text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-[#1a2f4a] hover:bg-slate-50 dark:hover:bg-[#132540]'}`}>
           <GraduationCap size={13} />
           Subject Requests
           {enrollmentRequests.length > 0 && (
