@@ -111,6 +111,8 @@ model Student {
   assignmentSubmissions AssignmentSubmission[]
   quizAttempts      QuizAttempt[]
   examResults       ExamResult[]
+  enrolledSubjects  StudentSubject[]
+  enrollmentRequests EnrollmentRequest[]
   
   @@map("students")
   @@index([departmentId])
@@ -193,6 +195,8 @@ model Subject {
   zoomLectures  ZoomLecture[]
   eLibraryItems ELibraryItem[]
   examResults   ExamResult[]
+  enrolledStudents StudentSubject[]
+  enrollmentRequests EnrollmentRequest[]
   
   @@map("subjects")
 }
@@ -418,6 +422,40 @@ model ELibraryItem {
   subject     Subject? @relation(fields: [subjectId], references: [id])
   
   @@map("e_library_items")
+}
+
+// Student subject enrollment request (pending approval)
+model EnrollmentRequest {
+  id          String   @id @default(cuid())
+  studentId   String
+  subjectId   String
+  status      String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subject     Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, subjectId])
+  @@map("enrollment_requests")
+  @@index([studentId])
+  @@index([status])
+}
+
+// Student subject enrollment
+model StudentSubject {
+  id          String   @id @default(cuid())
+  studentId   String
+  subjectId   String
+  enrolledAt  DateTime @default(now())
+
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subject     Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, subjectId])
+  @@map("student_subjects")
+  @@index([studentId])
+  @@index([subjectId])
 }
 
 // Exam results

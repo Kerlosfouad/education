@@ -5,6 +5,7 @@ import { Loader2, Save, User, Hash, Building2, GraduationCap, Plus, X, BookOpen 
 
 interface Department { id: string; name: string; code: string; }
 interface Enrollment { id: string; subjectId: string; subjectName: string; subjectCode: string; semester: number; }
+interface EnrollmentRequest { id: string; subjectId: string; subjectName: string; subjectCode: string; semester: number; status: string; }
 interface Subject { id: string; name: string; code: string; semester: number; }
 
 export default function SettingsPage() {
@@ -22,6 +23,7 @@ export default function SettingsPage() {
 
   // Enrollment state
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
+  const [enrollmentRequests, setEnrollmentRequests] = useState<EnrollmentRequest[]>([]);
   const [availableSubjects, setAvailableSubjects] = useState<Subject[]>([]);
   const [showSubjectPicker, setShowSubjectPicker] = useState(false);
   const [enrolling, setEnrolling] = useState<string | null>(null);
@@ -30,7 +32,10 @@ export default function SettingsPage() {
   const fetchEnrollments = async () => {
     const res = await fetch('/api/student/enrollments');
     const json = await res.json();
-    if (json.success) setEnrollments(json.data);
+    if (json.success) {
+      setEnrollments(json.data.enrollments ?? []);
+      setEnrollmentRequests(json.data.requests ?? []);
+    }
   };
 
   const fetchAvailableSubjects = async (deptId: string, year: string) => {
@@ -75,7 +80,10 @@ export default function SettingsPage() {
         }
       }
       if (deptsJson.success) setDepartments(deptsJson.data);
-      if (enrollJson.success) setEnrollments(enrollJson.data);
+      if (enrollJson.success) {
+        setEnrollments(enrollJson.data.enrollments ?? []);
+        setEnrollmentRequests(enrollJson.data.requests ?? []);
+      }
     }).finally(() => setLoading(false));
   }, []);
 
@@ -144,7 +152,8 @@ export default function SettingsPage() {
   };
 
   const enrolledIds = new Set(enrollments.map(e => e.subjectId));
-  const unenrolledSubjects = availableSubjects.filter(s => !enrolledIds.has(s.id));
+  const pendingIds = new Set(enrollmentRequests.filter(r => r.status === 'PENDING').map(r => r.subjectId));
+  const unenrolledSubjects = availableSubjects.filter(s => !enrolledIds.has(s.id) && !pendingIds.has(s.id));
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-[60vh]">
@@ -273,11 +282,11 @@ export default function SettingsPage() {
         )}
 
         {/* Enrolled list */}
-        {enrollments.length === 0 ? (
+        {enrollments.length === 0 && enrollmentRequests.length === 0 ? (
           <div className="text-center py-8 text-slate-400">
             <BookOpen size={32} className="mx-auto mb-2 opacity-30" />
             <p className="text-sm">No subjects enrolled yet</p>
-            <p className="text-xs mt-1">Click "Add Subject" to enroll</p>
+            <p className="text-xs mt-1">Click "Add Subject" to request enrollment</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -296,6 +305,28 @@ export default function SettingsPage() {
                   className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-50">
                   {unenrolling === e.subjectId ? <Loader2 size={14} className="animate-spin" /> : <X size={14} />}
                 </button>
+              </div>
+            ))}
+            {enrollmentRequests.map(r => (
+              <div key={r.id} className="flex items-center justify-between p-3 bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-200 dark:border-amber-800/30">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                    <BookOpen size={14} className="text-amber-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800 dark:text-white">{r.subjectName}</p>
+                    <p className="text-[10px] text-slate-400">{r.subjectCode} · Semester {r.semester}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold bg-amber-100 dark:bg-amber-900/30 text-amber-600 px-2 py-0.5 rounded-full">
+                    {r.status === 'PENDING' ? 'Pending' : r.status === 'REJECTED' ? 'Rejected' : r.status}
+                  </span>
+                  <button onClick={() => handleUnenroll(r.subjectId)} disabled={unenrolling === r.subjectId}
+                    className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-50">
+                    {unenrolling === r.subjectId ? <Loader2 size={14} className="animate-spin" /> : <X size={14} />}
+                  </button>
+                </div>
               </div>
             ))}
           </div>
