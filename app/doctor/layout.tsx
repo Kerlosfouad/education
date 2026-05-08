@@ -14,6 +14,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useI18n } from '@/lib/i18n';
 import { LOGO_BASE64 } from '@/lib/logo';
+import { InstallPWAButton } from '@/components/InstallPWA';
 
 interface DoctorProfile {
   name: string; email: string; image: string;
@@ -122,6 +123,7 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
             <button onClick={toggleTheme} className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-300">
               {isDark ? <Sun size={20} /> : <Moon size={20} />}
             </button>
+            <InstallPWAButton className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-300 hover:text-indigo-600 transition-colors" />
             <button className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-300" onClick={() => setIsSidebarOpen(true)}>
               <Menu size={24} />
             </button>
@@ -130,10 +132,13 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
 
         {/* Desktop top bar */}
         <div className="hidden lg:flex items-center justify-end px-10 py-4 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700/60 sticky top-0 z-30">
-          <button onClick={toggleTheme}
-            className="p-2 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
-            {isDark ? <Sun size={20} /> : <Moon size={20} />}
-          </button>
+          <div className="flex items-center gap-2">
+            <InstallPWAButton />
+            <button onClick={toggleTheme}
+              className="p-2 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
+              {isDark ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+          </div>
         </div>
 
         <div className="p-4 md:p-8 lg:p-10">{children}</div>

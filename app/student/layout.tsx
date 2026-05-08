@@ -13,6 +13,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useI18n } from '@/lib/i18n';
 import { LOGO_BASE64 } from '@/lib/logo';
+import { InstallPWAButton } from '@/components/InstallPWA';
 
 interface Notification {
   id: string; title: string; message: string;
@@ -196,6 +197,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
             <button onClick={toggleTheme} className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-300">
               {isDark ? <Sun size={20} /> : <Moon size={20} />}
             </button>
+            <InstallPWAButton className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-300 hover:text-indigo-600 transition-colors" />
             <button className="relative p-2 bg-slate-50 rounded-lg text-slate-600" onClick={() => setShowNotifications(!showNotifications)}>
               <Bell size={20} />
               {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">{unreadCount > 9 ? '9+' : unreadCount}</span>}
@@ -255,6 +257,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
           <button onClick={toggleTheme} className="p-2 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
             {isDark ? <Sun size={20} /> : <Moon size={20} />}
           </button>
+          <InstallPWAButton />
           <div className="relative">
             <button className="relative p-2 bg-slate-50 rounded-xl text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors" onClick={() => setShowNotifications(!showNotifications)}>
               <Bell size={22} />
