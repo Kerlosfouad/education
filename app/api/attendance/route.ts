@@ -171,7 +171,7 @@ export async function POST(req: NextRequest) {
         });
 
         const academicYear = body.academicYear !== undefined && body.academicYear !== '' ? Number(body.academicYear) : null;
-        const semester = body.semester !== undefined ? Number(body.semester) : 1;
+        const semester = body.semester !== undefined ? Number(body.semester) : 2;
         if (departmentId || academicYear !== null) {
           await db.$executeRawUnsafe(
             `UPDATE attendance_sessions SET "departmentId" = $1, "academicYear" = $2, "semester" = $3 WHERE id = $4`,

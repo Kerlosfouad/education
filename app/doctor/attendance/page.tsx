@@ -36,7 +36,7 @@ export default function AttendancePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'sessions' | 'table'>('sessions');
-  const [form, setForm] = useState({ subjectId: '', departmentId: '', academicYear: '', semester: '1', title: '', durationHours: '1', durationMinutes: '0' });
+  const [form, setForm] = useState({ subjectId: '', departmentId: '', academicYear: '', semester: '2', title: '', durationHours: '1', durationMinutes: '0' });
   const [menuSessionId, setMenuSessionId] = useState<string | null>(null);
   const [filterDept, setFilterDept] = useState('');
   const [filterLevel, setFilterLevel] = useState('');
@@ -123,7 +123,7 @@ export default function AttendancePage() {
         }),
       });
       const json = await res.json();
-      if (json.success) { setShowModal(false); setForm({ subjectId: '', departmentId: '', academicYear: '', semester: '1', title: '', durationHours: '1', durationMinutes: '0' }); fetchData(); }
+      if (json.success) { setShowModal(false); setForm({ subjectId: '', departmentId: '', academicYear: '', semester: '2', title: '', durationHours: '1', durationMinutes: '0' }); fetchData(); }
       else setError(json.error || t('errorOccurred'));
     } catch { setError('Network error'); }
     setSaving(false);
@@ -150,7 +150,7 @@ export default function AttendancePage() {
   };
 
   const openModal = () => {
-    setForm({ subjectId: '', departmentId: '', academicYear: '', semester: '1', title: '', durationHours: '1', durationMinutes: '0' });
+    setForm({ subjectId: '', departmentId: '', academicYear: '', semester: '2', title: '', durationHours: '1', durationMinutes: '0' });
     setError(''); setShowModal(true);
   };
 
