@@ -96,10 +96,16 @@ export default function LandingPage() {
   const [doctorName] = useState<string>('DR. EMAD BAYUOME');
   const { theme, setTheme } = useTheme();
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showInstallModal, setShowInstallModal] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
+    if (typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches) {
+      setIsInstalled(true);
+    }
     const handler = (e: Event) => { e.preventDefault(); setDeferredPrompt(e); };
     window.addEventListener('beforeinstallprompt', handler);
+    window.addEventListener('appinstalled', () => setIsInstalled(true));
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
@@ -109,7 +115,8 @@ export default function LandingPage() {
       await deferredPrompt.userChoice;
       setDeferredPrompt(null);
     } else {
-      return;
+      // Show manual install instructions (iOS or already installed)
+      setShowInstallModal(true);
     }
   };
   const { data: session, status: authStatus } = useSession();
@@ -382,14 +389,57 @@ export default function LandingPage() {
                   <ChevronRight className="w-5 h-5 ml-2" />
                 </Button>
               </Link>
-              <Button size="lg" variant="outline" onClick={handleInstall}>
+              <Button size="lg" variant="outline" onClick={handleInstall} disabled={isInstalled}>
                 <Download className="w-5 h-5 mr-2" />
-                Download App
+                {isInstalled ? 'App Installed ✓' : 'Download App'}
               </Button>
             </div>
           </div>
         </div>
       </section>
+
+      {/* Install Instructions Modal */}
+      {showInstallModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowInstallModal(false)}>
+          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
+            <div className="text-center mb-5">
+              <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-900/40 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                <Download className="text-indigo-600" size={28} />
+              </div>
+              <h3 className="text-lg font-black text-slate-800 dark:text-slate-100">Install the App</h3>
+              <p className="text-sm text-slate-500 mt-1">Follow the steps for your device</p>
+            </div>
+
+            <div className="space-y-4">
+              {/* Android */}
+              <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-2xl">
+                <p className="font-bold text-sm text-slate-700 dark:text-slate-200 mb-2">🤖 Android (Chrome)</p>
+                <ol className="text-xs text-slate-500 dark:text-slate-400 space-y-1 list-decimal list-inside">
+                  <li>Tap the 3-dot menu (⋮) in Chrome</li>
+                  <li>Select "Add to Home screen"</li>
+                  <li>Tap "Add" to confirm</li>
+                </ol>
+              </div>
+              {/* iOS */}
+              <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-2xl">
+                <p className="font-bold text-sm text-slate-700 dark:text-slate-200 mb-2">🍎 iPhone / iPad (Safari)</p>
+                <ol className="text-xs text-slate-500 dark:text-slate-400 space-y-1 list-decimal list-inside">
+                  <li>Tap the Share button (□↑) at the bottom</li>
+                  <li>Scroll down and tap "Add to Home Screen"</li>
+                  <li>Tap "Add" to confirm</li>
+                </ol>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowInstallModal(false)}
+              className="w-full mt-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl transition-colors text-sm"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="py-12 border-t">
