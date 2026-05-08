@@ -111,11 +111,12 @@ export default function LandingPage() {
 
   const handleInstall = async () => {
     if (deferredPrompt) {
+      // Android/Desktop — native prompt
       deferredPrompt.prompt();
       await deferredPrompt.userChoice;
       setDeferredPrompt(null);
     } else {
-      // Show manual install instructions (iOS or already installed)
+      // iOS or prompt not available — show manual guide
       setShowInstallModal(true);
     }
   };
