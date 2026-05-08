@@ -170,8 +170,8 @@ export default function AttendancePage() {
   const sessionAppliesToStudent = (session: AttendanceSession, student: Student) => {
     const deptMatch = !session.department || session.department.name === student.department.name;
     const levelMatch = session.academicYear === null || session.academicYear === undefined || session.academicYear === student.academicYear;
-    const studentSemester = student.semester ?? (student.semesters?.[0] ?? null);
-    const semesterMatch = !session.semester || !studentSemester || session.semester === studentSemester;
+    const studentSemester = student.semester ?? 1;
+    const semesterMatch = !session.semester || session.semester === studentSemester;
     return deptMatch && levelMatch && semesterMatch;
   };
 
@@ -328,10 +328,7 @@ export default function AttendancePage() {
               .map(dept => {
               const deptStudents = students.filter(s => {
                 const matchDept = s.department.name === dept.name;
-                const matchSemester = !filterSemester || 
-                  (s.semesters && s.semesters.length > 0 
-                    ? s.semesters.map(String).includes(filterSemester)
-                    : String(s.semester ?? 1) === filterSemester);
+                const matchSemester = !filterSemester || String(s.semester ?? 1) === filterSemester;
                 return matchDept && matchSemester;
               });
               if (deptStudents.length === 0) return null;

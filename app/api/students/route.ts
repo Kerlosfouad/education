@@ -53,7 +53,7 @@ export async function GET(request: Request) {
     });
     const semesters = Array.from(new Set(subjectData.map(sub => sub.semester)));
     const subjects = subjectData.map(sub => sub.name);
-    return { ...s, semesters, subjects };
+    return { ...s, semester: studentSemester, semesters, subjects };
   }));
 
   return NextResponse.json({
