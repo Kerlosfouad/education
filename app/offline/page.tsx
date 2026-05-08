@@ -1,3 +1,7 @@
+'use client';
+
+export const dynamic = 'force-dynamic';
+
 export default function OfflinePage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center text-center p-8 bg-slate-900">
