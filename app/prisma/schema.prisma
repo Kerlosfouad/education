@@ -252,6 +252,7 @@ model Assignment {
   semester      Int      @default(1)
   title         String
   description   String?  @db.Text
+  startDate     DateTime?
   deadline      DateTime
   maxScore      Int      @default(100)
   allowUpload   Boolean  @default(true)

@@ -9,6 +9,7 @@ interface Assignment {
   id: string;
   title: string;
   description: string | null;
+  startDate: string | null;
   deadline: string;
   maxScore: number;
   isActive: boolean;
@@ -66,7 +67,8 @@ export default function StudentAssignmentsPage() {
     setUploadingId(null);
   };
 
-  const isOverdue = (deadline: string, isActive: boolean) => !isActive && new Date(deadline) < new Date();
+  // Assignment is overdue if deadline has passed, regardless of isActive flag
+  const isOverdue = (deadline: string) => new Date(deadline) < new Date();
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-[60vh]">
@@ -91,8 +93,8 @@ export default function StudentAssignmentsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {assignments.map(a => {
             const submitted = a.submissions.length > 0;
-            const overdue = isOverdue(a.deadline, a.isActive);
-            const canSubmit = a.isActive && !submitted;
+            const overdue = isOverdue(a.deadline);
+            const canSubmit = a.isActive && !submitted && !overdue;
             const isUploading = uploadingId === a.id;
             const file = selectedFile[a.id];
             const isDone = doneId === a.id || submitted;
@@ -115,7 +117,10 @@ export default function StudentAssignmentsPage() {
                       <h3 className="font-bold text-slate-800 dark:text-slate-100">{a.title}</h3>
                       <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
                         <Clock size={11} />
-                        Deadline: {new Date(a.deadline).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        {a.startDate && (
+                          <span>From: {new Date(a.startDate).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })} · </span>
+                        )}
+                        Due: {new Date(a.deadline).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                       </p>
                     </div>
                   </div>

@@ -24,6 +24,7 @@ export async function createAssignmentAction(data: {
         departmentId: data.departmentId,
         academicYear: data.academicYear,
         semester: data.semester,
+        startDate: new Date(data.startDate),
         deadline: new Date(data.deadline),
         allowUpload: true,
       },

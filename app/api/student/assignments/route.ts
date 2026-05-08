@@ -28,13 +28,23 @@ export async function GET() {
       subjectIds = subjects.map(s => s.id);
     }
 
+    const now = new Date();
     const assignments = await db.assignment.findMany({
       where: {
         isActive: true,
+        // Only show assignments that have started (startDate is null or in the past)
         OR: [
-          { departmentId: student.departmentId, academicYear: student.academicYear, subjectId: { in: subjectIds } },
-          { departmentId: student.departmentId, academicYear: student.academicYear, subjectId: null, semester: semester ?? undefined },
-          { departmentId: null },
+          { startDate: null },
+          { startDate: { lte: now } },
+        ],
+        AND: [
+          {
+            OR: [
+              { departmentId: student.departmentId, academicYear: student.academicYear, subjectId: { in: subjectIds } },
+              { departmentId: student.departmentId, academicYear: student.academicYear, subjectId: null, semester: semester ?? undefined },
+              { departmentId: null },
+            ],
+          },
         ],
       },
       include: {
