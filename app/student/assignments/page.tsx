@@ -115,7 +115,7 @@ export default function StudentAssignmentsPage() {
                       <h3 className="font-bold text-slate-800 dark:text-slate-100">{a.title}</h3>
                       <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
                         <Clock size={11} />
-                        Deadline: {new Date(a.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        Deadline: {new Date(a.deadline).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                       </p>
                     </div>
                   </div>

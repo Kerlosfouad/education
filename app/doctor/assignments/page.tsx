@@ -299,7 +299,7 @@ export default function AssignmentsPage() {
                       </div>
                       <div>
                         <p className="font-bold text-slate-800 dark:text-slate-100 text-sm">{a.title}</p>
-                        <p className="text-xs text-slate-400">{new Date(a.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} &bull; {a._count?.submissions ?? 0} submissions</p>
+                        <p className="text-xs text-slate-400">{new Date(a.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} &bull; {a._count?.submissions ?? 0} submissions · Deadline: {a.deadline ? new Date(a.deadline).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
