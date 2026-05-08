@@ -408,27 +408,32 @@ export default function LandingPage() {
                 <Download className="text-indigo-600" size={28} />
               </div>
               <h3 className="text-lg font-black text-slate-800 dark:text-slate-100">Install the App</h3>
-              <p className="text-sm text-slate-500 mt-1">Follow the steps for your device</p>
+              <p className="text-sm text-slate-500 mt-1">Open this page on your phone to install</p>
             </div>
 
             <div className="space-y-4">
               {/* Android */}
               <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-2xl">
                 <p className="font-bold text-sm text-slate-700 dark:text-slate-200 mb-2">🤖 Android (Chrome)</p>
-                <ol className="text-xs text-slate-500 dark:text-slate-400 space-y-1 list-decimal list-inside">
-                  <li>Tap the 3-dot menu (⋮) in Chrome</li>
-                  <li>Select "Add to Home screen"</li>
-                  <li>Tap "Add" to confirm</li>
+                <ol className="text-xs text-slate-500 dark:text-slate-400 space-y-1.5 list-decimal list-inside">
+                  <li>Open this website in Chrome on your phone</li>
+                  <li>Tap the 3-dot menu (⋮) → "Add to Home screen"</li>
+                  <li>Tap "Add" — the app opens standalone, no browser bar</li>
                 </ol>
               </div>
               {/* iOS */}
               <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-2xl">
                 <p className="font-bold text-sm text-slate-700 dark:text-slate-200 mb-2">🍎 iPhone / iPad (Safari)</p>
-                <ol className="text-xs text-slate-500 dark:text-slate-400 space-y-1 list-decimal list-inside">
+                <ol className="text-xs text-slate-500 dark:text-slate-400 space-y-1.5 list-decimal list-inside">
+                  <li>Open this website in Safari on your iPhone</li>
                   <li>Tap the Share button (□↑) at the bottom</li>
-                  <li>Scroll down and tap "Add to Home Screen"</li>
-                  <li>Tap "Add" to confirm</li>
+                  <li>Tap "Add to Home Screen" → "Add"</li>
                 </ol>
+              </div>
+              <div className="p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl text-center">
+                <p className="text-xs text-indigo-600 dark:text-indigo-400 font-medium">
+                  📱 After installing, the app opens fullscreen with no browser bar
+                </p>
               </div>
             </div>
 
