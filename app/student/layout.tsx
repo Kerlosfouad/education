@@ -26,6 +26,7 @@ interface StudentProfile {
   phone: string | null;
   user: { name: string; email: string; image: string | null };
   department: { name: string };
+  enrolledSubjects: { id: string; name: string; code: string; semester: number }[];
 }
 
 interface DoctorInfo {
@@ -339,6 +340,25 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
                       </div>
                     </div>
                   </div>
+
+                  {/* Enrolled Subjects */}
+                  {profile.enrolledSubjects && profile.enrolledSubjects.length > 0 && (
+                    <div className="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl space-y-2">
+                      <div className="flex items-center gap-2 mb-1">
+                        <BookOpen size={14} className="text-indigo-600 dark:text-[#00c896]" />
+                        <p className="text-[10px] text-slate-400 uppercase font-bold">Enrolled Subjects ({profile.enrolledSubjects.length})</p>
+                      </div>
+                      <div className="space-y-1.5 max-h-36 overflow-y-auto">
+                        {profile.enrolledSubjects.map(s => (
+                          <div key={s.id} className="flex items-center justify-between px-2.5 py-1.5 bg-white dark:bg-slate-800 rounded-lg">
+                            <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate">{s.name}</span>
+                            <span className="text-[10px] text-slate-400 shrink-0 ml-2">S{s.semester}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {profile.qrCode && (
                     <div className="flex flex-col items-center gap-2 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-2xl">
                       <div className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase mb-1">

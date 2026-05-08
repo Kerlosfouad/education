@@ -23,7 +23,16 @@ export async function GET() {
   `;
   const semester = semesterResult[0]?.semester ?? 1;
 
-  return NextResponse.json({ success: true, data: { ...student, semester } });
+  // Fetch enrolled subjects
+  const enrolledSubjects = await db.$queryRaw<{ id: string; name: string; code: string; semester: number }[]>`
+    SELECT s.id, s.name, s.code, s.semester
+    FROM subjects s
+    INNER JOIN student_subjects ss ON ss."subjectId" = s.id
+    WHERE ss."studentId" = ${student.id}
+    ORDER BY s.semester, s.name
+  `;
+
+  return NextResponse.json({ success: true, data: { ...student, semester, enrolledSubjects } });
 }
 
 export async function PATCH(request: Request) {
