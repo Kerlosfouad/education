@@ -18,17 +18,23 @@ export async function createAssignmentAction(data: {
     if (!session?.user || !['DOCTOR', 'ADMIN'].includes(session.user.role)) {
       return { success: false, error: 'Unauthorized' };
     }
-    await db.assignment.create({
+    const created = await db.assignment.create({
       data: {
         title: data.title,
         departmentId: data.departmentId,
         academicYear: data.academicYear,
         semester: data.semester,
-        startDate: new Date(data.startDate),
         deadline: new Date(data.deadline),
         allowUpload: true,
       },
     });
+
+    // Set startDate via raw SQL since it was added directly to DB
+    if (data.startDate) {
+      await db.$executeRaw`
+        UPDATE assignments SET "startDate" = ${new Date(data.startDate)} WHERE id = ${created.id}
+      `;
+    }
 
     await notifyStudentsByFilter(
       '📝 New Assignment',

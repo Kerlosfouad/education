@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { Prisma } from '@prisma/client';
 
 export async function GET() {
   try {
@@ -32,11 +33,6 @@ export async function GET() {
     const assignments = await db.assignment.findMany({
       where: {
         isActive: true,
-        // Only show assignments that have started (startDate is null or in the past)
-        OR: [
-          { startDate: null },
-          { startDate: { lte: now } },
-        ],
         AND: [
           {
             OR: [
@@ -56,7 +52,21 @@ export async function GET() {
       },
       orderBy: { createdAt: 'desc' },
     });
-    return NextResponse.json({ success: true, data: assignments });
+
+    // Filter out assignments whose startDate is in the future (raw SQL field)
+    const filtered = assignments.length === 0 ? [] : await (async () => {
+      const ids = assignments.map(a => `'${a.id}'`).join(',');
+      const startDateRows = await db.$queryRaw<{ id: string; startDate: Date | null }[]>`
+        SELECT id, "startDate" FROM assignments WHERE id IN (${Prisma.raw(ids)})
+      `;
+      const startDateMap = Object.fromEntries(startDateRows.map(r => [r.id, r.startDate]));
+      return assignments.filter(a => {
+        const sd = startDateMap[a.id];
+        return !sd || new Date(sd) <= now;
+      });
+    })();
+
+    return NextResponse.json({ success: true, data: filtered });
   } catch {
     return NextResponse.json({ success: false }, { status: 500 });
   }
