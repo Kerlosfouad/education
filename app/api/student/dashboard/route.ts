@@ -67,9 +67,18 @@ export async function GET() {
       AND ("semester" IS NULL OR "semester" = ${semester})
     `;
     const totalSessions = Number(totalSessionsRaw[0]?.count ?? 0);
-    const attendedSessions = await db.attendance.count({
-      where: { studentId: student.id, verificationMethod: { not: 'ABSENT' } },
-    });
+    const relevantSessionIds = (await db.$queryRaw<{id: string}[]>`
+      SELECT id FROM attendance_sessions
+      WHERE "closeTime" < ${now}
+      AND ("departmentId" IS NULL OR "departmentId" = ${student.departmentId})
+      AND ("academicYear" IS NULL OR "academicYear" = ${student.academicYear})
+      AND ("semester" IS NULL OR "semester" = ${semester})
+    `).map(s => s.id);
+    const attendedSessions = relevantSessionIds.length > 0
+      ? await db.attendance.count({
+          where: { studentId: student.id, sessionId: { in: relevantSessionIds }, verificationMethod: { not: 'ABSENT' } },
+        })
+      : 0;
     const attendanceRate = totalSessions > 0
       ? Math.round((attendedSessions / totalSessions) * 100)
       : 0;

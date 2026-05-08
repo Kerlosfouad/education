@@ -254,12 +254,18 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      // Fetch departmentId and academicYear via raw SQL (stored outside Prisma schema)
+      const sessionRaw = await db.$queryRaw<{ departmentId: string | null; academicYear: number | null }[]>`
+        SELECT "departmentId", "academicYear" FROM attendance_sessions WHERE id = ${sessionId}
+      `;
+      const sessionDeptId = sessionRaw[0]?.departmentId ?? null;
+      const sessionAcademicYear = sessionRaw[0]?.academicYear ?? null;
+
       // Check session matches student's department and academicYear
-      const sessionAny = attendanceSession as any;
-      if (sessionAny.departmentId && sessionAny.departmentId !== student.departmentId) {
+      if (sessionDeptId && sessionDeptId !== student.departmentId) {
         return NextResponse.json({ error: 'This session is not for your department' }, { status: 403 });
       }
-      if (sessionAny.academicYear !== null && sessionAny.academicYear !== undefined && sessionAny.academicYear !== student.academicYear) {
+      if (sessionAcademicYear !== null && sessionAcademicYear !== student.academicYear) {
         return NextResponse.json({ error: 'This session is not for your level' }, { status: 403 });
       }
 
@@ -297,6 +303,7 @@ export async function POST(req: NextRequest) {
         data: {
           studentId: student.id,
           sessionId,
+          verificationMethod: 'MANUAL',
           deviceInfo: deviceInfo.trim() || 'Unknown',
           ipAddress: ipAddress.toString(),
           userAgent,
