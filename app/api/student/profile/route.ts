@@ -23,17 +23,39 @@ export async function GET() {
   `;
   const semester = semesterResult[0]?.semester ?? 1;
 
-  // Fetch enrolled subjects (approved) + pending requests
+  // Fetch enrolled subjects:
+  // 1. Core subjects (dept + year + semester) — shown directly, no pending
+  // 2. Extra subjects explicitly enrolled via student_subjects
+  // 3. Extra subjects pending approval via enrollment_requests
+  const semesterVal = semesterResult[0]?.semester ?? 1;
+
   const enrolledSubjects = await db.$queryRaw<{ id: string; name: string; code: string; semester: number; status: string }[]>`
+    SELECT s.id, s.name, s.code, s.semester, 'ENROLLED' as status
+    FROM subjects s
+    WHERE s."departmentId" = ${student.departmentId}
+      AND s."academicYear" = ${student.academicYear}
+      AND s.semester = ${semesterVal}
+    UNION
     SELECT s.id, s.name, s.code, s.semester, 'ENROLLED' as status
     FROM subjects s
     INNER JOIN student_subjects ss ON ss."subjectId" = s.id
     WHERE ss."studentId" = ${student.id}
+      AND NOT (
+        s."departmentId" = ${student.departmentId}
+        AND s."academicYear" = ${student.academicYear}
+        AND s.semester = ${semesterVal}
+      )
     UNION
-    SELECT s.id, s.name, s.code, s.semester, er.status
+    SELECT s.id, s.name, s.code, s.semester, 'PENDING' as status
     FROM subjects s
     INNER JOIN enrollment_requests er ON er."subjectId" = s.id
-    WHERE er."studentId" = ${student.id} AND er.status = 'PENDING'
+    WHERE er."studentId" = ${student.id}
+      AND er.status = 'PENDING'
+      AND NOT (
+        s."departmentId" = ${student.departmentId}
+        AND s."academicYear" = ${student.academicYear}
+        AND s.semester = ${semesterVal}
+      )
     ORDER BY semester, name
   `;
 
