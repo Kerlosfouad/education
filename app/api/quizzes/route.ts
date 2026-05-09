@@ -56,6 +56,8 @@ export async function GET(req: NextRequest) {
           .filter((quiz: any) => {
             const matchDeptYear = quiz.departmentId === student.departmentId && quiz.academicYear === student.academicYear;
             if (!matchDeptYear) return false;
+            // Filter by semester if quiz has one set
+            if (quiz.semester && studentSemester && quiz.semester !== studentSemester) return false;
             // If enrolled subjects exist, filter by them
             if (enrolledIds && quiz.subjectId) return enrolledIds.has(quiz.subjectId);
             if (!studentSemester || !quiz.subject) return true;
@@ -87,7 +89,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { departmentId, academicYear, title, description, timeLimit, maxAttempts, passingScore,
+    const { departmentId, academicYear, semester, title, description, timeLimit, maxAttempts, passingScore,
       shuffleQuestions, showCorrectAnswers, startTime, endTime, questions, isPublished } = body;
 
     if (!departmentId || academicYear === undefined || academicYear === null || !title || !timeLimit || !questions || questions.length === 0) {
@@ -98,6 +100,7 @@ export async function POST(req: NextRequest) {
       data: {
         departmentId,
         academicYear: Number(academicYear),
+        semester: semester ? Number(semester) : null,
         title,
         description,
         timeLimit,

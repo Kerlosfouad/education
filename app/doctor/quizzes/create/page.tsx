@@ -36,6 +36,7 @@ export default function CreateQuizPage() {
     description: '',
     departmentId: '',
     academicYear: 0,
+    semester: 1,
     timeLimit: 30,
     maxAttempts: 1,
     passingScore: 60,
@@ -212,6 +213,18 @@ export default function CreateQuizPage() {
             >
               <option value="">Select year...</option>
               {academicYears.map(y => <option key={y.value} value={y.value}>{y.label}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-gray-600 mb-1 block">Semester *</label>
+            <select
+              value={form.semester}
+              onChange={e => setForm(p => ({ ...p, semester: Number(e.target.value) }))}
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value={1}>Semester 1</option>
+              <option value={2}>Semester 2</option>
             </select>
           </div>
 
