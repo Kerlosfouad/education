@@ -5,12 +5,14 @@ export async function GET() {
   // Step 1: Find departments
   const depts = await db.department.findMany({ select: { id: true, name: true, code: true } });
   
-  // Step 2: Find sessions on April 26 for level 2
+  // Step 2: Find ALL sessions around April 26 regardless of dept
   const sessions = await db.$queryRaw<any[]>`
-    SELECT s.id, s.title, s."openTime", s."departmentId", s."academicYear"
+    SELECT s.id, s.title, s."openTime", s."departmentId", s."academicYear",
+           d.name as dept_name
     FROM attendance_sessions s
-    WHERE s."academicYear" = 2
-      AND DATE(s."openTime") = '2026-04-26'
+    LEFT JOIN departments d ON d.id = s."departmentId"
+    WHERE DATE(s."openTime") BETWEEN '2026-04-24' AND '2026-04-28'
+    ORDER BY s."openTime" DESC
   `;
 
   return NextResponse.json({ depts, sessions });
