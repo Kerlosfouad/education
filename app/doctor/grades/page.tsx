@@ -280,7 +280,17 @@ export default function GradesPage() {
       XLSX.utils.book_append_sheet(wb, ws, name.slice(0, 31).replace(/[\\/*?[\]:]/g, ''));
     }
 
-    XLSX.writeFile(wb, `grades-${name}-${Date.now()}.xlsx`);
+    // Generate buffer and trigger download via Blob (browser-compatible)
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `grades-${name}-${Date.now()}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const clearAllGrades = async () => {
