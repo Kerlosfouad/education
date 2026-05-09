@@ -38,6 +38,19 @@ export async function GET(req: NextRequest) {
       department: q.departmentId ? deptMap[q.departmentId] ?? null : null,
     }));
 
+    // Fetch semester for each quiz via raw SQL
+    const quizIds = quizzes.map((q: any) => q.id);
+    const quizSemesters = quizIds.length > 0
+      ? await db.$queryRaw<{ id: string; semester: number | null }[]>`
+          SELECT id, semester FROM quizzes WHERE id = ANY(${quizIds}::text[])
+        `
+      : [];
+    const semesterMap = Object.fromEntries(quizSemesters.map(q => [q.id, q.semester]));
+    const quizzesWithAll = quizzesWithDept.map((q: any) => ({
+      ...q,
+      semester: semesterMap[q.id] ?? null,
+    }));
+
     if (session.user.role === 'STUDENT') {
       const student = await getOrCreateStudent(session.user.id);
       if (!student) return NextResponse.json({ error: 'No department found' }, { status: 404 });
@@ -52,11 +65,11 @@ export async function GET(req: NextRequest) {
       const enrolledIds = enrolled.length > 0 ? new Set(enrolled.map(e => e.subjectId)) : null;
 
       const quizzesWithAttempts = await Promise.all(
-        quizzesWithDept
+        quizzesWithAll
           .filter((quiz: any) => {
             const matchDeptYear = quiz.departmentId === student.departmentId && quiz.academicYear === student.academicYear;
             if (!matchDeptYear) return false;
-            // Filter by semester if quiz has one set
+            // Filter by semester if quiz has one set (from raw SQL field)
             if (quiz.semester && studentSemester && quiz.semester !== studentSemester) return false;
             // If enrolled subjects exist, filter by them
             if (enrolledIds && quiz.subjectId) return enrolledIds.has(quiz.subjectId);
@@ -74,7 +87,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: true, data: quizzesWithAttempts });
     }
 
-    return NextResponse.json({ success: true, data: quizzesWithDept });
+    return NextResponse.json({ success: true, data: quizzesWithAll });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
@@ -100,7 +113,6 @@ export async function POST(req: NextRequest) {
       data: {
         departmentId,
         academicYear: Number(academicYear),
-        semester: semester ? Number(semester) : null,
         title,
         description,
         timeLimit,
@@ -125,6 +137,11 @@ export async function POST(req: NextRequest) {
       },
       include: { questions: true },
     });
+
+    // Save semester via raw SQL (field added directly to DB)
+    if (semester) {
+      await db.$executeRaw`UPDATE quizzes SET semester = ${Number(semester)} WHERE id = ${quiz.id}`;
+    }
 
     if (isPublished && departmentId && academicYear) {
       await notifyStudentsByFilter(
