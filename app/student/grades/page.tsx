@@ -27,6 +27,17 @@ const EXAM_LABELS: Record<string, string> = {
   PROJECT: 'Project',
 };
 
+function formatExamLabel(key: string): string {
+  if (EXAM_LABELS[key]) return EXAM_LABELS[key];
+  // Clean up custom keys like CUSTOM_PROJECT_1777 → Project
+  return key
+    .replace(/^CUSTOM_/i, '')
+    .replace(/_\d+$/, '')
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, c => c.toUpperCase());
+}
+
 function getGradeColor(pct: number) {
   if (pct >= 85) return 'text-green-600 dark:text-green-400';
   if (pct >= 70) return 'text-blue-600 dark:text-blue-400';
@@ -160,7 +171,7 @@ export default function StudentGradesPage() {
                       const pct = g.maxScore > 0 ? Math.round((g.score / g.maxScore) * 100) : 0;
                       return (
                         <div key={g.examType} className="bg-slate-50 dark:bg-slate-700/50 rounded-2xl p-3 text-center">
-                          <p className="text-xs text-slate-400 font-medium mb-1">{EXAM_LABELS[g.examType] || g.examType}</p>
+                          <p className="text-xs text-slate-400 font-medium mb-1">{formatExamLabel(g.examType)}</p>
                           <p className={`text-xl font-black ${getGradeColor(pct)}`}>{g.score}</p>
                           <p className="text-xs text-slate-400">/ {g.maxScore}</p>
                           <div className="mt-2 bg-slate-200 dark:bg-slate-600 rounded-full h-1">
