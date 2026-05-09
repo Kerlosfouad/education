@@ -14,15 +14,39 @@ export async function GET(req: NextRequest) {
 
   const subject = await db.subject.findUnique({
     where: { id: subjectId },
-    select: { id: true, name: true, departmentId: true, academicYear: true },
+    select: { id: true, name: true, departmentId: true, academicYear: true, semester: true },
   });
   if (!subject) return NextResponse.json({ error: 'Subject not found' }, { status: 404 });
 
-  const students = await db.student.findMany({
-    where: { departmentId: subject.departmentId, academicYear: subject.academicYear, user: { status: 'ACTIVE' } },
+  // Get students enrolled in this subject:
+  // 1. Core: same dept + academicYear + semester
+  // 2. Extra: explicitly enrolled via student_subjects
+  const coreStudents = await db.student.findMany({
+    where: {
+      departmentId: subject.departmentId,
+      academicYear: subject.academicYear,
+      user: { status: 'ACTIVE' },
+    },
     include: { user: { select: { name: true } } },
     orderBy: { user: { name: 'asc' } },
   });
+
+  // Extra enrolled students (different dept/year but explicitly enrolled)
+  const extraEnrolled = await db.$queryRaw<{ studentId: string }[]>`
+    SELECT ss."studentId" FROM student_subjects ss WHERE ss."subjectId" = ${subjectId}
+  `;
+  const extraIds = extraEnrolled.map(e => e.studentId).filter(
+    id => !coreStudents.find(s => s.id === id)
+  );
+  const extraStudents = extraIds.length > 0
+    ? await db.student.findMany({
+        where: { id: { in: extraIds }, user: { status: 'ACTIVE' } },
+        include: { user: { select: { name: true } } },
+        orderBy: { user: { name: 'asc' } },
+      })
+    : [];
+
+  const students = [...coreStudents, ...extraStudents];
 
   const grades = await db.examResult.findMany({
     where: { subjectId },
