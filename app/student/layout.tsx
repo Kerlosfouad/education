@@ -351,11 +351,11 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
                         <BookOpen size={14} className="text-indigo-600 dark:text-[#00c896]" />
                         <p className="text-[10px] text-slate-400 uppercase font-bold">Enrolled Subjects ({profile.enrolledSubjects.length})</p>
                       </div>
-                      <div className="space-y-1.5 max-h-36 overflow-y-auto">
+                      <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
                         {profile.enrolledSubjects.map(s => (
-                          <div key={s.id} className="flex items-center justify-between px-2.5 py-1.5 bg-white dark:bg-slate-800 rounded-lg">
+                          <div key={s.id} className="flex items-center justify-between px-2.5 py-2 bg-white dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700">
                             <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate">{s.name}</span>
-                            <span className="text-[10px] text-slate-400 shrink-0 ml-2">S{s.semester}</span>
+                            <span className="text-[10px] font-bold bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full shrink-0 ml-2">S{s.semester}</span>
                           </div>
                         ))}
                       </div>
