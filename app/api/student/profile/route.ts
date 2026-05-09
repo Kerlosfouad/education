@@ -23,13 +23,18 @@ export async function GET() {
   `;
   const semester = semesterResult[0]?.semester ?? 1;
 
-  // Fetch enrolled subjects — only explicitly enrolled ones
-  const enrolledSubjects = await db.$queryRaw<{ id: string; name: string; code: string; semester: number }[]>`
-    SELECT s.id, s.name, s.code, s.semester
+  // Fetch enrolled subjects (approved) + pending requests
+  const enrolledSubjects = await db.$queryRaw<{ id: string; name: string; code: string; semester: number; status: string }[]>`
+    SELECT s.id, s.name, s.code, s.semester, 'ENROLLED' as status
     FROM subjects s
     INNER JOIN student_subjects ss ON ss."subjectId" = s.id
     WHERE ss."studentId" = ${student.id}
-    ORDER BY s.semester, s.name
+    UNION
+    SELECT s.id, s.name, s.code, s.semester, er.status
+    FROM subjects s
+    INNER JOIN enrollment_requests er ON er."subjectId" = s.id
+    WHERE er."studentId" = ${student.id} AND er.status = 'PENDING'
+    ORDER BY semester, name
   `;
 
   return NextResponse.json({ success: true, data: { ...student, semester, enrolledSubjects } });

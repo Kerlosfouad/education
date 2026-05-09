@@ -27,7 +27,7 @@ interface StudentProfile {
   phone: string | null;
   user: { name: string; email: string; image: string | null };
   department: { name: string };
-  enrolledSubjects: { id: string; name: string; code: string; semester: number }[];
+  enrolledSubjects: { id: string; name: string; code: string; semester: number; status: string }[];
 }
 
 interface DoctorInfo {
@@ -359,7 +359,12 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
                         {profile.enrolledSubjects.map(s => (
                           <div key={s.id} className="flex items-center justify-between px-2.5 py-2 bg-white dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700">
                             <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate">{s.name}</span>
-                            <span className="text-[10px] font-bold bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full shrink-0 ml-2">S{s.semester}</span>
+                            <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                              <span className="text-[10px] font-bold bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full">S{s.semester}</span>
+                              {s.status === 'PENDING' && (
+                                <span className="text-[10px] font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-600 px-2 py-0.5 rounded-full">Pending</span>
+                              )}
+                            </div>
                           </div>
                         ))}
                       </div>
