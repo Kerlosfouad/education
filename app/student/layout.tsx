@@ -296,47 +296,49 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
         <div className="p-4 md:p-8 lg:p-10">{children}</div>
       </main>
 
-      {showProfile && (        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowProfile(false)}>
-          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="bg-gradient-to-br from-indigo-600 to-purple-600 dark:from-[#00c896] dark:to-[#00a87e] p-6 text-white relative">
-              <button onClick={() => setShowProfile(false)} className="absolute top-4 right-4 p-1.5 bg-white/20 hover:bg-white/30 rounded-lg transition-colors">
+      {showProfile && (        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/50 backdrop-blur-sm" onClick={() => setShowProfile(false)}>
+          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="bg-gradient-to-br from-indigo-600 to-purple-600 dark:from-[#00c896] dark:to-[#00a87e] p-4 text-white relative shrink-0">
+              <button onClick={() => setShowProfile(false)} className="absolute top-3 right-3 p-1.5 bg-white/20 hover:bg-white/30 rounded-lg transition-colors">
                 <X size={16} />
               </button>
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center text-white font-bold text-xl overflow-hidden">
-                  {session?.user?.image ? <Image src={session.user.image} alt="avatar" width={64} height={64} className="object-cover" /> : initials}
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center text-white font-bold text-base overflow-hidden shrink-0">
+                  {session?.user?.image ? <Image src={session.user.image} alt="avatar" width={48} height={48} className="object-cover" /> : initials}
                 </div>
-                <div>
-                  <h3 className="font-black text-lg leading-tight">{profile?.user.name || studentName}</h3>
-                  <p className="text-white/70 text-xs mt-0.5">{profile?.user.email || studentEmail}</p>
-                  <span className="mt-1 inline-block text-[10px] font-bold bg-white/20 px-2 py-0.5 rounded-full">Student</span>
+                <div className="min-w-0">
+                  <h3 className="font-black text-base leading-tight truncate pr-6">{profile?.user.name || studentName}</h3>
+                  <p className="text-white/70 text-xs mt-0.5 truncate">{profile?.user.email || studentEmail}</p>
+                  <span className="mt-0.5 inline-block text-[10px] font-bold bg-white/20 px-2 py-0.5 rounded-full">Student</span>
                 </div>
               </div>
             </div>
-            <div className="p-6 space-y-4">
+            {/* Scrollable body */}
+            <div className="p-4 space-y-3 overflow-y-auto flex-1">
               {!profile ? (
                 <div className="flex justify-center py-8">
                   <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
                 </div>
               ) : (
                 <>
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
-                      <Hash size={16} className="text-indigo-600 dark:text-[#00c896] shrink-0" />
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2.5 p-2.5 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
+                      <Hash size={14} className="text-indigo-600 dark:text-[#00c896] shrink-0" />
                       <div>
                         <p className="text-[10px] text-slate-400 uppercase font-bold">Student Code</p>
-                        <p className="font-black text-slate-800 dark:text-slate-100 text-lg tracking-widest">{profile.studentCode}</p>
+                        <p className="font-black text-slate-800 dark:text-slate-100 text-base tracking-widest">{profile.studentCode}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
-                      <Building2 size={16} className="text-indigo-600 dark:text-[#00c896] shrink-0" />
+                    <div className="flex items-center gap-2.5 p-2.5 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
+                      <Building2 size={14} className="text-indigo-600 dark:text-[#00c896] shrink-0" />
                       <div>
                         <p className="text-[10px] text-slate-400 uppercase font-bold">Department</p>
                         <p className="font-semibold text-slate-800 dark:text-slate-100 text-sm">{profile.department.name}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
-                      <BookOpen size={16} className="text-indigo-600 dark:text-[#00c896] shrink-0" />
+                    <div className="flex items-center gap-2.5 p-2.5 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
+                      <BookOpen size={14} className="text-indigo-600 dark:text-[#00c896] shrink-0" />
                       <div>
                         <p className="text-[10px] text-slate-400 uppercase font-bold">Academic Year</p>
                         <p className="font-semibold text-slate-800 dark:text-slate-100 text-sm">{`Level ${profile.academicYear}`}</p>
@@ -345,24 +347,24 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
                   </div>
 
                   {/* Enrolled Subjects */}
-                  <div className="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl space-y-2">
+                  <div className="p-2.5 bg-slate-50 dark:bg-slate-700/50 rounded-xl space-y-1.5">
                     <div className="flex items-center gap-2 mb-1">
-                      <BookOpen size={14} className="text-indigo-600 dark:text-[#00c896]" />
+                      <BookOpen size={13} className="text-indigo-600 dark:text-[#00c896]" />
                       <p className="text-[10px] text-slate-400 uppercase font-bold">
                         Enrolled Subjects {profile.enrolledSubjects?.length > 0 && `(${profile.enrolledSubjects.length})`}
                       </p>
                     </div>
                     {!profile.enrolledSubjects || profile.enrolledSubjects.length === 0 ? (
-                      <p className="text-xs text-slate-400 text-center py-2">No subjects enrolled yet</p>
+                      <p className="text-xs text-slate-400 text-center py-1">No subjects enrolled yet</p>
                     ) : (
-                      <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                      <div className="space-y-1 max-h-32 overflow-y-auto pr-1">
                         {profile.enrolledSubjects.map(s => (
-                          <div key={s.id} className="flex items-center justify-between px-2.5 py-2 bg-white dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700">
+                          <div key={s.id} className="flex items-center justify-between px-2 py-1.5 bg-white dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700">
                             <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate">{s.name}</span>
-                            <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                              <span className="text-[10px] font-bold bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full">S{s.semester}</span>
+                            <div className="flex items-center gap-1 shrink-0 ml-2">
+                              <span className="text-[10px] font-bold bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded-full">S{s.semester}</span>
                               {s.status === 'PENDING' && (
-                                <span className="text-[10px] font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-600 px-2 py-0.5 rounded-full">Pending</span>
+                                <span className="text-[10px] font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-600 px-1.5 py-0.5 rounded-full">Pending</span>
                               )}
                             </div>
                           </div>
@@ -372,28 +374,29 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
                   </div>
 
                   {profile.qrCode && (
-                    <div className="flex flex-col items-center gap-2 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-2xl">
-                      <div className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase mb-1">
-                        <QrCode size={14} /> QR Code
+                    <div className="flex flex-col items-center gap-1.5 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-2xl">
+                      <div className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase">
+                        <QrCode size={13} /> QR Code
                       </div>
-                      <img src={profile.qrCode} alt="QR Code" className="w-36 h-36 rounded-xl" />
+                      <img src={profile.qrCode} alt="QR Code" className="w-28 h-28 rounded-xl" />
                       <p className="text-[10px] text-slate-400">Scan to verify student identity</p>
                     </div>
                   )}
                   <div className="flex gap-2">
                     <button
                       onClick={() => { setShowProfile(false); window.open('/api/student/download-pdf', '_blank'); }}
-                      className="flex items-center gap-2 flex-1 justify-center py-2.5 bg-indigo-600 hover:bg-indigo-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white font-bold text-sm rounded-xl transition-colors"
+                      className="flex items-center gap-1.5 flex-1 justify-center py-2.5 bg-indigo-600 hover:bg-indigo-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white font-bold text-xs rounded-xl transition-colors"
                     >
-                      <Download size={16} /> Registration
+                      <Download size={14} /> Registration
                     </button>
                     <button
                       onClick={() => { setShowProfile(false); window.open('/api/student/download-cards', '_blank'); }}
-                      className="flex items-center gap-2 flex-1 justify-center py-2.5 bg-slate-700 hover:bg-slate-800 dark:bg-slate-600 dark:hover:bg-slate-500 text-white font-bold text-sm rounded-xl transition-colors"
+                      className="flex items-center gap-1.5 flex-1 justify-center py-2.5 bg-slate-700 hover:bg-slate-800 dark:bg-slate-600 dark:hover:bg-slate-500 text-white font-bold text-xs rounded-xl transition-colors"
                     >
-                      <Download size={16} /> 6 Cards
+                      <Download size={14} /> 6 Cards
                     </button>
-                  </div>                </>
+                  </div>
+                </>
               )}
             </div>
           </div>
