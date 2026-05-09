@@ -11,32 +11,51 @@ export async function GET() {
   const student = await db.student.findUnique({ where: { userId: session.user.id } });
   if (!student) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  const [enrollments, requests] = await Promise.all([
-    db.$queryRaw<{
-      id: string; subjectId: string; subjectName: string; subjectCode: string;
-      semester: number; enrolledAt: string;
-    }[]>`
+  const semesterRows = await db.$queryRaw<{ semester: number }[]>`SELECT semester FROM students WHERE id = ${student.id}`;
+  const semester = semesterRows[0]?.semester ?? 1;
+
+  const [coreSubjects, enrollments, requests] = await Promise.all([
+    // Core subjects: based on dept + year + semester (always enrolled, no action needed)
+    db.$queryRaw<{ id: string; subjectId: string; subjectName: string; subjectCode: string; semester: number }[]>`
+      SELECT s.id, s.id as "subjectId", s.name as "subjectName", s.code as "subjectCode", s.semester
+      FROM subjects s
+      WHERE s."departmentId" = ${student.departmentId}
+        AND s."academicYear" = ${student.academicYear}
+        AND s.semester = ${semester}
+        AND s."isActive" = true
+      ORDER BY s.name
+    `,
+    // Extra subjects explicitly enrolled
+    db.$queryRaw<{ id: string; subjectId: string; subjectName: string; subjectCode: string; semester: number; enrolledAt: string }[]>`
       SELECT ss.id, ss."subjectId", s.name as "subjectName", s.code as "subjectCode",
              s.semester, ss."enrolledAt"
       FROM student_subjects ss
       JOIN subjects s ON s.id = ss."subjectId"
       WHERE ss."studentId" = ${student.id}
+        AND NOT (
+          s."departmentId" = ${student.departmentId}
+          AND s."academicYear" = ${student.academicYear}
+          AND s.semester = ${semester}
+        )
       ORDER BY ss."enrolledAt" DESC
     `,
-    db.$queryRaw<{
-      id: string; subjectId: string; subjectName: string; subjectCode: string;
-      semester: number; status: string; createdAt: string;
-    }[]>`
+    // Pending requests (extra subjects only)
+    db.$queryRaw<{ id: string; subjectId: string; subjectName: string; subjectCode: string; semester: number; status: string; createdAt: string }[]>`
       SELECT er.id, er."subjectId", s.name as "subjectName", s.code as "subjectCode",
              s.semester, er.status, er."createdAt"
       FROM enrollment_requests er
       JOIN subjects s ON s.id = er."subjectId"
       WHERE er."studentId" = ${student.id}
+        AND NOT (
+          s."departmentId" = ${student.departmentId}
+          AND s."academicYear" = ${student.academicYear}
+          AND s.semester = ${semester}
+        )
       ORDER BY er."createdAt" DESC
     `,
   ]);
 
-  return NextResponse.json({ success: true, data: { enrollments, requests } });
+  return NextResponse.json({ success: true, data: { coreSubjects, enrollments, requests } });
 }
 
 // POST - request enrollment in a subject (sends pending request)

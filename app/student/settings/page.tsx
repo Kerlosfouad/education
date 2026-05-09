@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Loader2, Save, User, Hash, Building2, GraduationCap, Plus, X, BookOpen } from 'lucide-react';
 
 interface Department { id: string; name: string; code: string; }
+interface CoreSubject { id: string; subjectId: string; subjectName: string; subjectCode: string; semester: number; }
 interface Enrollment { id: string; subjectId: string; subjectName: string; subjectCode: string; semester: number; }
 interface EnrollmentRequest { id: string; subjectId: string; subjectName: string; subjectCode: string; semester: number; status: string; }
 interface Subject { id: string; name: string; code: string; semester: number; }
@@ -22,6 +23,7 @@ export default function SettingsPage() {
   const [error, setError] = useState('');
 
   // Enrollment state
+  const [coreSubjects, setCoreSubjects] = useState<CoreSubject[]>([]);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [enrollmentRequests, setEnrollmentRequests] = useState<EnrollmentRequest[]>([]);
   const [availableSubjects, setAvailableSubjects] = useState<Subject[]>([]);
@@ -33,6 +35,7 @@ export default function SettingsPage() {
     const res = await fetch('/api/student/enrollments');
     const json = await res.json();
     if (json.success) {
+      setCoreSubjects(json.data.coreSubjects ?? []);
       setEnrollments(json.data.enrollments ?? []);
       setEnrollmentRequests(json.data.requests ?? []);
     }
@@ -81,6 +84,7 @@ export default function SettingsPage() {
       }
       if (deptsJson.success) setDepartments(deptsJson.data);
       if (enrollJson.success) {
+        setCoreSubjects(enrollJson.data.coreSubjects ?? []);
         setEnrollments(enrollJson.data.enrollments ?? []);
         setEnrollmentRequests(enrollJson.data.requests ?? []);
       }
@@ -151,9 +155,11 @@ export default function SettingsPage() {
     setUnenrolling(null);
   };
 
+  const coreIds = new Set(coreSubjects.map(s => s.subjectId));
   const enrolledIds = new Set(enrollments.map(e => e.subjectId));
   const pendingIds = new Set(enrollmentRequests.filter(r => r.status === 'PENDING').map(r => r.subjectId));
-  const unenrolledSubjects = availableSubjects.filter(s => !enrolledIds.has(s.id) && !pendingIds.has(s.id));
+  // Hide core subjects + already enrolled/pending from the picker
+  const unenrolledSubjects = availableSubjects.filter(s => !coreIds.has(s.id) && !enrolledIds.has(s.id) && !pendingIds.has(s.id));
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-[60vh]">
@@ -245,8 +251,8 @@ export default function SettingsPage() {
           <div className="flex items-center gap-2">
             <BookOpen size={18} className="text-indigo-500" />
             <h3 className="font-bold text-slate-800 dark:text-white text-sm">Enrolled Subjects</h3>
-            {enrollments.length > 0 && (
-              <span className="text-[10px] font-bold bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 px-2 py-0.5 rounded-full">{enrollments.length}</span>
+            {(coreSubjects.length + enrollments.length) > 0 && (
+              <span className="text-[10px] font-bold bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 px-2 py-0.5 rounded-full">{coreSubjects.length + enrollments.length}</span>
             )}
           </div>
           <button onClick={() => setShowSubjectPicker(v => !v)}
@@ -282,7 +288,7 @@ export default function SettingsPage() {
         )}
 
         {/* Enrolled list */}
-        {enrollments.length === 0 && enrollmentRequests.length === 0 ? (
+        {coreSubjects.length === 0 && enrollments.length === 0 && enrollmentRequests.length === 0 ? (
           <div className="text-center py-8 text-slate-400">
             <BookOpen size={32} className="mx-auto mb-2 opacity-30" />
             <p className="text-sm">No subjects enrolled yet</p>
@@ -290,11 +296,27 @@ export default function SettingsPage() {
           </div>
         ) : (
           <div className="space-y-2">
-            {enrollments.map(e => (
-              <div key={e.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-[#0a1628]/60 rounded-xl border border-slate-100 dark:border-[#1a2f4a]">
+            {/* Core subjects — read only */}
+            {coreSubjects.map(s => (
+              <div key={s.subjectId} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-[#0a1628]/60 rounded-xl border border-slate-100 dark:border-[#1a2f4a]">
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center">
                     <BookOpen size={14} className="text-indigo-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800 dark:text-white">{s.subjectName}</p>
+                    <p className="text-[10px] text-slate-400">{s.subjectCode} · Semester {s.semester}</p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-bold bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 px-2 py-0.5 rounded-full">Core</span>
+              </div>
+            ))}
+            {/* Extra enrolled subjects */}
+            {enrollments.map(e => (
+              <div key={e.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-[#0a1628]/60 rounded-xl border border-slate-100 dark:border-[#1a2f4a]">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-green-50 dark:bg-green-900/30 flex items-center justify-center">
+                    <BookOpen size={14} className="text-green-500" />
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-slate-800 dark:text-white">{e.subjectName}</p>
@@ -307,6 +329,7 @@ export default function SettingsPage() {
                 </button>
               </div>
             ))}
+            {/* Pending requests */}
             {enrollmentRequests.map(r => (
               <div key={r.id} className="flex items-center justify-between p-3 bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-200 dark:border-amber-800/30">
                 <div className="flex items-center gap-2.5">
