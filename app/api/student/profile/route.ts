@@ -23,17 +23,12 @@ export async function GET() {
   `;
   const semester = semesterResult[0]?.semester ?? 1;
 
-  // Fetch enrolled subjects — from explicit enrollment OR dept+year match
+  // Fetch enrolled subjects — only explicitly enrolled ones
   const enrolledSubjects = await db.$queryRaw<{ id: string; name: string; code: string; semester: number }[]>`
-    SELECT DISTINCT s.id, s.name, s.code, s.semester
+    SELECT s.id, s.name, s.code, s.semester
     FROM subjects s
-    WHERE s.id IN (
-      SELECT ss."subjectId" FROM student_subjects ss WHERE ss."studentId" = ${student.id}
-    )
-    OR (
-      s."departmentId" = ${student.departmentId}
-      AND s."academicYear" = ${student.academicYear}
-    )
+    INNER JOIN student_subjects ss ON ss."subjectId" = s.id
+    WHERE ss."studentId" = ${student.id}
     ORDER BY s.semester, s.name
   `;
 
