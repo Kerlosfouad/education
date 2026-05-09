@@ -21,30 +21,36 @@ export async function GET(req: NextRequest) {
   // Get students enrolled in this subject:
   // 1. Core: same dept + academicYear + semester
   // 2. Extra: explicitly enrolled via student_subjects
-  const coreStudents = await db.student.findMany({
-    where: {
-      departmentId: subject.departmentId,
-      academicYear: subject.academicYear,
-      user: { status: 'ACTIVE' },
-    },
-    include: { user: { select: { name: true } } },
-    orderBy: { user: { name: 'asc' } },
-  });
+  const coreStudents = await db.$queryRaw<{ id: string; name: string; studentCode: string }[]>`
+    SELECT st.id, u.name, st."studentCode"
+    FROM students st
+    JOIN users u ON u.id = st."userId"
+    WHERE st."departmentId" = ${subject.departmentId}
+      AND st."academicYear" = ${subject.academicYear}
+      AND st.semester = ${subject.semester}
+      AND u.status = 'ACTIVE'
+    ORDER BY u.name ASC
+  `;
 
-  // Extra enrolled students (different dept/year but explicitly enrolled)
+  const coreIds = new Set(coreStudents.map(s => s.id));
+
+  // Extra: explicitly enrolled in this subject but not in core
   const extraEnrolled = await db.$queryRaw<{ studentId: string }[]>`
     SELECT ss."studentId" FROM student_subjects ss WHERE ss."subjectId" = ${subjectId}
   `;
-  const extraIds = extraEnrolled.map(e => e.studentId).filter(
-    id => !coreStudents.find(s => s.id === id)
-  );
-  const extraStudents = extraIds.length > 0
-    ? await db.student.findMany({
-        where: { id: { in: extraIds }, user: { status: 'ACTIVE' } },
-        include: { user: { select: { name: true } } },
-        orderBy: { user: { name: 'asc' } },
-      })
-    : [];
+  const extraIds = extraEnrolled.map(e => e.studentId).filter(id => !coreIds.has(id));
+
+  let extraStudents: { id: string; name: string; studentCode: string }[] = [];
+  if (extraIds.length > 0) {
+    extraStudents = await db.$queryRaw<{ id: string; name: string; studentCode: string }[]>`
+      SELECT st.id, u.name, st."studentCode"
+      FROM students st
+      JOIN users u ON u.id = st."userId"
+      WHERE st.id = ANY(${extraIds}::text[])
+        AND u.status = 'ACTIVE'
+      ORDER BY u.name ASC
+    `;
+  }
 
   const students = [...coreStudents, ...extraStudents];
 
@@ -63,7 +69,7 @@ export async function GET(req: NextRequest) {
     subject,
     students: students.map(s => ({
       id: s.id,
-      name: s.user.name,
+      name: s.name,
       studentCode: s.studentCode,
       grades: gradeMap[s.id] || {},
     })),
