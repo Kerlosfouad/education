@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { GraduationCap, Download, Loader2, Check, Pencil, Plus, X, ChevronRight, BookOpen, CalendarCheck2, Trophy } from 'lucide-react';
 import { toast } from 'sonner';
-import * as XLSX from 'xlsx';
 
 interface Subject { id: string; name: string; code: string; department: { name: string }; academicYear: number; semester: number; }
 interface StudentGrade { id: string; name: string; studentCode: string; grades: Record<string, number>; subjectId?: string; subjectName?: string; }
@@ -225,71 +224,51 @@ export default function GradesPage() {
   const exportExcel = async () => {
     if (!students.length) return;
     const name = subjectInfo?.name || 'All Subjects';
-    const wb = XLSX.utils.book_new();
 
-    const buildSheet = (list: StudentGrade[], subjName: string, deptName?: string, level?: number) => {
-      const titleParts = [deptName, level !== undefined ? `Level ${level}` : undefined, subjName].filter(Boolean).join(' - ');
+    const border = 'border:1px solid #2E4DA0';
+    const buildHtmlTable = (list: StudentGrade[], subjName: string, deptName?: string, level?: number) => {
       const headers = ['#', 'Student Name', 'Code', ...examTypes.map(t => `${t.label} (/${t.max})`), 'Total'];
-
-      const rows: any[][] = [
-        [titleParts],
-        [],
-        headers,
-        ...list.map((s, i) => {
-          const total = getTotal(s.grades);
-          const graded = hasGrades(s);
-          return [
-            i + 1,
-            s.name,
-            s.studentCode,
-            ...examTypes.map(t => s.grades[t.key] ?? 0),
-            graded ? total : 0,
-          ];
-        }),
-        [],
-        [...Array(headers.length - 2).fill(''), 'Total Students:', list.length],
-      ];
-
-      const ws = XLSX.utils.aoa_to_sheet(rows);
-
-      // Merge title row across all columns
-      ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: headers.length - 1 } }];
-
-      // Column widths
-      ws['!cols'] = [
-        { wch: 5 },
-        { wch: 35 },
-        { wch: 10 },
-        ...examTypes.map(() => ({ wch: 14 })),
-        { wch: 12 },
-      ];
-
-      return ws;
+      const colCount = headers.length;
+      const rows = list.map((s, i) => {
+        const total = getTotal(s.grades);
+        const graded = hasGrades(s);
+        const totalColor = graded ? '#00A651' : '#999999';
+        const bg = i % 2 === 0 ? '#FFFFFF' : '#F8F9FF';
+        return `<tr style="background:${bg}">
+          <td style="text-align:center;${border};padding:5px">${i + 1}</td>
+          <td style="${border};padding:5px 8px">${s.name}</td>
+          <td style="text-align:center;${border};padding:5px">${s.studentCode}</td>
+          ${examTypes.map(t => `<td style="text-align:center;${border};padding:5px;font-weight:bold">${s.grades[t.key] ?? 0}</td>`).join('')}
+          <td style="text-align:center;${border};padding:5px;font-weight:bold;color:${totalColor}">${graded ? `${total} / ${maxTotal}` : `0 / ${maxTotal}`}</td>
+        </tr>`;
+      }).join('');
+      const titleParts = [deptName, level !== undefined ? `Level ${level}` : undefined, subjName].filter(Boolean).join(' - ');
+      return `<table style="border-collapse:collapse;width:100%">
+        <tr><td colspan="${colCount}" style="background:#1F3864;color:white;font-size:14pt;font-weight:bold;text-align:center;padding:10px;${border}">${titleParts}</td></tr>
+        <tr><td colspan="${colCount}" style="padding:4px"></td></tr>
+        <tr>${headers.map(h => `<th style="background:#2E4DA0;color:white;font-weight:bold;text-align:center;${border};padding:7px">${h}</th>`).join('')}</tr>
+        ${rows}
+        <tr><td colspan="${colCount}" style="padding:4px"></td></tr>
+        <tr>${Array(colCount - 2).fill(`<td style="${border}"></td>`).join('')}<td colspan="2" style="background:#EEF2FF;font-weight:bold;text-align:right;padding:6px 10px;${border}">Total Students: ${list.length}</td></tr>
+      </table>`;
     };
 
+    let html = '';
     if (selectedSubject === 'all') {
-      subjects.forEach(subj => {
+      html = subjects.map(subj => {
         const list = students.filter(s => s.subjectId === subj.id);
-        if (!list.length) return;
-        const ws = buildSheet(list, subj.name, subj.department?.name, subj.academicYear);
-        const sheetName = subj.name.slice(0, 31).replace(/[\\/*?[\]:]/g, '');
-        XLSX.utils.book_append_sheet(wb, ws, sheetName);
-      });
+        return list.length ? buildHtmlTable(list, subj.name, subj.department?.name, subj.academicYear) : '';
+      }).filter(Boolean).join('<br/><br/>');
     } else {
-      const ws = buildSheet(students, name, subjectInfo?.department?.name, subjectInfo?.academicYear);
-      XLSX.utils.book_append_sheet(wb, ws, name.slice(0, 31).replace(/[\\/*?[\]:]/g, ''));
+      html = buildHtmlTable(students, name, subjectInfo?.department?.name, subjectInfo?.academicYear);
     }
 
-    // Generate buffer and trigger download via Blob (browser-compatible)
-    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const blob = new Blob([`<html><head><meta charset="utf-8"></head><body>${html}</body></html>`], { type: 'application/vnd.ms-excel;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `grades-${name}-${Date.now()}.xlsx`;
-    document.body.appendChild(a);
+    a.download = `grades-${name}-${Date.now()}.xls`;
     a.click();
-    document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
