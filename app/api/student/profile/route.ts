@@ -66,34 +66,48 @@ export async function PATCH(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { name, studentCode, departmentId, academicYear, semester } = await request.json();
-  if (!name?.trim() || !studentCode?.trim())
-    return NextResponse.json({ error: 'Name and student code are required' }, { status: 400 });
+  try {
+    const { name, studentCode, departmentId, academicYear, semester } = await request.json();
+    if (!name?.trim() || !studentCode?.trim())
+      return NextResponse.json({ error: 'Name and student code are required' }, { status: 400 });
 
-  // Validate student code: exactly 5 digits
-  const codeStr = String(studentCode).trim();
-  if (!/^\d{5}$/.test(codeStr))
-    return NextResponse.json({ error: 'Student code must be exactly 5 digits' }, { status: 400 });
+    // Validate student code: exactly 5 digits
+    const codeStr = String(studentCode).trim();
+    if (!/^\d{5}$/.test(codeStr))
+      return NextResponse.json({ error: 'Student code must be exactly 5 digits' }, { status: 400 });
 
-  const student = await db.student.findUnique({ where: { userId: session.user.id } });
-  if (!student) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    const student = await db.student.findUnique({ where: { userId: session.user.id } });
+    if (!student) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  await Promise.all([
-    db.user.update({ where: { id: session.user.id }, data: { name: name.trim() } }),
-    db.student.update({
-      where: { id: student.id },
-      data: {
-        studentCode: codeStr,
-        ...(departmentId ? { departmentId } : {}),
-        ...(academicYear !== undefined ? { academicYear: Number(academicYear) } : {}),
-      } as any,
-    }),
-  ]);
+    // Check if studentCode is taken by another student
+    const existing = await db.student.findFirst({
+      where: { studentCode: codeStr, id: { not: student.id } },
+    });
+    if (existing) return NextResponse.json({ error: 'Student code already taken by another student' }, { status: 409 });
 
-  // Update semester via raw SQL to bypass stale prisma types
-  if (semester !== undefined) {
-    await db.$executeRaw`UPDATE students SET semester = ${Number(semester)} WHERE id = ${student.id}`;
+    await Promise.all([
+      db.user.update({ where: { id: session.user.id }, data: { name: name.trim() } }),
+      db.student.update({
+        where: { id: student.id },
+        data: {
+          studentCode: codeStr,
+          ...(departmentId ? { departmentId } : {}),
+          ...(academicYear !== undefined ? { academicYear: Number(academicYear) } : {}),
+        } as any,
+      }),
+    ]);
+
+    // Update semester via raw SQL to bypass stale prisma types
+    if (semester !== undefined) {
+      await db.$executeRaw`UPDATE students SET semester = ${Number(semester)} WHERE id = ${student.id}`;
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error('Profile PATCH error:', error);
+    if (error?.code === 'P2002') {
+      return NextResponse.json({ error: 'Student code already taken' }, { status: 409 });
+    }
+    return NextResponse.json({ error: error?.message || 'Server error' }, { status: 500 });
   }
-
-  return NextResponse.json({ success: true });
 }
