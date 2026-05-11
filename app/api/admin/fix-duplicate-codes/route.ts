@@ -30,21 +30,26 @@ export async function GET() {
 
 // POST - fix duplicates by clearing codes for non-active students
 export async function POST() {
-  // Fix ALL non-active students that have duplicate codes with any other student
-  const result = await db.$executeRaw`
+  // Direct fix using known student ID
+  const directFix = await db.$executeRaw`
     UPDATE students
-    SET "studentCode" = CONCAT('DUP_', id)
-    WHERE id IN (
-      SELECT s1.id
-      FROM students s1
-      JOIN users u1 ON u1.id = s1."userId"
-      WHERE u1.status != 'ACTIVE'
-        AND EXISTS (
-          SELECT 1 FROM students s2
-          WHERE s2."studentCode" = s1."studentCode"
-            AND s2.id != s1.id
-        )
-    )
+    SET "studentCode" = CONCAT('DUP_', SUBSTRING(id, 1, 8))
+    WHERE id = 'cmorpugzb0002nobi0lx6k9gr'
   `;
-  return NextResponse.json({ success: true, updated: Number(result) });
+
+  // Also fix any other non-active duplicates
+  const generalFix = await db.$executeRaw`
+    UPDATE students s
+    SET "studentCode" = CONCAT('DUP_', SUBSTRING(s.id, 1, 8))
+    FROM users u
+    WHERE u.id = s."userId"
+      AND u.status IN ('REJECTED', 'PENDING', 'SUSPENDED')
+      AND EXISTS (
+        SELECT 1 FROM students s2
+        WHERE s2."studentCode" = s."studentCode"
+          AND s2.id != s.id
+      )
+  `;
+
+  return NextResponse.json({ success: true, directFix: Number(directFix), generalFix: Number(generalFix) });
 }
