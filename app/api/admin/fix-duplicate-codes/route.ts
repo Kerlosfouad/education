@@ -30,19 +30,19 @@ export async function GET() {
 
 // POST - fix duplicates by clearing codes for non-active students
 export async function POST() {
+  // Fix ALL non-active students that have duplicate codes with any other student
   const result = await db.$executeRaw`
     UPDATE students
     SET "studentCode" = CONCAT('DUP_', id)
     WHERE id IN (
-      SELECT s.id
-      FROM students s
-      JOIN users u ON u.id = s."userId"
-      WHERE u.status != 'ACTIVE'
-        AND s."studentCode" IN (
-          SELECT s2."studentCode"
-          FROM students s2
-          JOIN users u2 ON u2.id = s2."userId"
-          WHERE u2.status = 'ACTIVE'
+      SELECT s1.id
+      FROM students s1
+      JOIN users u1 ON u1.id = s1."userId"
+      WHERE u1.status != 'ACTIVE'
+        AND EXISTS (
+          SELECT 1 FROM students s2
+          WHERE s2."studentCode" = s1."studentCode"
+            AND s2.id != s1.id
         )
     )
   `;
