@@ -42,10 +42,22 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
   if (user.student) return NextResponse.json({ error: 'Profile already completed' }, { status: 409 });
 
-  const existingStudentCode = await db.student.findUnique({ where: { studentCode } });
+  // Only check active/pending students - ignore rejected ones
+  const existingStudentCode = await db.student.findFirst({
+    where: {
+      studentCode,
+      user: { status: { in: ['ACTIVE', 'PENDING'] } },
+    },
+  });
   if (existingStudentCode) {
     return NextResponse.json({ error: 'This student code is already used' }, { status: 409 });
   }
+
+  // If a rejected student had this code, clear it first
+  await db.$executeRaw`
+    UPDATE students SET "studentCode" = CONCAT('DUP_', SUBSTRING(id, 1, 8))
+    WHERE "studentCode" = ${studentCode}
+  `;
 
   const qrUrl = `${process.env.QR_CODE_BASE_URL || 'http://localhost:3000'}/student/${studentCode}`;
   const qrCode = await QRCode.toDataURL(qrUrl, { width: 300, margin: 2 });
