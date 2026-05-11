@@ -89,17 +89,30 @@ export async function PATCH(request: Request) {
     });
     if (existing) return NextResponse.json({ error: 'Student code already taken by another student' }, { status: 409 });
 
-    await Promise.all([
-      db.user.update({ where: { id: session.user.id }, data: { name: name.trim() } }),
-      db.student.update({
-        where: { id: student.id },
-        data: {
-          studentCode: codeStr,
-          ...(departmentId ? { departmentId } : {}),
-          ...(academicYear !== undefined ? { academicYear: Number(academicYear) } : {}),
-        } as any,
-      }),
-    ]);
+    await db.user.update({ where: { id: session.user.id }, data: { name: name.trim() } });
+
+    // Use raw SQL to avoid Prisma unique constraint issues with studentCode
+    if (departmentId && academicYear !== undefined) {
+      await db.$executeRaw`
+        UPDATE students SET "studentCode" = ${codeStr}, "departmentId" = ${departmentId}, "academicYear" = ${Number(academicYear)}
+        WHERE id = ${student.id}
+      `;
+    } else if (departmentId) {
+      await db.$executeRaw`
+        UPDATE students SET "studentCode" = ${codeStr}, "departmentId" = ${departmentId}
+        WHERE id = ${student.id}
+      `;
+    } else if (academicYear !== undefined) {
+      await db.$executeRaw`
+        UPDATE students SET "studentCode" = ${codeStr}, "academicYear" = ${Number(academicYear)}
+        WHERE id = ${student.id}
+      `;
+    } else {
+      await db.$executeRaw`
+        UPDATE students SET "studentCode" = ${codeStr}
+        WHERE id = ${student.id}
+      `;
+    }
 
     // Update semester via raw SQL to bypass stale prisma types
     if (semester !== undefined) {
