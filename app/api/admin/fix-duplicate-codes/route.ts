@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
-// GET - preview duplicates
+// GET - preview duplicates and find who has code 26024
 export async function GET() {
   const duplicates = await db.$queryRaw<{ id: string; studentCode: string; status: string; name: string }[]>`
     SELECT s.id, s."studentCode", u.status, u.name
@@ -16,7 +16,16 @@ export async function GET() {
       )
     ORDER BY s."studentCode"
   `;
-  return NextResponse.json({ duplicates, count: duplicates.length });
+
+  // Find all students with code 26024
+  const code26024 = await db.$queryRaw<{ id: string; studentCode: string; status: string; name: string; userId: string }[]>`
+    SELECT s.id, s."studentCode", u.status, u.name, u.id as "userId"
+    FROM students s
+    JOIN users u ON u.id = s."userId"
+    WHERE s."studentCode" = '26024'
+  `;
+
+  return NextResponse.json({ duplicates, count: duplicates.length, code26024 });
 }
 
 // POST - fix duplicates by clearing codes for non-active students
