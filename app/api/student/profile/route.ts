@@ -79,9 +79,13 @@ export async function PATCH(request: Request) {
     const student = await db.student.findUnique({ where: { userId: session.user.id } });
     if (!student) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-    // Check if studentCode is taken by another student
+    // Check if studentCode is taken by another ACTIVE student
     const existing = await db.student.findFirst({
-      where: { studentCode: codeStr, id: { not: student.id } },
+      where: {
+        studentCode: codeStr,
+        id: { not: student.id },
+        user: { status: 'ACTIVE' },
+      },
     });
     if (existing) return NextResponse.json({ error: 'Student code already taken by another student' }, { status: 409 });
 
