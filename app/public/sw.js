@@ -1,9 +1,15 @@
-const CACHE_NAME = 'dr-emad-edu-v1';
-const STATIC_ASSETS = ['/', '/auth/login'];
+const CACHE_NAME = 'emad-edu-v1';
+const OFFLINE_URL = '/offline';
+
+const PRECACHE_URLS = [
+  '/',
+  '/offline',
+  '/manifest.json',
+];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))
   );
   self.skipWaiting();
 });
@@ -18,16 +24,13 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Only cache GET requests, skip API calls
-  if (event.request.method !== 'GET' || event.request.url.includes('/api/')) return;
-
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match(OFFLINE_URL))
+    );
+    return;
+  }
   event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-        return response;
-      })
-      .catch(() => caches.match(event.request))
+    caches.match(event.request).then((cached) => cached || fetch(event.request))
   );
 });

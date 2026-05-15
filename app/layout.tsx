@@ -54,6 +54,15 @@ export default function RootLayout({
           <Toaster position="top-right" richColors />
           <InstallPWA />
         </Providers>
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            if ('serviceWorker' in navigator) {
+              window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js');
+              });
+            }
+          `
+        }} />
       </body>
     </html>
   );
