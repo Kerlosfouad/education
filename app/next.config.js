@@ -1,43 +1,12 @@
-const withPWA = require('next-pwa')({
+const withPWA = require('@ducanh2912/next-pwa').default({
   dest: 'public',
   register: true,
   skipWaiting: true,
   disable: process.env.NODE_ENV === 'development',
   reloadOnOnline: true,
-  buildExcludes: [/middleware-manifest\.json$/],
   fallbacks: {
     document: '/offline',
   },
-  runtimeCaching: [
-    {
-      urlPattern: /^https:\/\/.*\/$/,
-      handler: 'NetworkFirst',
-      options: {
-        cacheName: 'pages-cache',
-        expiration: { maxEntries: 50, maxAgeSeconds: 86400 },
-      },
-    },
-    {
-      urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp|ico)$/,
-      handler: 'CacheFirst',
-      options: {
-        cacheName: 'image-cache',
-        expiration: { maxEntries: 100, maxAgeSeconds: 2592000 },
-      },
-    },
-    {
-      urlPattern: /\/api\//,
-      handler: 'NetworkOnly',
-    },
-    {
-      urlPattern: /\.(?:woff|woff2|ttf|css|js)$/,
-      handler: 'CacheFirst',
-      options: {
-        cacheName: 'static-cache',
-        expiration: { maxEntries: 60, maxAgeSeconds: 2592000 },
-      },
-    },
-  ],
 });
 
 /** @type {import('next').NextConfig} */
