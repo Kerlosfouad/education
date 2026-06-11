@@ -465,11 +465,8 @@ export default function LandingPage() {
                   rel="noopener noreferrer"
                   className="font-bold text-indigo-500 hover:text-indigo-400 transition-colors underline underline-offset-2"
                 >
-                  Vertx
+                  VERTX
                 </a>
-              </div>
-              <div className="text-xs text-indigo-400">
-                Assistants: <span className="font-semibold">Eng/Hedra Victor</span> &amp; <span className="font-semibold">Eng/Mina Fouad</span>
               </div>
             </div>
             <div className="flex items-center gap-6">
