@@ -460,11 +460,12 @@ export default function LandingPage() {
                 <span>© {new Date().getFullYear()} All rights reserved. Designed by</span>
                 <a
                   href="https://www.facebook.com/kerlos.foudi?mibextid=ZbWKwL"
+
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-bold text-indigo-500 hover:text-indigo-400 transition-colors underline underline-offset-2"
                 >
-                  ENG: KERLOS FOUAD
+                  Vertx
                 </a>
               </div>
               <div className="text-xs text-indigo-400">
