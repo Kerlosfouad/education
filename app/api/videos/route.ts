@@ -1,7 +1,9 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { db } from '@/lib/db';
+import { db, getStudentSubjectAccess } from '@/lib/db';
 import { notifyAllStudents, notifyStudentsByFilter } from '@/lib/notifications';
 
 export async function GET() {
@@ -10,26 +12,26 @@ export async function GET() {
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     // Students should only see videos for their department/year (plus "General" videos with no subject).
-    let studentFilter: { departmentId: string; academicYear: number; semester?: number } | null = null;
+    let studentSubjectIds: string[] | null = null;
     if (session.user.role === 'STUDENT') {
       const student = await db.student.findUnique({
         where: { userId: session.user.id },
         select: { departmentId: true, academicYear: true, id: true },
       });
       if (student) {
-        const semesterRows = await db.$queryRaw<{semester: number}[]>`SELECT semester FROM students WHERE id = ${student.id}`;
-        studentFilter = { departmentId: student.departmentId, academicYear: student.academicYear, semester: semesterRows[0]?.semester };
+        const access = await getStudentSubjectAccess(student);
+        studentSubjectIds = access.subjectIds;
       }
     }
 
     const videos = await db.lectureSlide.findMany({
       where: {
         fileType: 'video',
-        ...(studentFilter
+        ...(studentSubjectIds
           ? {
               OR: [
                 { subjectId: null },
-                { subject: { departmentId: studentFilter.departmentId, academicYear: studentFilter.academicYear, ...(studentFilter.semester ? { semester: studentFilter.semester } : {}) } },
+                { subjectId: { in: studentSubjectIds } },
               ],
             }
           : {}),

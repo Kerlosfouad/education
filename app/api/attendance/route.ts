@@ -1,9 +1,11 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { db, getOrCreateStudent } from '@/lib/db';
+import { canStudentAccessScopedContent, db, getOrCreateStudent, getStudentSubjectAccess } from '@/lib/db';
 import { UAParser } from 'ua-parser-js';
-import { notifyAllStudents, notifyStudentsByFilter } from '@/lib/notifications';
+import { notifyAllStudents, notifyStudentsByFilter, notifyStudentsBySubject } from '@/lib/notifications';
 
 // GET /api/attendance - Get attendance sessions or records
 export async function GET(req: NextRequest) {
@@ -29,10 +31,17 @@ export async function GET(req: NextRequest) {
         if (!student) {
           return NextResponse.json({ error: 'Student not found' }, { status: 404 });
         }
+        const rows = await db.$queryRaw<{ subjectId: string | null; departmentId: string | null; academicYear: number | null; semester: number | null }[]>`
+          SELECT "subjectId", "departmentId", "academicYear", "semester" FROM attendance_sessions WHERE id = ${sessionId}
+        `;
+        const hasAccess = rows[0] ? await canStudentAccessScopedContent(student, rows[0]) : false;
+        if (!hasAccess) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
 
       const attendances = await db.attendance.findMany({
-        where: { sessionId },
+        where: session.user.role === 'STUDENT'
+          ? { sessionId, student: { userId: session.user.id } }
+          : { sessionId },
         include: {
           student: {
             include: {
@@ -102,11 +111,24 @@ export async function GET(req: NextRequest) {
       const student = await getOrCreateStudent(session.user.id);
       if (!student) return NextResponse.json({ error: 'No department found' }, { status: 404 });
 
-      // Get sessions that match student's department and academicYear (or have no filter)
+      const { semester, coreSubjectIds } = await getStudentSubjectAccess(student);
+
+      // Get sessions that match student's core filters or approved extra subjects.
       const allSessions = await db.$queryRaw<any[]>`
-        SELECT s.id FROM attendance_sessions s
-        WHERE (s."departmentId" IS NULL OR s."departmentId" = ${student.departmentId})
-        AND (s."academicYear" IS NULL OR s."academicYear" = ${student.academicYear})
+        SELECT DISTINCT s.id
+        FROM attendance_sessions s
+        LEFT JOIN student_subjects ss
+          ON ss."studentId" = ${student.id}
+          AND ss."subjectId" = s."subjectId"
+        WHERE (
+          s."subjectId" = ANY(${coreSubjectIds}::text[])
+          OR (ss.id IS NOT NULL AND s."openTime" >= ss."enrolledAt")
+          OR (
+            (s."departmentId" IS NULL OR s."departmentId" = ${student.departmentId})
+            AND (s."academicYear" IS NULL OR s."academicYear" = ${student.academicYear})
+            AND (s."semester" IS NULL OR s."semester" = ${semester})
+          )
+        )
       `;
       const sessionIds = allSessions.map((s: any) => s.id);
 
@@ -173,17 +195,22 @@ export async function POST(req: NextRequest) {
         const academicYear = body.academicYear !== undefined && body.academicYear !== '' ? Number(body.academicYear) : null;
         const semester = body.semester !== undefined ? Number(body.semester) : 2;
         if (departmentId || academicYear !== null) {
-          await db.$executeRawUnsafe(
-            `UPDATE attendance_sessions SET "departmentId" = $1, "academicYear" = $2, "semester" = $3 WHERE id = $4`,
-            departmentId || null,
-            academicYear,
-            semester,
-            attendanceSession.id
-          );
+          await db.$executeRaw`
+            UPDATE attendance_sessions
+            SET "departmentId" = ${departmentId || null}, "academicYear" = ${academicYear}, "semester" = ${semester}
+            WHERE id = ${attendanceSession.id}
+          `;
         }
 
         // Notify students - filtered by department if provided, else all
-        if (departmentId && academicYear) {
+        if (body.subjectId) {
+          await notifyStudentsBySubject(
+            'New Attendance Session',
+            `A new attendance session "${title || 'Attendance'}" is now open. Please mark your attendance.`,
+            'ATTENDANCE',
+            body.subjectId
+          );
+        } else if (departmentId && academicYear) {
           await notifyStudentsByFilter(
             '📋 New Attendance Session',
             `A new attendance session "${title || 'Attendance'}" is now open. Please mark your attendance.`,
@@ -255,17 +282,20 @@ export async function POST(req: NextRequest) {
       }
 
       // Fetch departmentId and academicYear via raw SQL (stored outside Prisma schema)
-      const sessionRaw = await db.$queryRaw<{ departmentId: string | null; academicYear: number | null }[]>`
-        SELECT "departmentId", "academicYear" FROM attendance_sessions WHERE id = ${sessionId}
+      const sessionRaw = await db.$queryRaw<{ subjectId: string | null; departmentId: string | null; academicYear: number | null }[]>`
+        SELECT "subjectId", "departmentId", "academicYear" FROM attendance_sessions WHERE id = ${sessionId}
       `;
+      const sessionSubjectId = sessionRaw[0]?.subjectId ?? null;
       const sessionDeptId = sessionRaw[0]?.departmentId ?? null;
       const sessionAcademicYear = sessionRaw[0]?.academicYear ?? null;
+      const { subjectIds } = await getStudentSubjectAccess(student);
+      const isAllowedSubject = !!sessionSubjectId && subjectIds.includes(sessionSubjectId);
 
       // Check session matches student's department and academicYear
-      if (sessionDeptId && sessionDeptId !== student.departmentId) {
+      if (!isAllowedSubject && sessionDeptId && sessionDeptId !== student.departmentId) {
         return NextResponse.json({ error: 'This session is not for your department' }, { status: 403 });
       }
-      if (sessionAcademicYear !== null && sessionAcademicYear !== student.academicYear) {
+      if (!isAllowedSubject && sessionAcademicYear !== null && sessionAcademicYear !== student.academicYear) {
         return NextResponse.json({ error: 'This session is not for your level' }, { status: 403 });
       }
 

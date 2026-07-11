@@ -1,7 +1,9 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { db, getOrCreateStudent } from '@/lib/db';
+import { db, getOrCreateStudent, getStudentSubjectAccess } from '@/lib/db';
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,14 +26,16 @@ export async function POST(req: NextRequest) {
     const attendanceSession = await db.attendanceSession.findUnique({ where: { id: sessionId } });
     if (!attendanceSession) return NextResponse.json({ error: 'Session not found' }, { status: 404 });
 
-    const sessionRaw = await db.$queryRaw<{ departmentId: string | null; academicYear: number | null }[]>`
-      SELECT "departmentId", "academicYear" FROM attendance_sessions WHERE id = ${sessionId}
+    const sessionRaw = await db.$queryRaw<{ subjectId: string | null; departmentId: string | null; academicYear: number | null }[]>`
+      SELECT "subjectId", "departmentId", "academicYear" FROM attendance_sessions WHERE id = ${sessionId}
     `;
     const raw = sessionRaw[0];
-    if (raw?.departmentId && raw.departmentId !== student.departmentId) {
+    const { subjectIds } = await getStudentSubjectAccess(student);
+    const isAllowedSubject = !!raw?.subjectId && subjectIds.includes(raw.subjectId);
+    if (!isAllowedSubject && raw?.departmentId && raw.departmentId !== student.departmentId) {
       return NextResponse.json({ error: 'Session not for your department' }, { status: 403 });
     }
-    if (raw?.academicYear !== null && raw?.academicYear !== undefined && raw.academicYear !== student.academicYear) {
+    if (!isAllowedSubject && raw?.academicYear !== null && raw?.academicYear !== undefined && raw.academicYear !== student.academicYear) {
       return NextResponse.json({ error: 'Session not for your level' }, { status: 403 });
     }
 

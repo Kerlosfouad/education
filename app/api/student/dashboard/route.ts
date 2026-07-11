@@ -1,7 +1,9 @@
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { db, getOrCreateStudent } from '@/lib/db';
+import { db, getOrCreateStudent, getStudentSubjectAccess } from '@/lib/db';
 
 export async function GET() {
   try {
@@ -22,23 +24,16 @@ export async function GET() {
 
     const now = new Date();
 
-    // Get student's semester
-    const semesterRows = await db.$queryRaw<{semester: number}[]>`SELECT semester FROM students WHERE id = ${student.id}`;
-    const semester = semesterRows[0]?.semester ?? null;
-
-    // Get subject IDs for student's dept+year+semester
-    const subjectWhere: any = { departmentId: student.departmentId, academicYear: student.academicYear };
-    if (semester) subjectWhere.semester = semester;
-    const studentSubjects = await db.subject.findMany({ where: subjectWhere, select: { id: true } });
-    const subjectIds = studentSubjects.map(s => s.id);
+    const { semester, subjectIds, coreSubjectIds } = await getStudentSubjectAccess(student);
 
     // Quizzes available - filtered by student's department, year and semester
     const quizzes = await db.quiz.findMany({
       where: {
         isPublished: true,
-        departmentId: student.departmentId,
-        academicYear: student.academicYear,
-        OR: [{ subjectId: null }, { subjectId: { in: subjectIds } }],
+        OR: [
+          { subjectId: { in: subjectIds } },
+          { departmentId: student.departmentId, academicYear: student.academicYear, subjectId: null },
+        ],
       },
       include: { subject: { select: { name: true } } },
       orderBy: { createdAt: 'desc' },
@@ -49,9 +44,10 @@ export async function GET() {
     const assignments = await db.assignment.findMany({
       where: {
         isActive: true,
-        departmentId: student.departmentId,
-        academicYear: student.academicYear,
-        OR: [{ subjectId: null, semester: semester ?? undefined }, { subjectId: { in: subjectIds } }],
+        OR: [
+          { subjectId: { in: subjectIds } },
+          { departmentId: student.departmentId, academicYear: student.academicYear, subjectId: null, semester: semester ?? undefined },
+        ],
       },
       include: { subject: { select: { name: true } } },
       orderBy: { deadline: 'asc' },
@@ -60,19 +56,39 @@ export async function GET() {
 
     // Attendance rate - based on closed sessions for student's department AND academicYear AND semester
     const totalSessionsRaw = await db.$queryRaw<{count: bigint}[]>`
-      SELECT COUNT(*) as count FROM attendance_sessions
-      WHERE "closeTime" < ${now}
-      AND ("departmentId" IS NULL OR "departmentId" = ${student.departmentId})
-      AND ("academicYear" IS NULL OR "academicYear" = ${student.academicYear})
-      AND ("semester" IS NULL OR "semester" = ${semester})
+      SELECT COUNT(DISTINCT s.id) as count
+      FROM attendance_sessions s
+      LEFT JOIN student_subjects ss
+        ON ss."studentId" = ${student.id}
+        AND ss."subjectId" = s."subjectId"
+      WHERE s."closeTime" < ${now}
+      AND (
+        s."subjectId" = ANY(${coreSubjectIds}::text[])
+        OR (ss.id IS NOT NULL AND s."openTime" >= ss."enrolledAt")
+        OR (
+          (s."departmentId" IS NULL OR s."departmentId" = ${student.departmentId})
+          AND (s."academicYear" IS NULL OR s."academicYear" = ${student.academicYear})
+          AND (s."semester" IS NULL OR s."semester" = ${semester})
+        )
+      )
     `;
     const totalSessions = Number(totalSessionsRaw[0]?.count ?? 0);
     const relevantSessionIds = (await db.$queryRaw<{id: string}[]>`
-      SELECT id FROM attendance_sessions
-      WHERE "closeTime" < ${now}
-      AND ("departmentId" IS NULL OR "departmentId" = ${student.departmentId})
-      AND ("academicYear" IS NULL OR "academicYear" = ${student.academicYear})
-      AND ("semester" IS NULL OR "semester" = ${semester})
+      SELECT DISTINCT s.id
+      FROM attendance_sessions s
+      LEFT JOIN student_subjects ss
+        ON ss."studentId" = ${student.id}
+        AND ss."subjectId" = s."subjectId"
+      WHERE s."closeTime" < ${now}
+      AND (
+        s."subjectId" = ANY(${coreSubjectIds}::text[])
+        OR (ss.id IS NOT NULL AND s."openTime" >= ss."enrolledAt")
+        OR (
+          (s."departmentId" IS NULL OR s."departmentId" = ${student.departmentId})
+          AND (s."academicYear" IS NULL OR s."academicYear" = ${student.academicYear})
+          AND (s."semester" IS NULL OR s."semester" = ${semester})
+        )
+      )
     `).map(s => s.id);
     const attendedSessions = relevantSessionIds.length > 0
       ? await db.attendance.count({
@@ -85,11 +101,21 @@ export async function GET() {
 
     // Auto-mark absent for sessions that have closed and student has no record
     const closedSessions = await db.$queryRaw<{id: string}[]>`
-      SELECT id FROM attendance_sessions
-      WHERE "closeTime" < ${now}
-      AND ("departmentId" IS NULL OR "departmentId" = ${student.departmentId})
-      AND ("academicYear" IS NULL OR "academicYear" = ${student.academicYear})
-      AND ("semester" IS NULL OR "semester" = ${semester})
+      SELECT DISTINCT s.id
+      FROM attendance_sessions s
+      LEFT JOIN student_subjects ss
+        ON ss."studentId" = ${student.id}
+        AND ss."subjectId" = s."subjectId"
+      WHERE s."closeTime" < ${now}
+      AND (
+        s."subjectId" = ANY(${coreSubjectIds}::text[])
+        OR (ss.id IS NOT NULL AND s."openTime" >= ss."enrolledAt")
+        OR (
+          (s."departmentId" IS NULL OR s."departmentId" = ${student.departmentId})
+          AND (s."academicYear" IS NULL OR s."academicYear" = ${student.academicYear})
+          AND (s."semester" IS NULL OR s."semester" = ${semester})
+        )
+      )
     `;
     if (closedSessions.length > 0) {
       const closedIds = closedSessions.map((s) => s.id);
@@ -120,9 +146,14 @@ export async function GET() {
       WHERE s."isOpen" = true
         AND s."openTime" <= ${now}
         AND s."closeTime" >= ${now}
-        AND (s."departmentId" IS NULL OR s."departmentId" = ${student.departmentId})
-        AND (s."academicYear" IS NULL OR s."academicYear" = ${student.academicYear})
-        AND (s."semester" IS NULL OR s."semester" = ${semester})
+        AND (
+          s."subjectId" = ANY(${subjectIds}::text[])
+          OR (
+            (s."departmentId" IS NULL OR s."departmentId" = ${student.departmentId})
+            AND (s."academicYear" IS NULL OR s."academicYear" = ${student.academicYear})
+            AND (s."semester" IS NULL OR s."semester" = ${semester})
+          )
+        )
       LIMIT 1
     `;
     const openSession = openSessionRaw[0] ? {
@@ -147,7 +178,7 @@ export async function GET() {
         fileType: 'video',
         OR: [
           { subjectId: null },
-          { subject: { departmentId: student.departmentId, academicYear: student.academicYear, ...(semester ? { semester } : {}) } },
+          { subjectId: { in: subjectIds } },
         ],
       },
       include: { subject: { select: { name: true } } },
@@ -157,7 +188,7 @@ export async function GET() {
 
     // Live sessions
     const liveSessions = await db.zoomLecture.findMany({
-      where: { scheduledAt: { gte: now } },
+      where: { scheduledAt: { gte: now }, subjectId: { in: subjectIds } },
       include: { subject: { select: { name: true } } },
       orderBy: { scheduledAt: 'asc' },
       take: 5,

@@ -1,7 +1,9 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { db, getOrCreateStudent } from '@/lib/db';
+import { canStudentAccessScopedContent, db, getOrCreateStudent } from '@/lib/db';
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -18,6 +20,18 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       include: { questions: true },
     });
     if (!quiz) return NextResponse.json({ error: 'Quiz not found' }, { status: 404 });
+    if (!quiz.isPublished) return NextResponse.json({ error: 'Quiz not found' }, { status: 404 });
+
+    const semesterRows = await db.$queryRaw<{ semester: number | null }[]>`
+      SELECT semester FROM quizzes WHERE id = ${params.id}
+    `;
+    const hasAccess = await canStudentAccessScopedContent(student, {
+      subjectId: quiz.subjectId,
+      departmentId: quiz.departmentId,
+      academicYear: quiz.academicYear,
+      semester: semesterRows[0]?.semester ?? null,
+    });
+    if (!hasAccess) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     // Check attempts count
     const existingAttempts = await db.quizAttempt.count({

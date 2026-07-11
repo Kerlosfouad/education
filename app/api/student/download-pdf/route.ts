@@ -1,7 +1,9 @@
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { db } from '@/lib/db';
+import { db, getStudentSubjectAccess } from '@/lib/db';
 import { generateStudentQRCode } from '@/lib/codes';
 import { escapeHtml } from '@/lib/sanitize';
 
@@ -16,17 +18,9 @@ export async function GET() {
     });
     if (!student) return NextResponse.json({ error: 'Student not found' }, { status: 404 });
 
-    // Get student's semester via raw SQL
-    const semesterRows = await db.$queryRaw<{ semester: number }[]>`
-      SELECT semester FROM students WHERE id = ${student.id}
-    `;
-    const semester = semesterRows[0]?.semester ?? null;
-
-    // Fetch subjects for this student
-    const subjectWhere: any = { departmentId: student.departmentId, academicYear: student.academicYear };
-    if (semester) subjectWhere.semester = semester;
+    const { subjectIds } = await getStudentSubjectAccess(student);
     const subjects = await db.subject.findMany({
-      where: subjectWhere,
+      where: { id: { in: subjectIds } },
       select: { name: true, code: true },
       orderBy: { name: 'asc' },
     });

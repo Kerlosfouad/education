@@ -1,8 +1,10 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { db, getOrCreateStudent } from '@/lib/db';
-import { notifyStudentsByFilter } from '@/lib/notifications';
+import { canStudentAccessScopedContent, db, getOrCreateStudent } from '@/lib/db';
+import { notifyStudentsByFilter, notifyStudentsBySubject } from '@/lib/notifications';
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -23,6 +25,20 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     // Student: hide correct answers
     if (session.user.role === 'STUDENT') {
       const student = await getOrCreateStudent(session.user.id);
+      if (!student) return NextResponse.json({ error: 'No department found' }, { status: 404 });
+      if (!quiz.isPublished) return NextResponse.json({ error: 'Quiz not found' }, { status: 404 });
+
+      const semesterRows = await db.$queryRaw<{ semester: number | null }[]>`
+        SELECT semester FROM quizzes WHERE id = ${params.id}
+      `;
+      const hasAccess = await canStudentAccessScopedContent(student, {
+        subjectId: quiz.subjectId,
+        departmentId: quiz.departmentId,
+        academicYear: quiz.academicYear,
+        semester: semesterRows[0]?.semester ?? null,
+      });
+      if (!hasAccess) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
       const safeQuestions = quiz.questions.map(q => ({
         id: q.id,
         type: q.type,
@@ -33,12 +49,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       }));
 
       // Include student's previous attempts
-      const studentAttempts = student
-        ? await db.quizAttempt.findMany({
+      const studentAttempts = await db.quizAttempt.findMany({
             where: { quizId: params.id, studentId: student.id },
             orderBy: { startedAt: 'desc' },
-          })
-        : [];
+          });
 
       return NextResponse.json({ success: true, data: { ...quiz, questions: safeQuestions, studentAttempts } });
     }
@@ -63,9 +77,16 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (body.isPublished === true) {
       const existing = await db.quiz.findUnique({
         where: { id: params.id },
-        select: { isPublished: true, title: true, departmentId: true, academicYear: true },
+        select: { isPublished: true, title: true, subjectId: true, departmentId: true, academicYear: true },
       });
-      if (existing && !existing.isPublished && existing.departmentId && existing.academicYear) {
+      if (existing && !existing.isPublished && existing.subjectId) {
+        await notifyStudentsBySubject(
+          'New Quiz Available',
+          `A new quiz has been published: ${existing.title}`,
+          'QUIZ',
+          existing.subjectId
+        );
+      } else if (existing && !existing.isPublished && existing.departmentId && existing.academicYear) {
         await notifyStudentsByFilter(
           'New Quiz Available',
           `A new quiz has been published: ${existing.title}`,

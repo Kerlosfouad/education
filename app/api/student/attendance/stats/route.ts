@@ -1,7 +1,9 @@
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { db } from '@/lib/db';
+import { db, getStudentSubjectAccess } from '@/lib/db';
 
 export async function GET() {
   try {
@@ -15,16 +17,24 @@ export async function GET() {
 
     const now = new Date();
 
-    // Get semester
-    const semesterRows = await db.$queryRaw<{semester: number}[]>`SELECT semester FROM students WHERE id = ${student.id}`;
-    const semester = semesterRows[0]?.semester ?? null;
+    const { semester, coreSubjectIds } = await getStudentSubjectAccess(student);
 
     // Count all sessions (closed + open) that match student's department, academicYear, and semester
     const relevantSessions = await db.$queryRaw<{ id: string }[]>`
-      SELECT id FROM attendance_sessions
-      WHERE ("departmentId" IS NULL OR "departmentId" = ${student.departmentId})
-      AND ("academicYear" IS NULL OR "academicYear" = ${student.academicYear})
-      AND ("semester" IS NULL OR "semester" = ${semester})
+      SELECT DISTINCT s.id
+      FROM attendance_sessions s
+      LEFT JOIN student_subjects ss
+        ON ss."studentId" = ${student.id}
+        AND ss."subjectId" = s."subjectId"
+      WHERE (
+        s."subjectId" = ANY(${coreSubjectIds}::text[])
+        OR (ss.id IS NOT NULL AND s."openTime" >= ss."enrolledAt")
+        OR (
+          (s."departmentId" IS NULL OR s."departmentId" = ${student.departmentId})
+          AND (s."academicYear" IS NULL OR s."academicYear" = ${student.academicYear})
+          AND (s."semester" IS NULL OR s."semester" = ${semester})
+        )
+      )
     `;
     const relevantSessionIds = relevantSessions.map(s => s.id);
     const total = relevantSessionIds.length;

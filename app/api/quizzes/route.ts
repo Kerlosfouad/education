@@ -1,8 +1,10 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { db, getOrCreateStudent } from '@/lib/db';
-import { notifyStudentsByFilter } from '@/lib/notifications';
+import { db, getOrCreateStudent, getStudentSubjectAccess } from '@/lib/db';
+import { notifyStudentsByFilter, notifyStudentsBySubject } from '@/lib/notifications';
 
 export async function GET(req: NextRequest) {
   try {
@@ -55,24 +57,17 @@ export async function GET(req: NextRequest) {
       const student = await getOrCreateStudent(session.user.id);
       if (!student) return NextResponse.json({ error: 'No department found' }, { status: 404 });
 
-      const semesterRows = await db.$queryRaw<{semester: number}[]>`SELECT semester FROM students WHERE id = ${student.id}`;
-      const studentSemester = semesterRows[0]?.semester ?? null;
-
-      // Get enrolled subject IDs (if any)
-      const enrolled = await db.$queryRaw<{ subjectId: string }[]>`
-        SELECT "subjectId" FROM student_subjects WHERE "studentId" = ${student.id}
-      `;
-      const enrolledIds = enrolled.length > 0 ? new Set(enrolled.map(e => e.subjectId)) : null;
+      const { semester: studentSemester, subjectIds } = await getStudentSubjectAccess(student);
+      const allowedSubjectIds = new Set(subjectIds);
 
       const quizzesWithAttempts = await Promise.all(
         quizzesWithAll
           .filter((quiz: any) => {
+            if (quiz.subjectId && allowedSubjectIds.has(quiz.subjectId)) return true;
             const matchDeptYear = quiz.departmentId === student.departmentId && quiz.academicYear === student.academicYear;
             if (!matchDeptYear) return false;
             // Filter by semester if quiz has one set (from raw SQL field)
             if (quiz.semester && studentSemester && quiz.semester !== studentSemester) return false;
-            // If enrolled subjects exist, filter by them
-            if (enrolledIds && quiz.subjectId) return enrolledIds.has(quiz.subjectId);
             if (!studentSemester || !quiz.subject) return true;
             return quiz.subject.semester === studentSemester;
           })
@@ -143,7 +138,14 @@ export async function POST(req: NextRequest) {
       await db.$executeRaw`UPDATE quizzes SET semester = ${Number(semester)} WHERE id = ${quiz.id}`;
     }
 
-    if (isPublished && departmentId && academicYear) {
+    if (isPublished && body.subjectId) {
+      await notifyStudentsBySubject(
+        'New Quiz Available',
+        `A new quiz has been published: ${title}`,
+        'QUIZ',
+        body.subjectId
+      );
+    } else if (isPublished && departmentId && academicYear) {
       await notifyStudentsByFilter(
         'New Quiz Available',
         `A new quiz has been published: ${title}`,

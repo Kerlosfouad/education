@@ -1,7 +1,9 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { db } from '@/lib/db';
+import { canStudentAccessScopedContent, db } from '@/lib/db';
 
 // GET /api/assignments/[id] - get submissions for an assignment
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
@@ -151,9 +153,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     if (!student) return NextResponse.json({ error: 'Student not found' }, { status: 404 });
 
     // Check assignment exists and is active (not locked)
-    const assignment = await db.assignment.findUnique({ where: { id: params.id }, select: { isActive: true } });
+    const assignment = await db.assignment.findUnique({
+      where: { id: params.id },
+      select: { isActive: true, subjectId: true, departmentId: true, academicYear: true, semester: true },
+    });
     if (!assignment) return NextResponse.json({ error: 'Assignment not found' }, { status: 404 });
     if (!assignment.isActive) return NextResponse.json({ error: 'Assignment is closed' }, { status: 403 });
+    const hasAccess = await canStudentAccessScopedContent(student, assignment);
+    if (!hasAccess) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const body = await req.json().catch(() => ({}));
     const fileUrl = body.fileUrl || null;

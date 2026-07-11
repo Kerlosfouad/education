@@ -1,7 +1,9 @@
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { db } from '@/lib/db';
+import { db, getStudentSubjectAccess } from '@/lib/db';
 
 export async function GET() {
   try {
@@ -15,17 +17,10 @@ export async function GET() {
       select: { departmentId: true, academicYear: true, id: true },
     });
 
-    const semesterRows = student ? await db.$queryRaw<{semester: number}[]>`SELECT semester FROM students WHERE id = ${student.id}` : [];
-    const semester = (semesterRows as any)[0]?.semester ?? null;
+    const access = student ? await getStudentSubjectAccess(student) : null;
 
     const sessions = await db.zoomLecture.findMany({
-      where: student ? {
-        subject: {
-          departmentId: student.departmentId,
-          academicYear: student.academicYear,
-          ...(semester ? { semester } : {}),
-        },
-      } : {},
+      where: access ? { subjectId: { in: access.subjectIds } } : {},
       include: { subject: { select: { name: true } } },
       orderBy: { scheduledAt: 'desc' },
     });
