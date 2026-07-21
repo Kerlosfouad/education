@@ -172,7 +172,7 @@ export async function POST(req: NextRequest) {
 
     // Doctor creating attendance session
     if (session.user.role === 'DOCTOR' || session.user.role === 'ADMIN') {
-      const { title, openTime, closeTime, departmentId } = body;
+      const { title, openTime, closeTime } = body;
 
       if (!openTime || !closeTime) {
         return NextResponse.json(
@@ -182,9 +182,37 @@ export async function POST(req: NextRequest) {
       }
 
       try {
+        const subjectId = typeof body.subjectId === 'string' && body.subjectId.trim() ? body.subjectId : null;
+        let departmentId = typeof body.departmentId === 'string' && body.departmentId.trim() ? body.departmentId : null;
+        let academicYear = body.academicYear !== undefined && body.academicYear !== '' ? Number(body.academicYear) : null;
+        let semester = body.semester !== undefined && body.semester !== '' ? Number(body.semester) : null;
+
+        if (subjectId) {
+          const subject = await db.subject.findUnique({
+            where: { id: subjectId },
+            select: { departmentId: true, academicYear: true, semester: true },
+          });
+
+          if (!subject) {
+            return NextResponse.json({ error: 'Subject not found' }, { status: 404 });
+          }
+
+          departmentId = subject.departmentId;
+          academicYear = subject.academicYear;
+          semester = subject.semester;
+        }
+
+        if (academicYear !== null && Number.isNaN(academicYear)) {
+          return NextResponse.json({ error: 'Invalid academic year' }, { status: 400 });
+        }
+
+        if (semester !== null && Number.isNaN(semester)) {
+          return NextResponse.json({ error: 'Invalid semester' }, { status: 400 });
+        }
+
         const attendanceSession = await db.attendanceSession.create({
           data: {
-            subjectId: body.subjectId || null,
+            subjectId,
             title: title || null,
             openTime: new Date(openTime),
             closeTime: new Date(closeTime),
@@ -192,9 +220,7 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        const academicYear = body.academicYear !== undefined && body.academicYear !== '' ? Number(body.academicYear) : null;
-        const semester = body.semester !== undefined ? Number(body.semester) : 2;
-        if (departmentId || academicYear !== null) {
+        if (departmentId || academicYear !== null || semester !== null) {
           await db.$executeRaw`
             UPDATE attendance_sessions
             SET "departmentId" = ${departmentId || null}, "academicYear" = ${academicYear}, "semester" = ${semester}
@@ -203,12 +229,12 @@ export async function POST(req: NextRequest) {
         }
 
         // Notify students - filtered by department if provided, else all
-        if (body.subjectId) {
+        if (subjectId) {
           await notifyStudentsBySubject(
             'New Attendance Session',
             `A new attendance session "${title || 'Attendance'}" is now open. Please mark your attendance.`,
             'ATTENDANCE',
-            body.subjectId
+            subjectId
           );
         } else if (departmentId && academicYear) {
           await notifyStudentsByFilter(

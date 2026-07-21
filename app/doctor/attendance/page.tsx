@@ -22,7 +22,15 @@ interface Student {
   user: { name: string; email: string }; 
   department: { name: string };
 }
-interface Subject { id: string; name: string; }
+interface Subject {
+  id: string;
+  name: string;
+  code?: string;
+  departmentId?: string;
+  academicYear?: number;
+  semester?: number;
+  department?: { name: string };
+}
 interface Department { id: string; name: string; nameAr?: string; code?: string; }
 export default function AttendancePage() {
   const { t } = useI18n();
@@ -36,7 +44,7 @@ export default function AttendancePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'sessions' | 'table'>('sessions');
-  const [form, setForm] = useState({ subjectId: '', departmentId: '', academicYear: '', semester: '2', title: '', durationHours: '1', durationMinutes: '0' });
+  const [form, setForm] = useState({ subjectId: '', departmentId: '', academicYear: '', semester: '', title: '', durationHours: '1', durationMinutes: '0' });
   const [menuSessionId, setMenuSessionId] = useState<string | null>(null);
   const [filterDept, setFilterDept] = useState('');
   const [filterLevel, setFilterLevel] = useState('');
@@ -115,15 +123,16 @@ export default function AttendancePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: form.title || undefined,
+          subjectId: form.subjectId || undefined,
           departmentId: form.departmentId || undefined,
           academicYear: form.academicYear !== '' ? Number(form.academicYear) : undefined,
-          semester: Number(form.semester),
+          semester: form.semester !== '' ? Number(form.semester) : undefined,
           openTime: now.toISOString(),
           closeTime: closeTime.toISOString(),
         }),
       });
       const json = await res.json();
-      if (json.success) { setShowModal(false); setForm({ subjectId: '', departmentId: '', academicYear: '', semester: '2', title: '', durationHours: '1', durationMinutes: '0' }); fetchData(); }
+      if (json.success) { setShowModal(false); setForm({ subjectId: '', departmentId: '', academicYear: '', semester: '', title: '', durationHours: '1', durationMinutes: '0' }); fetchData(); }
       else setError(json.error || t('errorOccurred'));
     } catch { setError('Network error'); }
     setSaving(false);
@@ -150,9 +159,16 @@ export default function AttendancePage() {
   };
 
   const openModal = () => {
-    setForm({ subjectId: '', departmentId: '', academicYear: '', semester: '2', title: '', durationHours: '1', durationMinutes: '0' });
+    setForm({ subjectId: '', departmentId: '', academicYear: '', semester: '', title: '', durationHours: '1', durationMinutes: '0' });
     setError(''); setShowModal(true);
   };
+
+  const formSubjects = subjects.filter(subject => {
+    const deptMatch = !form.departmentId || subject.departmentId === form.departmentId;
+    const levelMatch = !form.academicYear || String(subject.academicYear) === form.academicYear;
+    const semesterMatch = !form.semester || String(subject.semester) === form.semester;
+    return deptMatch && levelMatch && semesterMatch;
+  });
 
   const filteredStudents = students.filter(student => {
     const matchDept = !filterDept || student.department.name === filterDept;
@@ -463,7 +479,7 @@ export default function AttendancePage() {
                 <label className="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Department</label>
                 <select value={form.departmentId} onChange={e => {
                     const newDeptId = e.target.value;
-                    setForm(f => ({ ...f, departmentId: newDeptId, academicYear: '' }));
+                    setForm(f => ({ ...f, departmentId: newDeptId, academicYear: '', subjectId: '' }));
                   }}
                   className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
                   <option value="">All Departments</option>
@@ -472,7 +488,7 @@ export default function AttendancePage() {
               </div>
               <div>
                 <label className="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Level</label>
-                <select value={(form as any).academicYear || ''} onChange={e => setForm(f => ({ ...f, academicYear: e.target.value } as any))}
+                <select value={(form as any).academicYear || ''} onChange={e => setForm(f => ({ ...f, academicYear: e.target.value, subjectId: '' } as any))}
                   className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
                   <option value="">All Levels</option>
                   {availableLevels.map(l => <option key={l} value={l}>Level {l}</option>)}
@@ -480,11 +496,27 @@ export default function AttendancePage() {
               </div>
               <div>
                 <label className="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Semester</label>
-                <select value={form.semester} onChange={e => setForm(f => ({ ...f, semester: e.target.value }))}
+                <select value={form.semester} onChange={e => setForm(f => ({ ...f, semester: e.target.value, subjectId: '' }))}
                   className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+                  <option value="">All Semesters</option>
                   <option value="1">Semester 1</option>
                   <option value="2">Semester 2</option>
                 </select>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Subject</label>
+                <select value={form.subjectId} onChange={e => setForm(f => ({ ...f, subjectId: e.target.value }))}
+                  className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+                  <option value="">No specific subject</option>
+                  {formSubjects.map(subject => (
+                    <option key={subject.id} value={subject.id}>
+                      {subject.name}{subject.code ? ` (${subject.code})` : ''}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1.5 text-xs text-slate-400">
+                  Choose a subject to show the session to core students and approved extra-subject students.
+                </p>
               </div>
               <div>
                 <label className="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Session Duration *</label>

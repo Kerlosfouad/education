@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
         ...(academicYear !== null ? { academicYear } : {}),
         ...(semester !== null ? { semester } : {}),
       },
-      select: { id: true, name: true, code: true, departmentId: true, department: { select: { name: true } } },
+      select: { id: true, name: true, code: true, departmentId: true, academicYear: true, semester: true, department: { select: { name: true } } },
       orderBy: { name: 'asc' },
     });
     return NextResponse.json({ success: true, data: subjects });
