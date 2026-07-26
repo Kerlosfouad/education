@@ -1,10 +1,21 @@
 export const dynamic = 'force-dynamic';
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
+
+function isAdminRole(role?: string) {
+  return role === 'ADMIN' || role === 'SUPER_ADMIN';
+}
 
 // GET - preview duplicates and find who has code 26024
 export async function GET() {
+  const session = await getServerSession(authOptions);
+  if (!isAdminRole(session?.user?.role)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const duplicates = await db.$queryRaw<{ id: string; studentCode: string; status: string; name: string }[]>`
     SELECT s.id, s."studentCode", u.status, u.name
     FROM students s
@@ -31,7 +42,12 @@ export async function GET() {
 }
 
 // POST - fix duplicates by clearing codes for non-active students
-export async function POST() {
+export async function POST(_req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!isAdminRole(session?.user?.role)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   // Direct fix using known student ID
   const directFix = await db.$executeRaw`
     UPDATE students

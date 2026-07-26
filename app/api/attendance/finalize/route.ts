@@ -5,6 +5,13 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 
+type SessionScope = {
+  subjectId: string | null;
+  departmentId: string | null;
+  academicYear: number | null;
+  semester: number | null;
+};
+
 // POST /api/attendance/finalize - Mark absent for all students who didn't attend a session
 export async function POST(req: NextRequest) {
   try {
@@ -16,23 +23,46 @@ export async function POST(req: NextRequest) {
     const { sessionId } = await req.json();
     if (!sessionId) return NextResponse.json({ error: 'Missing sessionId' }, { status: 400 });
 
-    // Get the session to know which department/year it targets
-    const attendanceSession = await db.attendanceSession.findUnique({ where: { id: sessionId } });
-    if (!attendanceSession) return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+    const scopeRows = await db.$queryRaw<SessionScope[]>`
+      SELECT "subjectId", "departmentId", "academicYear", "semester"
+      FROM attendance_sessions
+      WHERE id = ${sessionId}
+    `;
+    const scope = scopeRows[0];
+    if (!scope) return NextResponse.json({ error: 'Session not found' }, { status: 404 });
 
-    const sessionAny = attendanceSession as any;
-
-    // Only get students that belong to this session's department/year filter
-    const studentFilter: any = {};
-    if (sessionAny.departmentId) studentFilter.departmentId = sessionAny.departmentId;
-    if (sessionAny.academicYear !== null && sessionAny.academicYear !== undefined) {
-      studentFilter.academicYear = sessionAny.academicYear;
+    if (!scope.subjectId && !scope.departmentId && scope.academicYear === null && scope.semester === null) {
+      return NextResponse.json({ error: 'Cannot finalize an unscoped attendance session' }, { status: 400 });
     }
 
-    const allStudents = await db.student.findMany({
-      where: Object.keys(studentFilter).length > 0 ? studentFilter : undefined,
-      select: { id: true },
-    });
+    const allStudents = scope.subjectId
+      ? await db.$queryRaw<{ id: string }[]>`
+          SELECT DISTINCT st.id
+          FROM students st
+          JOIN users u ON u.id = st."userId"
+          JOIN subjects subj ON subj.id = ${scope.subjectId}
+          LEFT JOIN student_subjects ss
+            ON ss."studentId" = st.id
+            AND ss."subjectId" = ${scope.subjectId}
+          WHERE u.status = 'ACTIVE'
+            AND (
+              (
+                st."departmentId" = subj."departmentId"
+                AND st."academicYear" = subj."academicYear"
+                AND st.semester = subj.semester
+              )
+              OR ss.id IS NOT NULL
+            )
+        `
+      : await db.$queryRaw<{ id: string }[]>`
+          SELECT st.id
+          FROM students st
+          JOIN users u ON u.id = st."userId"
+          WHERE u.status = 'ACTIVE'
+            AND (${scope.departmentId}::text IS NULL OR st."departmentId" = ${scope.departmentId})
+            AND (${scope.academicYear}::int IS NULL OR st."academicYear" = ${scope.academicYear})
+            AND (${scope.semester}::int IS NULL OR st.semester = ${scope.semester})
+        `;
 
     // Get students who already have a record for this session
     const existing = await db.attendance.findMany({

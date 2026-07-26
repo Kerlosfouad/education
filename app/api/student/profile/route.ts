@@ -78,7 +78,10 @@ export async function PATCH(request: Request) {
     if (!/^\d{5}$/.test(codeStr))
       return NextResponse.json({ error: 'Student code must be exactly 5 digits' }, { status: 400 });
 
-    const student = await db.student.findUnique({ where: { userId: session.user.id } });
+    const student = await db.student.findUnique({
+      where: { userId: session.user.id },
+      include: { user: { select: { status: true } } },
+    });
     if (!student) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
     // Check if studentCode is taken by another ACTIVE student
@@ -93,33 +96,29 @@ export async function PATCH(request: Request) {
 
     await db.user.update({ where: { id: session.user.id }, data: { name: name.trim() } });
 
-    // Use raw SQL to avoid Prisma unique constraint issues with studentCode
-    if (departmentId && academicYear !== undefined) {
-      await db.$executeRaw`
-        UPDATE students SET "studentCode" = ${codeStr}, "departmentId" = ${departmentId}, "academicYear" = ${Number(academicYear)}
-        WHERE id = ${student.id}
-      `;
-    } else if (departmentId) {
-      await db.$executeRaw`
-        UPDATE students SET "studentCode" = ${codeStr}, "departmentId" = ${departmentId}
-        WHERE id = ${student.id}
-      `;
-    } else if (academicYear !== undefined) {
-      await db.$executeRaw`
-        UPDATE students SET "studentCode" = ${codeStr}, "academicYear" = ${Number(academicYear)}
-        WHERE id = ${student.id}
-      `;
-    } else {
-      await db.$executeRaw`
-        UPDATE students SET "studentCode" = ${codeStr}
-        WHERE id = ${student.id}
-      `;
+    const isApprovedStudent = student.user.status === 'ACTIVE' || !!student.approvedAt;
+    const updateData: {
+      studentCode: string;
+      departmentId?: string;
+      academicYear?: number;
+      semester?: number;
+    } = { studentCode: codeStr };
+
+    if (!isApprovedStudent) {
+      if (departmentId) updateData.departmentId = departmentId;
+      if (academicYear !== undefined) updateData.academicYear = Number(academicYear);
+      if (semester !== undefined) updateData.semester = Number(semester);
+
+      if (updateData.academicYear !== undefined && (Number.isNaN(updateData.academicYear) || updateData.academicYear < 0 || updateData.academicYear > 5)) {
+        return NextResponse.json({ error: 'Invalid academic year' }, { status: 400 });
+      }
+
+      if (updateData.semester !== undefined && ![1, 2].includes(updateData.semester)) {
+        return NextResponse.json({ error: 'Invalid semester' }, { status: 400 });
+      }
     }
 
-    // Update semester via raw SQL to bypass stale prisma types
-    if (semester !== undefined) {
-      await db.$executeRaw`UPDATE students SET semester = ${Number(semester)} WHERE id = ${student.id}`;
-    }
+    await db.student.update({ where: { id: student.id }, data: updateData });
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

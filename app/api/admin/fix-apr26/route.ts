@@ -1,9 +1,20 @@
 export const dynamic = 'force-dynamic';
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 
+function isAdminRole(role?: string) {
+  return role === 'ADMIN' || role === 'SUPER_ADMIN';
+}
+
 export async function GET() {
+  const session = await getServerSession(authOptions);
+  if (!isAdminRole(session?.user?.role)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const depts = await db.department.findMany({ select: { id: true, name: true, code: true } });
 
   const sessions = await db.$queryRaw<any[]>`
@@ -19,7 +30,12 @@ export async function GET() {
   return NextResponse.json({ depts, sessions, total: sessions.length });
 }
 
-export async function POST() {
+export async function POST(_req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!isAdminRole(session?.user?.role)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const targetDepts = await db.$queryRaw<{ id: string; name: string }[]>`
     SELECT id, name FROM departments WHERE code IN ('ARCH', 'CIVIL')
   `;

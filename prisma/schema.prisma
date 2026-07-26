@@ -97,6 +97,7 @@ model Student {
   studentCode       String   @unique
   departmentId      String
   academicYear      Int
+  semester          Int      @default(1)
   phone             String?
   barcode           String?  @unique
   qrCode            String?  @unique
@@ -110,6 +111,8 @@ model Student {
   assignmentSubmissions AssignmentSubmission[]
   quizAttempts      QuizAttempt[]
   examResults       ExamResult[]
+  enrolledSubjects  StudentSubject[]
+  enrollmentRequests EnrollmentRequest[]
   
   @@map("students")
   @@index([departmentId])
@@ -192,20 +195,25 @@ model Subject {
   zoomLectures  ZoomLecture[]
   eLibraryItems ELibraryItem[]
   examResults   ExamResult[]
+  enrolledStudents StudentSubject[]
+  enrollmentRequests EnrollmentRequest[]
   
   @@map("subjects")
 }
 
 // Attendance session
 model AttendanceSession {
-  id          String    @id @default(cuid())
-  subjectId   String?
-  title       String?
-  openTime    DateTime
-  closeTime   DateTime
-  isOpen      Boolean   @default(true)
-  createdBy   String
-  createdAt   DateTime  @default(now())
+  id           String    @id @default(cuid())
+  subjectId    String?
+  departmentId String?
+  academicYear Int?
+  semester     Int?
+  title        String?
+  openTime     DateTime
+  closeTime    DateTime
+  isOpen       Boolean   @default(true)
+  createdBy    String
+  createdAt    DateTime  @default(now())
   
   // Relations
   subject     Subject?  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
@@ -245,6 +253,7 @@ model Assignment {
   semester      Int      @default(1)
   title         String
   description   String?  @db.Text
+  startDate     DateTime?
   deadline      DateTime
   maxScore      Int      @default(100)
   allowUpload   Boolean  @default(true)
@@ -415,6 +424,40 @@ model ELibraryItem {
   subject     Subject? @relation(fields: [subjectId], references: [id])
   
   @@map("e_library_items")
+}
+
+// Student subject enrollment request (pending approval)
+model EnrollmentRequest {
+  id          String   @id @default(cuid())
+  studentId   String
+  subjectId   String
+  status      String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subject     Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, subjectId])
+  @@map("enrollment_requests")
+  @@index([studentId])
+  @@index([status])
+}
+
+// Student subject enrollment
+model StudentSubject {
+  id          String   @id @default(cuid())
+  studentId   String
+  subjectId   String
+  enrolledAt  DateTime @default(now())
+
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subject     Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, subjectId])
+  @@map("student_subjects")
+  @@index([studentId])
+  @@index([subjectId])
 }
 
 // Exam results

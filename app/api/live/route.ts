@@ -3,15 +3,26 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { db } from '@/lib/db';
-import { notifyAllStudents } from '@/lib/notifications';
+import { db, getStudentSubjectAccess } from '@/lib/db';
+import { notifyStudentsBySubject } from '@/lib/notifications';
 
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+    let where = {};
+
+    if (session.user.role === 'STUDENT') {
+      const student = await db.student.findUnique({ where: { userId: session.user.id } });
+      if (!student) return NextResponse.json({ error: 'Student not found' }, { status: 404 });
+
+      const { subjectIds } = await getStudentSubjectAccess(student);
+      where = { subjectId: { in: subjectIds } };
+    }
+
     const sessions = await db.zoomLecture.findMany({
+      where,
       include: { subject: { select: { name: true } } },
       orderBy: { scheduledAt: 'desc' },
     });
@@ -50,10 +61,11 @@ export async function POST(req: NextRequest) {
       include: { subject: { select: { name: true } } },
     });
 
-    await notifyAllStudents(
+    await notifyStudentsBySubject(
       '🎥 New live session',
       `A live session was scheduled: ${title}`,
-      'ANNOUNCEMENT'
+      'ANNOUNCEMENT',
+      subjectId
     );
 
     return NextResponse.json({ success: true, data: lecture }, { status: 201 });

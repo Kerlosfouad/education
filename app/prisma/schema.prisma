@@ -207,6 +207,7 @@ model AttendanceSession {
   subjectId    String?
   departmentId String?
   academicYear Int?
+  semester     Int?
   title        String?
   openTime     DateTime
   closeTime    DateTime
