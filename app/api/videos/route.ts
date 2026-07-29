@@ -4,14 +4,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db, getStudentSubjectAccess } from '@/lib/db';
-import { notifyAllStudents, notifyStudentsByFilter } from '@/lib/notifications';
+import { notifyAllStudents, notifyStudentsBySubject } from '@/lib/notifications';
 
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    // Students should only see videos for their department/year (plus "General" videos with no subject).
+    // Students should only see videos for their accessible subjects, plus general videos.
     let studentSubjectIds: string[] | null = null;
     if (session.user.role === 'STUDENT') {
       const student = await db.student.findUnique({
@@ -74,14 +74,10 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Notify filtered by subject's dept+year if available, else all
     if (subjectId) {
-      const subject = await db.subject.findUnique({ where: { id: subjectId }, select: { departmentId: true, academicYear: true } });
-      if (subject) {
-        await notifyStudentsByFilter('🎬 New Video', `A new video was uploaded: ${title}`, 'ANNOUNCEMENT', subject.departmentId, subject.academicYear);
-      }
+      await notifyStudentsBySubject('New Video', `A new video was uploaded: ${title}`, 'ANNOUNCEMENT', subjectId);
     } else {
-      await notifyAllStudents('🎬 New video', `A new video was uploaded: ${title}`, 'ANNOUNCEMENT');
+      await notifyAllStudents('New video', `A new video was uploaded: ${title}`, 'ANNOUNCEMENT');
     }
 
     return NextResponse.json({ success: true, data: video }, { status: 201 });

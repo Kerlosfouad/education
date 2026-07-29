@@ -1,13 +1,19 @@
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
+
+function isAdminRole(role?: string) {
+  return role === 'ADMIN' || role === 'SUPER_ADMIN';
+}
 
 // One-time migration: create student_subjects table AND enrollment_requests table
 // Safe - only adds new tables, no existing data touched
 export async function POST(req: NextRequest) {
-  const secret = req.headers.get('x-admin-secret');
-  if (secret !== process.env.NEXTAUTH_SECRET) {
+  const session = await getServerSession(authOptions);
+  if (!isAdminRole(session?.user?.role)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
