@@ -307,26 +307,19 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Fetch departmentId and academicYear via raw SQL (stored outside Prisma schema)
-      const sessionRaw = await db.$queryRaw<{ subjectId: string | null; departmentId: string | null; academicYear: number | null }[]>`
-        SELECT "subjectId", "departmentId", "academicYear" FROM attendance_sessions WHERE id = ${sessionId}
+      const sessionRaw = await db.$queryRaw<{ subjectId: string | null; departmentId: string | null; academicYear: number | null; semester: number | null }[]>`
+        SELECT "subjectId", "departmentId", "academicYear", "semester" FROM attendance_sessions WHERE id = ${sessionId}
       `;
-      const sessionSubjectId = sessionRaw[0]?.subjectId ?? null;
-      const sessionDeptId = sessionRaw[0]?.departmentId ?? null;
-      const sessionAcademicYear = sessionRaw[0]?.academicYear ?? null;
-      const { subjectIds } = await getStudentSubjectAccess(student);
-      const isAllowedSubject = !!sessionSubjectId && subjectIds.includes(sessionSubjectId);
+      const canAccessSession = sessionRaw[0]
+        ? await canStudentAccessScopedContent(student, sessionRaw[0])
+        : false;
 
-      // Check session matches student's department and academicYear
-      if (!isAllowedSubject && sessionDeptId && sessionDeptId !== student.departmentId) {
-        return NextResponse.json({ error: 'This session is not for your department' }, { status: 403 });
-      }
-      if (!isAllowedSubject && sessionAcademicYear !== null && sessionAcademicYear !== student.academicYear) {
-        return NextResponse.json({ error: 'This session is not for your level' }, { status: 403 });
+      if (!canAccessSession) {
+        return NextResponse.json({ error: 'This session is not available for your account' }, { status: 403 });
       }
 
       const now = new Date();
-      if (now < attendanceSession.openTime || now > attendanceSession.closeTime) {
+      if (!attendanceSession.isOpen || now < attendanceSession.openTime || now > attendanceSession.closeTime) {
         return NextResponse.json(
           { error: 'Attendance session is not open' },
           { status: 400 }
@@ -342,6 +335,33 @@ export async function POST(req: NextRequest) {
       });
 
       if (existingAttendance) {
+        if (existingAttendance.verificationMethod === 'ABSENT') {
+          const userAgent = req.headers.get('user-agent') || '';
+          const parser = new UAParser(userAgent);
+          const deviceInfo = `${parser.getDevice().vendor || ''} ${parser.getDevice().model || ''} ${parser.getOS().name || ''}`;
+          const ipAddress = req.headers.get('x-forwarded-for') || req.ip || '';
+
+          const attendance = await db.attendance.update({
+            where: { id: existingAttendance.id },
+            data: {
+              verificationMethod: 'MANUAL',
+              timestamp: now,
+              deviceInfo: deviceInfo.trim() || 'Unknown',
+              ipAddress: ipAddress.toString(),
+              userAgent,
+            },
+            include: {
+              session: {
+                include: {
+                  subject: true,
+                },
+              },
+            },
+          });
+
+          return NextResponse.json({ success: true, data: attendance, updated: true });
+        }
+
         return NextResponse.json(
           { error: 'Attendance already marked' },
           { status: 409 }
@@ -399,9 +419,71 @@ export async function PATCH(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { sessionId, isOpen } = body;
+    const { sessionId, isOpen, studentId, verificationMethod } = body;
 
-    if (!sessionId || typeof isOpen !== 'boolean') {
+    if (!sessionId) {
+      return NextResponse.json(
+        { error: 'Missing sessionId' },
+        { status: 400 }
+      );
+    }
+
+    if (studentId || verificationMethod) {
+      if (!studentId || (verificationMethod !== 'MANUAL' && verificationMethod !== 'ABSENT')) {
+        return NextResponse.json(
+          { error: 'Missing or invalid attendance update fields' },
+          { status: 400 }
+        );
+      }
+
+      const [attendanceSession, student] = await Promise.all([
+        db.attendanceSession.findUnique({ where: { id: sessionId } }),
+        db.student.findUnique({ where: { id: studentId } }),
+      ]);
+
+      if (!attendanceSession) return NextResponse.json({ error: 'Attendance session not found' }, { status: 404 });
+      if (!student) return NextResponse.json({ error: 'Student not found' }, { status: 404 });
+
+      const sessionRaw = await db.$queryRaw<{ subjectId: string | null; departmentId: string | null; academicYear: number | null; semester: number | null }[]>`
+        SELECT "subjectId", "departmentId", "academicYear", "semester" FROM attendance_sessions WHERE id = ${sessionId}
+      `;
+      const canAccessSession = sessionRaw[0]
+        ? await canStudentAccessScopedContent(student, sessionRaw[0])
+        : false;
+
+      if (!canAccessSession) {
+        return NextResponse.json({ error: 'Student is outside this attendance session scope' }, { status: 403 });
+      }
+
+      const attendance = await db.attendance.upsert({
+        where: { studentId_sessionId: { studentId, sessionId } },
+        update: {
+          verificationMethod,
+          timestamp: new Date(),
+        },
+        create: {
+          studentId,
+          sessionId,
+          verificationMethod,
+        },
+        include: {
+          student: {
+            include: {
+              user: {
+                select: {
+                  name: true,
+                  email: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      return NextResponse.json({ success: true, data: attendance });
+    }
+
+    if (typeof isOpen !== 'boolean') {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
