@@ -1,9 +1,9 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useRef } from 'react';
 import { UploadCloud, FileText, File, Trash2, Download, Search, Plus, X } from 'lucide-react';
 import { useUploadThing } from '@/lib/uploadthing';
-import { saveBookAction, getBooksAction, deleteBookAction } from '../../actions/bookActions';
+import { saveBookAction, getBooksAction, deleteBookAction } from '@/actions/bookActions';
 import { toast } from 'sonner';
 
 export default function LibBooksPage() {

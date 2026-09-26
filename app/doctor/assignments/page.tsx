@@ -10,7 +10,7 @@ import {
   getAssignmentsAction,
   createAssignmentAction,
   deleteAssignmentAction,
-} from '../../actions/assignmentActions';
+} from '@/actions/assignmentActions';
 
 interface Submission {
   id: string;
