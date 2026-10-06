@@ -35,45 +35,46 @@ export async function GET(request: Request) {
   // based on subjects matching their department + academicYear
   // Get semester for each student via raw SQL
   const studentIds = students.map(s => s.id);
-  const semesterRows = studentIds.length > 0
-    ? await db.$queryRaw<{ id: string; semester: number }[]>`
-        SELECT id, semester FROM students WHERE id = ANY(${studentIds}::text[])
-      `
-    : [];
+  const [semesterRows, studentSubjectsRows] = await Promise.all([
+    studentIds.length > 0
+      ? db.$queryRaw<{ id: string; semester: number }[]>`
+          SELECT id, semester FROM students WHERE id = ANY(${studentIds}::text[])
+        `
+      : Promise.resolve([]),
+    studentIds.length > 0
+      ? db.$queryRaw<{ studentId: string; id: string; name: string; code: string; semester: number }[]>`
+          SELECT ss."studentId", s.id, s.name, s.code, s.semester
+          FROM subjects s
+          JOIN student_subjects ss ON ss."subjectId" = s.id
+          WHERE ss."studentId" = ANY(${studentIds}::text[])
+            AND s."isActive" = true
+          ORDER BY s.semester, s.name
+        `
+      : Promise.resolve([]),
+  ]);
+
   const semesterMap = Object.fromEntries(semesterRows.map(r => [r.id, r.semester]));
+  const studentSubjectsMap: Record<string, { id: string; name: string; code: string; semester: number }[]> = {};
+  for (const row of studentSubjectsRows) {
+    if (!studentSubjectsMap[row.studentId]) studentSubjectsMap[row.studentId] = [];
+    studentSubjectsMap[row.studentId].push({
+      id: row.id,
+      name: row.name,
+      code: row.code,
+      semester: row.semester,
+    });
+  }
 
-  const studentsWithSemester = await Promise.all(students.map(async s => {
+  const studentsWithSemester = students.map(s => {
     const studentSemester = semesterMap[s.id] ?? 1;
-
-    // Fetch explicit enrolled subjects from student_subjects
-    let subjectData = await db.$queryRaw<{ id: string; name: string; code: string; semester: number }[]>`
-      SELECT s.id, s.name, s.code, s.semester
-      FROM subjects s
-      JOIN student_subjects ss ON ss."subjectId" = s.id
-      WHERE ss."studentId" = ${s.id}
-      ORDER BY s.semester, s.name
-    `;
-
-    // Fallback if no student_subjects exist yet
-    if (subjectData.length === 0) {
-      subjectData = await db.subject.findMany({
-        where: {
-          departmentId: s.departmentId,
-          academicYear: s.academicYear,
-          semester: studentSemester,
-          isActive: true,
-        },
-        select: { id: true, semester: true, name: true, code: true },
-        orderBy: { name: 'asc' },
-      });
-    }
+    const subjectData = studentSubjectsMap[s.id] ?? [];
 
     const semesters = Array.from(new Set(subjectData.map(sub => sub.semester)));
     const subjects = subjectData.map(sub => sub.name);
     const enrolledSubjects = subjectData.map(sub => ({ id: sub.id, name: sub.name, code: sub.code }));
 
     return { ...s, semester: studentSemester, semesters, subjects, enrolledSubjects };
-  }));
+  });
 
   return NextResponse.json({
     success: true,

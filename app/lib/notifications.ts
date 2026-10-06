@@ -86,14 +86,8 @@ export async function notifyStudentsBySubject(
       SELECT DISTINCT st."userId"
       FROM students st
       JOIN users u ON u.id = st."userId"
-      LEFT JOIN student_subjects ss
-        ON ss."studentId" = st.id
-        AND ss."subjectId" = ${subjectId}
+      JOIN student_subjects ss ON ss."studentId" = st.id AND ss."subjectId" = ${subjectId}
       WHERE u.status = 'ACTIVE'
-        AND (
-          (st."departmentId" = ${subject.departmentId} AND st."academicYear" = ${subject.academicYear})
-          OR ss.id IS NOT NULL
-        )
     `;
 
     if (students.length === 0) return;

@@ -42,11 +42,14 @@ export async function GET(req: NextRequest) {
 
   if (!student) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  // Get enrolled subjects based on department and academic year
+  // Get enrolled subjects from student_subjects
   const enrolledSubjects = await db.subject.findMany({
     where: {
-      departmentId: student.departmentId,
-      academicYear: student.academicYear,
+      enrolledStudents: {
+        some: {
+          studentId: student.id,
+        },
+      },
       isActive: true,
     },
     select: {
@@ -56,10 +59,10 @@ export async function GET(req: NextRequest) {
       doctor: {
         select: {
           user: {
-            select: { name: true }
-          }
-        }
-      }
+            select: { name: true },
+          },
+        },
+      },
     },
     orderBy: { name: 'asc' },
   });

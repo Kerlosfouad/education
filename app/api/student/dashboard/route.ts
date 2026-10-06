@@ -58,15 +58,12 @@ export async function GET() {
     const totalSessionsRaw = await db.$queryRaw<{count: bigint}[]>`
       SELECT COUNT(DISTINCT s.id) as count
       FROM attendance_sessions s
-      LEFT JOIN student_subjects ss
-        ON ss."studentId" = ${student.id}
-        AND ss."subjectId" = s."subjectId"
       WHERE s."closeTime" < ${now}
       AND (
-        s."subjectId" = ANY(${coreSubjectIds}::text[])
-        OR (ss.id IS NOT NULL AND s."openTime" >= ss."enrolledAt")
+        (s."subjectId" IS NOT NULL AND s."subjectId" = ANY(${coreSubjectIds}::text[]))
         OR (
-          (s."departmentId" IS NULL OR s."departmentId" = ${student.departmentId})
+          s."subjectId" IS NULL
+          AND (s."departmentId" IS NULL OR s."departmentId" = ${student.departmentId})
           AND (s."academicYear" IS NULL OR s."academicYear" = ${student.academicYear})
           AND (s."semester" IS NULL OR s."semester" = ${semester})
         )
@@ -76,15 +73,12 @@ export async function GET() {
     const relevantSessionIds = (await db.$queryRaw<{id: string}[]>`
       SELECT DISTINCT s.id
       FROM attendance_sessions s
-      LEFT JOIN student_subjects ss
-        ON ss."studentId" = ${student.id}
-        AND ss."subjectId" = s."subjectId"
       WHERE s."closeTime" < ${now}
       AND (
-        s."subjectId" = ANY(${coreSubjectIds}::text[])
-        OR (ss.id IS NOT NULL AND s."openTime" >= ss."enrolledAt")
+        (s."subjectId" IS NOT NULL AND s."subjectId" = ANY(${coreSubjectIds}::text[]))
         OR (
-          (s."departmentId" IS NULL OR s."departmentId" = ${student.departmentId})
+          s."subjectId" IS NULL
+          AND (s."departmentId" IS NULL OR s."departmentId" = ${student.departmentId})
           AND (s."academicYear" IS NULL OR s."academicYear" = ${student.academicYear})
           AND (s."semester" IS NULL OR s."semester" = ${semester})
         )
@@ -103,15 +97,12 @@ export async function GET() {
     const closedSessions = await db.$queryRaw<{id: string}[]>`
       SELECT DISTINCT s.id
       FROM attendance_sessions s
-      LEFT JOIN student_subjects ss
-        ON ss."studentId" = ${student.id}
-        AND ss."subjectId" = s."subjectId"
       WHERE s."closeTime" < ${now}
       AND (
-        s."subjectId" = ANY(${coreSubjectIds}::text[])
-        OR (ss.id IS NOT NULL AND s."openTime" >= ss."enrolledAt")
+        (s."subjectId" IS NOT NULL AND s."subjectId" = ANY(${coreSubjectIds}::text[]))
         OR (
-          (s."departmentId" IS NULL OR s."departmentId" = ${student.departmentId})
+          s."subjectId" IS NULL
+          AND (s."departmentId" IS NULL OR s."departmentId" = ${student.departmentId})
           AND (s."academicYear" IS NULL OR s."academicYear" = ${student.academicYear})
           AND (s."semester" IS NULL OR s."semester" = ${semester})
         )
@@ -147,9 +138,10 @@ export async function GET() {
         AND s."openTime" <= ${now}
         AND s."closeTime" >= ${now}
         AND (
-          s."subjectId" = ANY(${subjectIds}::text[])
+          (s."subjectId" IS NOT NULL AND s."subjectId" = ANY(${subjectIds}::text[]))
           OR (
-            (s."departmentId" IS NULL OR s."departmentId" = ${student.departmentId})
+            s."subjectId" IS NULL
+            AND (s."departmentId" IS NULL OR s."departmentId" = ${student.departmentId})
             AND (s."academicYear" IS NULL OR s."academicYear" = ${student.academicYear})
             AND (s."semester" IS NULL OR s."semester" = ${semester})
           )

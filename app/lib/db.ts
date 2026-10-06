@@ -39,36 +39,20 @@ export async function getStudentSubjectAccess(student: StudentAccessInput) {
   `;
   const semester = semesterRows[0]?.semester ?? null;
 
-  // 1. Explicitly enrolled subjects in student_subjects
+  // 1. Explicitly enrolled subjects in student_subjects (must be isActive = true)
   const enrolledSubjects = await db.$queryRaw<{ id: string; departmentId: string; academicYear: number; semester: number }[]>`
     SELECT s.id, s."departmentId", s."academicYear", s.semester
     FROM student_subjects ss
     JOIN subjects s ON s.id = ss."subjectId"
-    WHERE ss."studentId" = ${student.id}
+    WHERE ss."studentId" = ${student.id} AND s."isActive" = true
   `;
 
-  // If student has explicit entries in student_subjects, use only those!
-  let allSubjects = enrolledSubjects;
-
-  // 2. Fallback only if student has 0 entries in student_subjects (legacy accounts)
-  if (enrolledSubjects.length === 0) {
-    const coreWhere: any = {
-      departmentId: student.departmentId,
-      academicYear: student.academicYear,
-    };
-    if (semester) coreWhere.semester = semester;
-    allSubjects = await db.subject.findMany({
-      where: coreWhere,
-      select: { id: true, departmentId: true, academicYear: true, semester: true },
-    });
-  }
-
-  const subjectIds = Array.from(new Set(allSubjects.map((subject) => subject.id)));
+  const subjectIds = Array.from(new Set(enrolledSubjects.map((subject) => subject.id)));
 
   return {
     semester,
     coreSubjectIds: subjectIds,
-    enrolledSubjectIds: enrolledSubjects.map((subject) => subject.id),
+    enrolledSubjectIds: subjectIds,
     subjectIds,
   };
 }

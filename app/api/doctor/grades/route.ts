@@ -20,26 +20,13 @@ export async function GET(req: NextRequest) {
   });
   if (!subject) return NextResponse.json({ error: 'Subject not found' }, { status: 404 });
 
-  // Get students enrolled in this subject:
-  // 1. Explicitly enrolled via student_subjects
-  // 2. OR legacy students (0 records in student_subjects) matching dept + academicYear + semester
+  // Get students enrolled in this subject via student_subjects
   const students = await db.$queryRaw<{ id: string; name: string; studentCode: string }[]>`
     SELECT st.id, u.name, st."studentCode"
     FROM students st
     JOIN users u ON u.id = st."userId"
+    JOIN student_subjects ss ON ss."studentId" = st.id AND ss."subjectId" = ${subjectId}
     WHERE u.status = 'ACTIVE'
-      AND (
-        EXISTS (
-          SELECT 1 FROM student_subjects ss
-          WHERE ss."studentId" = st.id AND ss."subjectId" = ${subjectId}
-        )
-        OR (
-          NOT EXISTS (SELECT 1 FROM student_subjects ss2 WHERE ss2."studentId" = st.id)
-          AND st."departmentId" = ${subject.departmentId}
-          AND st."academicYear" = ${subject.academicYear}
-          AND st.semester = ${subject.semester}
-        )
-      )
     ORDER BY u.name ASC
   `;
 

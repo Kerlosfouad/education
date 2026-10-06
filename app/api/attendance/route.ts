@@ -113,18 +113,15 @@ export async function GET(req: NextRequest) {
 
       const { semester, coreSubjectIds } = await getStudentSubjectAccess(student);
 
-      // Get sessions that match student's core filters or approved extra subjects.
+      // Get sessions that match student's enrolled subjects or general department/year/semester
       const allSessions = await db.$queryRaw<any[]>`
         SELECT DISTINCT s.id
         FROM attendance_sessions s
-        LEFT JOIN student_subjects ss
-          ON ss."studentId" = ${student.id}
-          AND ss."subjectId" = s."subjectId"
         WHERE (
-          s."subjectId" = ANY(${coreSubjectIds}::text[])
-          OR (ss.id IS NOT NULL AND s."openTime" >= ss."enrolledAt")
+          (s."subjectId" IS NOT NULL AND s."subjectId" = ANY(${coreSubjectIds}::text[]))
           OR (
-            (s."departmentId" IS NULL OR s."departmentId" = ${student.departmentId})
+            s."subjectId" IS NULL
+            AND (s."departmentId" IS NULL OR s."departmentId" = ${student.departmentId})
             AND (s."academicYear" IS NULL OR s."academicYear" = ${student.academicYear})
             AND (s."semester" IS NULL OR s."semester" = ${semester})
           )

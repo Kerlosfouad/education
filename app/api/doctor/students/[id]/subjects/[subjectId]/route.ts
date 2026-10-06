@@ -80,9 +80,57 @@ export async function DELETE(
       WHERE "studentId" = ${student.id} AND "subjectId" = ${subject.id}
     `;
 
+    // Cascade deletion of all subject contents for this student:
+    // 1. Exam Results
+    await db.examResult.deleteMany({
+      where: { studentId: student.id, subjectId: subject.id },
+    }).catch(() => {});
+
+    // 2. Attendance records for sessions of this subject
+    const subjectSessions = await db.attendanceSession.findMany({
+      where: { subjectId: subject.id },
+      select: { id: true },
+    });
+    if (subjectSessions.length > 0) {
+      await db.attendance.deleteMany({
+        where: {
+          studentId: student.id,
+          sessionId: { in: subjectSessions.map(s => s.id) },
+        },
+      }).catch(() => {});
+    }
+
+    // 3. Assignment Submissions for assignments of this subject
+    const subjectAssignments = await db.assignment.findMany({
+      where: { subjectId: subject.id },
+      select: { id: true },
+    });
+    if (subjectAssignments.length > 0) {
+      await db.assignmentSubmission.deleteMany({
+        where: {
+          studentId: student.id,
+          assignmentId: { in: subjectAssignments.map(a => a.id) },
+        },
+      }).catch(() => {});
+    }
+
+    // 4. Quiz Attempts for quizzes of this subject
+    const subjectQuizzes = await db.quiz.findMany({
+      where: { subjectId: subject.id },
+      select: { id: true },
+    });
+    if (subjectQuizzes.length > 0) {
+      await db.quizAttempt.deleteMany({
+        where: {
+          studentId: student.id,
+          quizId: { in: subjectQuizzes.map(q => q.id) },
+        },
+      }).catch(() => {});
+    }
+
     return NextResponse.json({
       success: true,
-      message: `Student removed from subject ${subject.name} successfully`,
+      message: `Student removed from subject ${subject.name} and all related contents cleaned up successfully`,
     });
   } catch (error: any) {
     console.error('Error removing student from subject:', error);
