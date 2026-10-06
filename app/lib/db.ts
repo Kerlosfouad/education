@@ -39,31 +39,35 @@ export async function getStudentSubjectAccess(student: StudentAccessInput) {
   `;
   const semester = semesterRows[0]?.semester ?? null;
 
-  const coreWhere: any = {
-    departmentId: student.departmentId,
-    academicYear: student.academicYear,
-  };
-  if (semester) coreWhere.semester = semester;
+  // 1. Explicitly enrolled subjects in student_subjects
+  const enrolledSubjects = await db.$queryRaw<{ id: string; departmentId: string; academicYear: number; semester: number }[]>`
+    SELECT s.id, s."departmentId", s."academicYear", s.semester
+    FROM student_subjects ss
+    JOIN subjects s ON s.id = ss."subjectId"
+    WHERE ss."studentId" = ${student.id}
+  `;
 
-  const [coreSubjects, enrolledSubjects] = await Promise.all([
-    db.subject.findMany({
+  // If student has explicit entries in student_subjects, use only those!
+  let allSubjects = enrolledSubjects;
+
+  // 2. Fallback only if student has 0 entries in student_subjects (legacy accounts)
+  if (enrolledSubjects.length === 0) {
+    const coreWhere: any = {
+      departmentId: student.departmentId,
+      academicYear: student.academicYear,
+    };
+    if (semester) coreWhere.semester = semester;
+    allSubjects = await db.subject.findMany({
       where: coreWhere,
       select: { id: true, departmentId: true, academicYear: true, semester: true },
-    }),
-    db.$queryRaw<{ id: string; departmentId: string; academicYear: number; semester: number }[]>`
-      SELECT s.id, s."departmentId", s."academicYear", s.semester
-      FROM student_subjects ss
-      JOIN subjects s ON s.id = ss."subjectId"
-      WHERE ss."studentId" = ${student.id}
-    `,
-  ]);
+    });
+  }
 
-  const allSubjects = [...coreSubjects, ...enrolledSubjects];
   const subjectIds = Array.from(new Set(allSubjects.map((subject) => subject.id)));
 
   return {
     semester,
-    coreSubjectIds: coreSubjects.map((subject) => subject.id),
+    coreSubjectIds: subjectIds,
     enrolledSubjectIds: enrolledSubjects.map((subject) => subject.id),
     subjectIds,
   };

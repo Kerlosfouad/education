@@ -16,17 +16,31 @@ export async function GET() {
   const semesterRows = await db.$queryRaw<{ semester: number }[]>`SELECT semester FROM students WHERE id = ${student.id}`;
   const semester = semesterRows[0]?.semester ?? 1;
 
+  const studentSubjectsCount = await db.studentSubject.count({ where: { studentId: student.id } });
+
   const [coreSubjects, enrollments, requests] = await Promise.all([
-    // Core subjects: based on dept + year + semester (always enrolled, no action needed)
-    db.$queryRaw<{ id: string; subjectId: string; subjectName: string; subjectCode: string; semester: number }[]>`
-      SELECT s.id, s.id as "subjectId", s.name as "subjectName", s.code as "subjectCode", s.semester
-      FROM subjects s
-      WHERE s."departmentId" = ${student.departmentId}
-        AND s."academicYear" = ${student.academicYear}
-        AND s.semester = ${semester}
-        AND s."isActive" = true
-      ORDER BY s.name
-    `,
+    // Core subjects: if student has student_subjects entries, return only those; otherwise fallback for legacy
+    studentSubjectsCount > 0
+      ? db.$queryRaw<{ id: string; subjectId: string; subjectName: string; subjectCode: string; semester: number }[]>`
+          SELECT s.id, s.id as "subjectId", s.name as "subjectName", s.code as "subjectCode", s.semester
+          FROM subjects s
+          JOIN student_subjects ss ON ss."subjectId" = s.id
+          WHERE ss."studentId" = ${student.id}
+            AND s."departmentId" = ${student.departmentId}
+            AND s."academicYear" = ${student.academicYear}
+            AND s.semester = ${semester}
+            AND s."isActive" = true
+          ORDER BY s.name
+        `
+      : db.$queryRaw<{ id: string; subjectId: string; subjectName: string; subjectCode: string; semester: number }[]>`
+          SELECT s.id, s.id as "subjectId", s.name as "subjectName", s.code as "subjectCode", s.semester
+          FROM subjects s
+          WHERE s."departmentId" = ${student.departmentId}
+            AND s."academicYear" = ${student.academicYear}
+            AND s.semester = ${semester}
+            AND s."isActive" = true
+          ORDER BY s.name
+        `,
     // Extra subjects explicitly enrolled
     db.$queryRaw<{ id: string; subjectId: string; subjectName: string; subjectCode: string; semester: number; enrolledAt: string }[]>`
       SELECT ss.id, ss."subjectId", s.name as "subjectName", s.code as "subjectCode",

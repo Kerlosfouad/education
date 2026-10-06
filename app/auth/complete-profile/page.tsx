@@ -38,7 +38,8 @@ export default function CompleteProfilePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [isDone, setIsDone] = useState(false);
-  const [subjects, setSubjects] = useState<{ id: string; name: string }[]>([]);
+  const [subjects, setSubjects] = useState<{ id: string; name: string; code?: string }[]>([]);
+  const [selectedSubjectIds, setSelectedSubjectIds] = useState<string[]>([]);
   const [loadingSubjects, setLoadingSubjects] = useState(false);
 
   const selectedDept = departments.find(d => d.id === departmentId);
@@ -64,13 +65,28 @@ export default function CompleteProfilePage() {
 
   // Fetch subjects when department + year selected
   useEffect(() => {
-    if (!departmentId || !academicYear) { setSubjects([]); return; }
+    if (!departmentId || !academicYear) {
+      setSubjects([]);
+      setSelectedSubjectIds([]);
+      return;
+    }
     setLoadingSubjects(true);
     const semesterParam = semester ? `&semester=${semester}` : '';
     fetch(`/api/subjects?departmentId=${departmentId}&academicYear=${academicYear}${semesterParam}`)
       .then(r => r.json())
-      .then(json => setSubjects(json.success ? json.data : []))
-      .catch(() => setSubjects([]))
+      .then(json => {
+        if (json.success && Array.isArray(json.data)) {
+          setSubjects(json.data);
+          setSelectedSubjectIds(json.data.map((s: any) => s.id));
+        } else {
+          setSubjects([]);
+          setSelectedSubjectIds([]);
+        }
+      })
+      .catch(() => {
+        setSubjects([]);
+        setSelectedSubjectIds([]);
+      })
       .finally(() => setLoadingSubjects(false));
   }, [departmentId, academicYear, semester]);
 
@@ -102,6 +118,7 @@ export default function CompleteProfilePage() {
           studentCode: studentCode.trim(),
           phone: phone || undefined,
           semester: semester ? parseInt(semester) : 1,
+          selectedSubjectIds,
         }),
       });
 
@@ -244,28 +261,78 @@ export default function CompleteProfilePage() {
                 </Select>
               </div>
 
-              {/* Subjects preview */}
+              {/* Subjects selection */}
               {departmentId && academicYear && (
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-1.5">
-                    <BookOpen className="w-4 h-4 text-indigo-500" />
-                    Your Subjects
-                  </Label>
+                <div className="space-y-3 pt-2 pb-1 border-t border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center justify-between">
+                    <Label className="flex items-center gap-1.5 font-bold text-sm text-slate-800 dark:text-slate-100">
+                      <BookOpen className="w-4 h-4 text-indigo-500" />
+                      Select Subjects ({selectedSubjectIds.length}/{subjects.length})
+                    </Label>
+                    {subjects.length > 0 && (
+                      <div className="flex items-center gap-2 text-xs">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedSubjectIds(subjects.map(s => s.id))}
+                          className="text-indigo-600 dark:text-indigo-400 hover:underline font-semibold"
+                        >
+                          Select All
+                        </button>
+                        <span className="text-slate-300 dark:text-slate-600">|</span>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedSubjectIds([])}
+                          className="text-slate-500 hover:underline font-medium"
+                        >
+                          Deselect All
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Choose the subjects you want to enroll in (optional selection)
+                  </p>
                   {loadingSubjects ? (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
-                      <Loader2 className="w-4 h-4 animate-spin" /> Loading subjects...
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground py-3">
+                      <Loader2 className="w-4 h-4 animate-spin text-indigo-600" /> Loading subjects...
                     </div>
                   ) : subjects.length === 0 ? (
-                    <p className="text-sm text-muted-foreground bg-slate-50 rounded-xl px-4 py-3">
-                      No subjects assigned yet for this level.
+                    <p className="text-sm text-muted-foreground bg-slate-50 dark:bg-slate-800/60 rounded-xl px-4 py-3 text-center">
+                      No subjects available yet for this level.
                     </p>
                   ) : (
-                    <div className="bg-indigo-50 rounded-xl px-4 py-3 flex flex-wrap gap-2">
-                      {subjects.map(s => (
-                        <span key={s.id} className="text-xs font-semibold bg-white text-indigo-700 border border-indigo-200 px-3 py-1 rounded-full">
-                          {s.name}
-                        </span>
-                      ))}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-56 overflow-y-auto pr-1">
+                      {subjects.map(s => {
+                        const isSelected = selectedSubjectIds.includes(s.id);
+                        return (
+                          <div
+                            key={s.id}
+                            onClick={() => {
+                              setSelectedSubjectIds(prev =>
+                                isSelected ? prev.filter(id => id !== s.id) : [...prev, s.id]
+                              );
+                            }}
+                            className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer select-none transition-all ${
+                              isSelected
+                                ? 'bg-indigo-50/80 dark:bg-indigo-950/40 border-indigo-500 text-indigo-950 dark:text-indigo-100 shadow-sm'
+                                : 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-300'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => {}} // handled by parent div onClick
+                              className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 pointer-events-none"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <p className="font-semibold text-xs leading-tight truncate">{s.name}</p>
+                              {s.code && (
+                                <p className="text-[10px] text-muted-foreground mt-0.5">{s.code}</p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

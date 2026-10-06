@@ -20,6 +20,7 @@ const registerSchema = z.object({
   departmentId: z.string().optional(),
   academicYear: z.number().optional(),
   semester: z.number().min(1).max(2).optional(),
+  selectedSubjectIds: z.array(z.string()).optional(),
 });
 
 /** Generate a unique 6-digit numeric student code */
@@ -57,7 +58,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { name, email, password, phone, studentCode: inputCode, departmentId, academicYear, semester } = result.data;
+    const { name, email, password, phone, studentCode: inputCode, departmentId, academicYear, semester, selectedSubjectIds } = result.data;
     const normalizedEmail = email.toLowerCase();
     const isDoctor = isDoctorEmail(normalizedEmail);
 
@@ -135,6 +136,33 @@ export async function POST(req: NextRequest) {
 
       // Update semester separately since it may not be in generated types yet
       await db.$executeRaw`UPDATE students SET semester = ${semester ?? 1} WHERE id = ${newStudent.id}`;
+
+      // Enroll student into selected subjects (or all matching active subjects if not specified)
+      let subjectIdsToEnroll: string[] = [];
+      if (Array.isArray(selectedSubjectIds)) {
+        subjectIdsToEnroll = selectedSubjectIds;
+      } else {
+        const matchingSubjects = await db.subject.findMany({
+          where: {
+            departmentId,
+            academicYear,
+            semester: semester ?? 1,
+            isActive: true,
+          },
+          select: { id: true },
+        });
+        subjectIdsToEnroll = matchingSubjects.map(s => s.id);
+      }
+
+      if (subjectIdsToEnroll.length > 0) {
+        for (const subId of subjectIdsToEnroll) {
+          await db.$executeRaw`
+            INSERT INTO student_subjects (id, "studentId", "subjectId", "enrolledAt")
+            VALUES (gen_random_uuid(), ${newStudent.id}, ${subId}, NOW())
+            ON CONFLICT ("studentId", "subjectId") DO NOTHING
+          `.catch(() => {});
+        }
+      }
     }
 
     return NextResponse.json(

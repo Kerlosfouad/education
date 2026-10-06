@@ -1,11 +1,26 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { GraduationCap, Download, Loader2, Check, Pencil, Plus, X, ChevronRight, BookOpen, CalendarCheck2, Trophy } from 'lucide-react';
+import { GraduationCap, Download, Loader2, Check, Pencil, Plus, X, ChevronRight, BookOpen, CalendarCheck2, Trophy, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Subject { id: string; name: string; code: string; department: { name: string }; academicYear: number; semester: number; }
-interface StudentGrade { id: string; name: string; studentCode: string; grades: Record<string, number>; subjectId?: string; subjectName?: string; }
+
+interface ActivityScores {
+  ASSIGNMENT?: { score: number; maxScore: number; percentage: number; title: string } | null;
+  QUIZ?: { score: number; maxScore: number; percentage: number; title: string } | null;
+  ATTENDANCE?: { attended: number; total: number; percentage: number } | null;
+}
+
+interface StudentGrade {
+  id: string;
+  name: string;
+  studentCode: string;
+  grades: Record<string, number>;
+  subjectId?: string;
+  subjectName?: string;
+  activityScores?: ActivityScores;
+}
 
 interface StudentDetail {
   id: string;
@@ -35,10 +50,11 @@ interface StudentDetail {
 }
 
 const DEFAULT_EXAM_TYPES = [
-  { key: 'MIDTERM', label: 'Midterm', max: 20 },
-  { key: 'FINAL',   label: 'Final',   max: 50 },
-  { key: 'QUIZ',    label: 'Quiz',    max: 20 },
-  { key: 'PROJECT', label: 'Project', max: 10 },
+  { key: 'MIDTERM',    label: 'Midterm',    max: 20 },
+  { key: 'FINAL',      label: 'Final',      max: 50 },
+  { key: 'QUIZ',       label: 'Quiz',       max: 10 },
+  { key: 'ASSIGNMENT', label: 'Assignment', max: 10 },
+  { key: 'ATTENDANCE', label: 'Attendance', max: 10 },
 ];
 
 export default function GradesPage() {
@@ -167,11 +183,54 @@ export default function GradesPage() {
     setLoading(false);
   };
 
+  const getAutoScoreForType = (s: StudentGrade, typeKey: string, max: number): number | null => {
+    const key = typeKey.toUpperCase();
+    if (key.includes('ASSIGN') || key === 'ASSIGNMENT' || key.includes('HOMEWORK')) {
+      const act = s.activityScores?.ASSIGNMENT;
+      if (act && act.percentage !== undefined) {
+        return Math.round((act.percentage / 100) * max * 10) / 10;
+      }
+    }
+    if (key.includes('ATTEND') || key === 'ATTENDANCE' || key.includes('PRESENCE')) {
+      const act = s.activityScores?.ATTENDANCE;
+      if (act && act.percentage !== undefined) {
+        return Math.round((act.percentage / 100) * max * 10) / 10;
+      }
+    }
+    if (key.includes('QUIZ') || key === 'QUIZZES') {
+      const act = s.activityScores?.QUIZ;
+      if (act && act.percentage !== undefined) {
+        return Math.round((act.percentage / 100) * max * 10) / 10;
+      }
+    }
+    return null;
+  };
+
   const openEdit = (s: StudentGrade) => {
     setEditingStudent(s);
     const init: Record<string, string> = {};
-    examTypes.forEach(t => { init[t.key] = s.grades[t.key] !== undefined ? String(s.grades[t.key]) : ''; });
+    examTypes.forEach(t => {
+      if (s.grades[t.key] !== undefined) {
+        init[t.key] = String(s.grades[t.key]);
+      } else {
+        const auto = getAutoScoreForType(s, t.key, t.max);
+        init[t.key] = auto !== null ? String(auto) : '';
+      }
+    });
     setEditGrades(init);
+  };
+
+  const handleAutoFillAll = () => {
+    if (!editingStudent) return;
+    const filled: Record<string, string> = { ...editGrades };
+    examTypes.forEach(t => {
+      const auto = getAutoScoreForType(editingStudent, t.key, t.max);
+      if (auto !== null) {
+        filled[t.key] = String(auto);
+      }
+    });
+    setEditGrades(filled);
+    toast.success('Auto-filled scores from latest activity!');
   };
 
   const handleSave = async () => {
@@ -296,6 +355,41 @@ export default function GradesPage() {
     setLoading(false);
   };
 
+  const autoCalculateAllGrades = async () => {
+    const subjectId = selectedSubject;
+    if (!subjectId || subjectId === 'all') {
+      toast.error('Please select a specific subject to auto-calculate grades');
+      return;
+    }
+    if (!confirm('Auto-calculate grades for all students in this subject based on their assignments, attendance, and quizzes?')) return;
+    setSaving(true);
+    try {
+      for (const s of students) {
+        for (const t of examTypes) {
+          const autoScore = getAutoScoreForType(s, t.key, t.max);
+          if (autoScore !== null && s.grades[t.key] === undefined) {
+            await fetch('/api/doctor/grades', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                subjectId,
+                studentId: s.id,
+                examType: t.key,
+                score: autoScore,
+                maxScore: t.max,
+              }),
+            });
+          }
+        }
+      }
+      toast.success(`Auto-calculated grades for students in ${subjectInfo?.name || 'subject'}!`);
+      loadStudents(selectedSubject);
+    } catch {
+      toast.error('Failed to auto-calculate some grades');
+    }
+    setSaving(false);
+  };
+
   // Reusable student table
   const StudentTable = ({ list, subjId }: { list: StudentGrade[]; subjId?: string }) => {
     const filtered = filterStudents(list);
@@ -344,10 +438,17 @@ export default function GradesPage() {
             <p className="text-slate-500 text-sm mt-0.5">Set and manage student grades by subject</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
+          {students.length > 0 && selectedSubject !== 'all' && (
+            <button onClick={autoCalculateAllGrades} disabled={saving}
+              className="flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl sm:rounded-2xl transition-colors shadow-lg shadow-indigo-100 text-xs sm:text-sm flex-1 sm:flex-initial disabled:opacity-50">
+              <Sparkles size={16} /> 
+              <span>Auto-Fill All</span>
+            </button>
+          )}
           {students.length > 0 && (
             <button onClick={clearAllGrades}
-              className="flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 bg-red-600 text-white font-bold rounded-xl sm:rounded-2xl hover:bg-red-700 transition-colors shadow-lg shadow-red-100 text-xs sm:text-sm flex-1 sm:flex-initial">
+              className="flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-red-600 text-white font-bold rounded-xl sm:rounded-2xl hover:bg-red-700 transition-colors shadow-lg shadow-red-100 text-xs sm:text-sm flex-1 sm:flex-initial">
               <X size={16} className="sm:w-[18px] sm:h-[18px]" /> 
               <span className="hidden sm:inline">Clear All</span>
               <span className="sm:hidden">Clear</span>
@@ -355,7 +456,7 @@ export default function GradesPage() {
           )}
           {students.length > 0 && (
             <button onClick={exportExcel}
-              className="flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 bg-green-600 text-white font-bold rounded-xl sm:rounded-2xl hover:bg-green-700 transition-colors shadow-lg shadow-green-100 text-xs sm:text-sm flex-1 sm:flex-initial">
+              className="flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-green-600 text-white font-bold rounded-xl sm:rounded-2xl hover:bg-green-700 transition-colors shadow-lg shadow-green-100 text-xs sm:text-sm flex-1 sm:flex-initial">
               <Download size={16} className="sm:w-[18px] sm:h-[18px]" /> 
               <span className="hidden sm:inline">Export Excel</span>
               <span className="sm:hidden">Export</span>
@@ -509,32 +610,83 @@ export default function GradesPage() {
       {editingStudent && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-md p-6 space-y-5">
-            <div>
-              <h3 className="font-black text-slate-800 dark:text-slate-100 text-lg">{editingStudent.name}</h3>
-              <p className="text-xs text-slate-400 mt-0.5">{editingStudent.studentCode} · {editingStudent.subjectName || subjectInfo?.name}</p>
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="font-black text-slate-800 dark:text-slate-100 text-lg">{editingStudent.name}</h3>
+                <p className="text-xs text-slate-400 mt-0.5">{editingStudent.studentCode} · {editingStudent.subjectName || subjectInfo?.name}</p>
+              </div>
+              <button
+                type="button"
+                onClick={handleAutoFillAll}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-100 rounded-xl text-xs font-bold transition-colors"
+                title="Auto-fill grades based on student's latest assignments, attendance, and quizzes"
+              >
+                <Sparkles size={13} className="text-indigo-600" /> Auto-fill
+              </button>
             </div>
-            <div className="space-y-3">
-              {examTypes.map(t => (
-                <div key={t.key} className="flex items-center gap-4">
-                  <div className="flex-1">
-                    <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">{t.label}</label>
-                    <div className="relative">
-                      <input type="number" min={0} max={t.max} value={editGrades[t.key]}
-                        onChange={e => setEditGrades(p => ({ ...p, [t.key]: e.target.value }))}
-                        placeholder="—"
-                        className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-slate-50 dark:bg-slate-700 dark:text-slate-100"
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-bold">/ {t.max}</span>
+            <div className="space-y-3.5 max-h-[50vh] overflow-y-auto pr-1">
+              {examTypes.map(t => {
+                const typeKey = t.key.toUpperCase();
+                const isAssign = typeKey.includes('ASSIGN') || typeKey.includes('HOMEWORK');
+                const isAttend = typeKey.includes('ATTEND') || typeKey.includes('PRESENCE');
+                const isQuiz = typeKey.includes('QUIZ');
+                const autoScore = getAutoScoreForType(editingStudent, t.key, t.max);
+
+                return (
+                  <div key={t.key} className="space-y-1">
+                    <div className="flex items-center gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-xs font-bold text-slate-500 uppercase">{t.label}</label>
+                          {autoScore !== null && (
+                            <button
+                              type="button"
+                              onClick={() => setEditGrades(p => ({ ...p, [t.key]: String(autoScore) }))}
+                              className="text-[10px] text-indigo-600 dark:text-indigo-400 hover:underline font-semibold"
+                            >
+                              Fill ({autoScore})
+                            </button>
+                          )}
+                        </div>
+                        <div className="relative">
+                          <input type="number" min={0} max={t.max} step="any" value={editGrades[t.key]}
+                            onChange={e => setEditGrades(p => ({ ...p, [t.key]: e.target.value }))}
+                            placeholder={autoScore !== null ? String(autoScore) : '—'}
+                            className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-slate-50 dark:bg-slate-700 dark:text-slate-100 font-bold"
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-bold">/ {t.max}</span>
+                        </div>
+                      </div>
+                      <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0"
+                        style={{ background: `conic-gradient(#6366f1 ${(Number(editGrades[t.key] || 0) / t.max) * 360}deg, #e2e8f0 0deg)` }}>
+                        <div className="w-9 h-9 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center text-indigo-600 dark:text-indigo-400 text-xs font-black">
+                          {editGrades[t.key] || 0}
+                        </div>
+                      </div>
                     </div>
+
+                    {/* Activity Score Details */}
+                    {isAssign && editingStudent.activityScores?.ASSIGNMENT && (
+                      <p className="text-[11px] text-indigo-600 dark:text-indigo-400 bg-indigo-50/70 dark:bg-indigo-950/40 rounded-lg px-2.5 py-1 flex items-center justify-between">
+                        <span>📋 Latest Assignment: <strong>{editingStudent.activityScores.ASSIGNMENT.score}/{editingStudent.activityScores.ASSIGNMENT.maxScore}</strong> ({editingStudent.activityScores.ASSIGNMENT.percentage}%)</span>
+                        <span>Calc: <strong>{autoScore}</strong>/{t.max}</span>
+                      </p>
+                    )}
+                    {isAttend && editingStudent.activityScores?.ATTENDANCE && (
+                      <p className="text-[11px] text-green-700 dark:text-green-400 bg-green-50/70 dark:bg-green-950/40 rounded-lg px-2.5 py-1 flex items-center justify-between">
+                        <span>📅 Attendance: <strong>{editingStudent.activityScores.ATTENDANCE.attended}/{editingStudent.activityScores.ATTENDANCE.total}</strong> ({editingStudent.activityScores.ATTENDANCE.percentage}%)</span>
+                        <span>Calc: <strong>{autoScore}</strong>/{t.max}</span>
+                      </p>
+                    )}
+                    {isQuiz && editingStudent.activityScores?.QUIZ && (
+                      <p className="text-[11px] text-purple-700 dark:text-purple-400 bg-purple-50/70 dark:bg-purple-950/40 rounded-lg px-2.5 py-1 flex items-center justify-between">
+                        <span>🎯 Quiz: <strong>{editingStudent.activityScores.QUIZ.score}/{editingStudent.activityScores.QUIZ.maxScore}</strong> ({editingStudent.activityScores.QUIZ.percentage}%)</span>
+                        <span>Calc: <strong>{autoScore}</strong>/{t.max}</span>
+                      </p>
+                    )}
                   </div>
-                  <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0"
-                    style={{ background: `conic-gradient(#6366f1 ${(Number(editGrades[t.key] || 0) / t.max) * 360}deg, #e2e8f0 0deg)` }}>
-                    <div className="w-9 h-9 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center text-indigo-600 dark:text-indigo-400 text-xs font-black">
-                      {editGrades[t.key] || 0}
-                    </div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
             <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl p-4 flex items-center justify-between">
               <span className="font-bold text-slate-600 dark:text-slate-300 text-sm">Total</span>

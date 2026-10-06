@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import {
@@ -7,6 +7,7 @@ import {
   X, Hash, Building2, GraduationCap, QrCode, Mail,
 } from 'lucide-react';
 import Image from 'next/image';
+import { toast } from 'sonner';
 
 interface StudentRow {
   id: string;
@@ -24,6 +25,7 @@ interface StudentRecord {
   academicYear: number;
   department: { name: string };
   subjects?: string[];
+  enrolledSubjects?: { id: string; name: string; code?: string }[];
   user: { name: string; email: string; image: string | null; createdAt: string; status: string };
 }
 
@@ -33,6 +35,7 @@ interface StudentDetail {
   academicYear: number;
   qrCode: string | null;
   subjects?: string[];
+  enrolledSubjects?: { id: string; name: string; code?: string }[];
   user: { name: string; email: string; image: string | null };
   department: { name: string };
 }
@@ -61,6 +64,46 @@ export default function StudentsPage() {
   const [availableLevels, setAvailableLevels] = useState<number[]>([]);
   const [enrollmentRequests, setEnrollmentRequests] = useState<EnrollmentRequest[]>([]);
   const [enrollmentActionLoading, setEnrollmentActionLoading] = useState<string | null>(null);
+  const [removingSubjectId, setRemovingSubjectId] = useState<string | null>(null);
+
+  const handleRemoveSubject = async (studentId: string, subjectId: string, subjectName: string) => {
+    if (!confirm(`Are you sure you want to remove this student from "${subjectName}"?`)) return;
+    setRemovingSubjectId(subjectId);
+    try {
+      const res = await fetch(`/api/doctor/students/${studentId}/subjects/${subjectId}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to remove subject');
+      toast.success(`Removed student from ${subjectName}`);
+
+      // Update selectedStudent in state
+      setSelectedStudent(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          subjects: prev.subjects?.filter(s => s !== subjectName),
+          enrolledSubjects: prev.enrolledSubjects?.filter(s => s.id !== subjectId),
+        };
+      });
+
+      // Update activeStudents list
+      setActiveStudents(prev =>
+        prev.map(s => {
+          if (s.id !== studentId) return s;
+          return {
+            ...s,
+            subjects: s.subjects?.filter(sub => sub !== subjectName),
+            enrolledSubjects: s.enrolledSubjects?.filter(sub => sub.id !== subjectId),
+          };
+        })
+      );
+    } catch (err: any) {
+      toast.error(err.message || 'Error removing subject');
+    } finally {
+      setRemovingSubjectId(null);
+    }
+  };
 
   const fetchEnrollmentRequests = useCallback(async () => {
     const res = await fetch('/api/doctor/enrollment-requests');
@@ -662,19 +705,57 @@ export default function StudentsPage() {
                   </p>
                 </div>
               </div>
-              {selectedStudent.subjects && selectedStudent.subjects.length > 0 && (
-                <div className="flex items-start gap-3 p-2.5 bg-slate-50 dark:bg-[#0a1628]/60 rounded-xl">
-                  <GraduationCap size={15} className="text-indigo-500 dark:text-[#00c896] shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-[10px] text-slate-400 uppercase font-bold mb-1">Subjects</p>
-                    <div className="flex flex-wrap gap-1">
-                      {selectedStudent.subjects.map((sub: string) => (
-                        <span key={sub} className="text-[10px] bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full font-medium">{sub}</span>
-                      ))}
-                    </div>
+              {/* Enrolled Subjects with Remove button */}
+              <div className="flex items-start gap-3 p-2.5 bg-slate-50 dark:bg-[#0a1628]/60 rounded-xl">
+                <GraduationCap size={15} className="text-indigo-500 dark:text-[#00c896] shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <p className="text-[10px] text-slate-400 uppercase font-bold">Enrolled Subjects</p>
+                    <span className="text-[10px] text-slate-400">
+                      {(selectedStudent.enrolledSubjects?.length ?? selectedStudent.subjects?.length ?? 0)} subjects
+                    </span>
                   </div>
+                  {(!selectedStudent.enrolledSubjects || selectedStudent.enrolledSubjects.length === 0) &&
+                   (!selectedStudent.subjects || selectedStudent.subjects.length === 0) ? (
+                    <p className="text-xs text-slate-400 italic">No enrolled subjects</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedStudent.enrolledSubjects && selectedStudent.enrolledSubjects.length > 0 ? (
+                        selectedStudent.enrolledSubjects.map(sub => (
+                          <div
+                            key={sub.id}
+                            className="inline-flex items-center gap-1.5 text-[11px] bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/60 pl-2.5 pr-1.5 py-0.5 rounded-full font-medium"
+                          >
+                            <span>{sub.name}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveSubject(selectedStudent.id, sub.id, sub.name)}
+                              disabled={removingSubjectId === sub.id}
+                              title="Remove student from this subject"
+                              className="w-4 h-4 rounded-full bg-indigo-200/70 dark:bg-indigo-800/70 hover:bg-red-500 hover:text-white flex items-center justify-center transition-colors text-indigo-700 dark:text-indigo-200"
+                            >
+                              {removingSubjectId === sub.id ? (
+                                <Loader2 size={10} className="animate-spin" />
+                              ) : (
+                                <X size={10} />
+                              )}
+                            </button>
+                          </div>
+                        ))
+                      ) : (
+                        selectedStudent.subjects?.map((sub: string) => (
+                          <span
+                            key={sub}
+                            className="text-[10px] bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full font-medium"
+                          >
+                            {sub}
+                          </span>
+                        ))
+                      )}
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
               <div className="flex items-center gap-3 p-2.5 bg-slate-50 dark:bg-[#0a1628]/60 rounded-xl">
                 <Mail size={15} className="text-indigo-500 dark:text-[#00c896] shrink-0" />
                 <div>

@@ -21,40 +21,100 @@ export async function GET(req: NextRequest) {
   if (!subject) return NextResponse.json({ error: 'Subject not found' }, { status: 404 });
 
   // Get students enrolled in this subject:
-  // 1. Core: same dept + academicYear + semester
-  // 2. Extra: explicitly enrolled via student_subjects
-  const coreStudents = await db.$queryRaw<{ id: string; name: string; studentCode: string }[]>`
+  // 1. Explicitly enrolled via student_subjects
+  // 2. OR legacy students (0 records in student_subjects) matching dept + academicYear + semester
+  const students = await db.$queryRaw<{ id: string; name: string; studentCode: string }[]>`
     SELECT st.id, u.name, st."studentCode"
     FROM students st
     JOIN users u ON u.id = st."userId"
-    WHERE st."departmentId" = ${subject.departmentId}
-      AND st."academicYear" = ${subject.academicYear}
-      AND st.semester = ${subject.semester}
-      AND u.status = 'ACTIVE'
+    WHERE u.status = 'ACTIVE'
+      AND (
+        EXISTS (
+          SELECT 1 FROM student_subjects ss
+          WHERE ss."studentId" = st.id AND ss."subjectId" = ${subjectId}
+        )
+        OR (
+          NOT EXISTS (SELECT 1 FROM student_subjects ss2 WHERE ss2."studentId" = st.id)
+          AND st."departmentId" = ${subject.departmentId}
+          AND st."academicYear" = ${subject.academicYear}
+          AND st.semester = ${subject.semester}
+        )
+      )
     ORDER BY u.name ASC
   `;
 
-  const coreIds = new Set(coreStudents.map(s => s.id));
+  const now = new Date();
+  const studentIds = students.map(s => s.id);
 
-  // Extra: explicitly enrolled in this subject but not in core
-  const extraEnrolled = await db.$queryRaw<{ studentId: string }[]>`
-    SELECT ss."studentId" FROM student_subjects ss WHERE ss."subjectId" = ${subjectId}
-  `;
-  const extraIds = extraEnrolled.map(e => e.studentId).filter(id => !coreIds.has(id));
+  // 1. Assignments & Submissions
+  const assignments = await db.assignment.findMany({
+    where: {
+      isActive: true,
+      OR: [
+        { subjectId },
+        { departmentId: subject.departmentId, academicYear: subject.academicYear, subjectId: null },
+      ],
+    },
+    select: { id: true, title: true, maxScore: true },
+  });
+  const assignmentIds = assignments.map(a => a.id);
+  const submissions = assignmentIds.length > 0 && studentIds.length > 0
+    ? await db.assignmentSubmission.findMany({
+        where: {
+          assignmentId: { in: assignmentIds },
+          studentId: { in: studentIds },
+          status: 'GRADED',
+        },
+        include: { assignment: { select: { title: true, maxScore: true } } },
+        orderBy: { submittedAt: 'desc' },
+      })
+    : [];
 
-  let extraStudents: { id: string; name: string; studentCode: string }[] = [];
-  if (extraIds.length > 0) {
-    extraStudents = await db.$queryRaw<{ id: string; name: string; studentCode: string }[]>`
-      SELECT st.id, u.name, st."studentCode"
-      FROM students st
-      JOIN users u ON u.id = st."userId"
-      WHERE st.id = ANY(${extraIds}::text[])
-        AND u.status = 'ACTIVE'
-      ORDER BY u.name ASC
-    `;
-  }
+  // 2. Quizzes & Attempts
+  const quizzes = await db.quiz.findMany({
+    where: {
+      OR: [
+        { subjectId },
+        { departmentId: subject.departmentId, academicYear: subject.academicYear, subjectId: null },
+      ],
+    },
+    select: { id: true, title: true },
+  });
+  const quizIds = quizzes.map(q => q.id);
+  const quizAttempts = quizIds.length > 0 && studentIds.length > 0
+    ? await db.quizAttempt.findMany({
+        where: {
+          quizId: { in: quizIds },
+          studentId: { in: studentIds },
+          status: 'COMPLETED',
+        },
+        include: { quiz: { select: { title: true } } },
+        orderBy: { completedAt: 'desc' },
+      })
+    : [];
 
-  const students = [...coreStudents, ...extraStudents];
+  // 3. Attendance Sessions & Records
+  const attendanceSessions = await db.attendanceSession.findMany({
+    where: {
+      closeTime: { lt: now },
+      OR: [
+        { subjectId },
+        { departmentId: subject.departmentId, academicYear: subject.academicYear, subjectId: null },
+      ],
+    },
+    select: { id: true },
+  });
+  const sessionIds = attendanceSessions.map(s => s.id);
+  const attendances = sessionIds.length > 0 && studentIds.length > 0
+    ? await db.attendance.findMany({
+        where: {
+          sessionId: { in: sessionIds },
+          studentId: { in: studentIds },
+          verificationMethod: { not: 'ABSENT' },
+        },
+        select: { studentId: true },
+      })
+    : [];
 
   const grades = await db.examResult.findMany({
     where: { subjectId },
@@ -66,15 +126,54 @@ export async function GET(req: NextRequest) {
     gradeMap[g.studentId][g.examType] = g.score;
   });
 
-  return NextResponse.json({
-    success: true,
-    subject,
-    students: students.map(s => ({
+  const studentsWithActivity = students.map(s => {
+    // Latest graded assignment
+    const studentSubs = submissions.filter(sub => sub.studentId === s.id);
+    const latestSub = studentSubs[0];
+    const assignmentActivity = latestSub && latestSub.score !== null ? {
+      score: latestSub.score,
+      maxScore: latestSub.assignment.maxScore ?? 100,
+      percentage: Math.round((latestSub.score / (latestSub.assignment.maxScore || 100)) * 100),
+      title: latestSub.assignment.title,
+    } : null;
+
+    // Latest completed quiz
+    const studentQuizzes = quizAttempts.filter(qa => qa.studentId === s.id);
+    const latestQuiz = studentQuizzes[0];
+    const quizActivity = latestQuiz && latestQuiz.score !== null ? {
+      score: latestQuiz.score,
+      maxScore: latestQuiz.maxScore ?? 100,
+      percentage: latestQuiz.percentage ?? Math.round((latestQuiz.score / (latestQuiz.maxScore || 100)) * 100),
+      title: latestQuiz.quiz.title,
+    } : null;
+
+    // Attendance
+    const attendedCount = attendances.filter(a => a.studentId === s.id).length;
+    const totalSessions = sessionIds.length;
+    const attendancePct = totalSessions > 0 ? Math.round((attendedCount / totalSessions) * 100) : 100;
+    const attendanceActivity = {
+      attended: attendedCount,
+      total: totalSessions,
+      percentage: attendancePct,
+    };
+
+    return {
       id: s.id,
       name: s.name,
       studentCode: s.studentCode,
       grades: gradeMap[s.id] || {},
-    })),
+      activityScores: {
+        ASSIGNMENT: assignmentActivity,
+        QUIZ: quizActivity,
+        ATTENDANCE: attendanceActivity,
+      },
+    };
+  });
+
+  return NextResponse.json({
+    success: true,
+    subject,
+    students: studentsWithActivity,
   });
 }
 

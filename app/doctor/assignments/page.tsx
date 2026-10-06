@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import {
   Plus, FileText, ExternalLink, Users,
-  History, X, Trash2, ChevronRight, Loader2, Search, Filter, Lock, Unlock
+  History, X, Trash2, ChevronRight, Loader2, Search, Filter, Lock, Unlock, Check
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useI18n } from '@/lib/i18n';
 import {
   getAssignmentsAction,
@@ -61,6 +62,7 @@ export default function AssignmentsPage() {
   // Grading state
   const [maxScoreInput, setMaxScoreInput] = useState<string>('');
   const [updatingMaxScore, setUpdatingMaxScore] = useState(false);
+  const [studentScores, setStudentScores] = useState<Record<string, string>>({});
   const [gradingLoading, setGradingLoading] = useState<string | null>(null);
 
   const academicYearsByDept: Record<string, { value: string; label: string }[]> = {
@@ -115,6 +117,11 @@ export default function AssignmentsPage() {
     if (json.success) {
       setSelected(json.data);
       setMaxScoreInput(String(json.data.maxScore));
+      const initialScores: Record<string, string> = {};
+      json.data.submissions.forEach((s: Submission) => {
+        initialScores[s.id] = s.score !== null ? String(s.score) : String(json.data.maxScore);
+      });
+      setStudentScores(initialScores);
     }
     setDetailLoading(false);
   };
@@ -167,12 +174,12 @@ export default function AssignmentsPage() {
 
   const handleUpdateMaxScore = async () => {
     if (!maxScoreInput || maxScoreInput.trim() === '') {
-      alert('Please enter a max score');
+      toast.error('Please enter a max score');
       return;
     }
     const newMaxScore = Number(maxScoreInput);
     if (isNaN(newMaxScore) || newMaxScore <= 0) {
-      alert('Max score must be a positive number');
+      toast.error('Max score must be a positive number');
       return;
     }
 
@@ -185,37 +192,58 @@ export default function AssignmentsPage() {
       });
       const json = await res.json();
       if (json.success) {
-        // Refresh details
         if (selected) await openDetails(selected.id);
-        alert('Max score updated successfully!');
+        toast.success('Max score updated successfully!');
       } else {
-        alert('Error: ' + (json.error || 'Failed to update'));
+        toast.error('Error: ' + (json.error || 'Failed to update'));
       }
     } catch (error) {
-      alert('Error updating max score');
+      toast.error('Error updating max score');
     }
     setUpdatingMaxScore(false);
   };
 
-  const handleGradeSubmission = async (submissionId: string) => {
+  const handleGradeSubmission = async (submissionId: string, customScore?: number) => {
     if (!selected) return;
+    
+    let scoreToSubmit: number;
+    if (customScore !== undefined) {
+      scoreToSubmit = customScore;
+    } else {
+      const raw = studentScores[submissionId];
+      if (raw === undefined || raw.trim() === '') {
+        scoreToSubmit = selected.maxScore;
+      } else {
+        scoreToSubmit = Number(raw);
+      }
+    }
+
+    if (isNaN(scoreToSubmit) || scoreToSubmit < 0) {
+      toast.error('Please enter a valid non-negative score');
+      return;
+    }
+
+    if (scoreToSubmit > selected.maxScore) {
+      toast.error(`Score cannot exceed max score (${selected.maxScore})`);
+      return;
+    }
     
     setGradingLoading(submissionId);
     try {
       const res = await fetch(`/api/assignments/${selected.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ submissionId, score: selected.maxScore }),
+        body: JSON.stringify({ submissionId, score: scoreToSubmit }),
       });
       const json = await res.json();
       if (json.success) {
-        // Refresh details
+        toast.success(`Score saved (${scoreToSubmit}/${selected.maxScore})`);
         await openDetails(selected.id);
       } else {
-        alert('Error: ' + (json.error || 'Failed to grade'));
+        toast.error(json.error || 'Failed to grade');
       }
-    } catch (error) {
-      alert('Error grading submission');
+    } catch (error: any) {
+      toast.error(error.message || 'Error grading submission');
     }
     setGradingLoading(null);
   };
@@ -444,43 +472,60 @@ export default function AssignmentsPage() {
                             </div>
                             
                             {/* Grading Section */}
-                            {sub.status === 'GRADED' ? (
-                              <div className="flex items-center justify-between bg-green-50 dark:bg-green-900/20 rounded-xl p-2.5">
-                                <div className="flex items-center gap-2">
-                                  <div className="w-6 h-6 rounded-lg bg-green-100 dark:bg-green-900/40 flex items-center justify-center">
-                                    <svg className="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                    </svg>
-                                  </div>
-                                  <div>
-                                    <p className="text-xs font-bold text-green-700 dark:text-green-400">Graded</p>
-                                    <p className="text-[10px] text-slate-400">
-                                      {sub.gradedAt && new Date(sub.gradedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                    </p>
-                                  </div>
-                                </div>
-                                <div className="text-right">
-                                  <p className="text-lg font-black text-green-700 dark:text-green-400">{sub.score}</p>
-                                  <p className="text-[10px] text-slate-400">/ {selected.maxScore}</p>
+                            <div className="flex flex-wrap items-center justify-between gap-2 bg-white dark:bg-slate-800/80 rounded-xl p-2.5 border border-slate-200/80 dark:border-slate-600/60">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Score:</span>
+                                <div className="flex items-center gap-1.5">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    max={selected.maxScore}
+                                    step="any"
+                                    placeholder={String(selected.maxScore)}
+                                    value={studentScores[sub.id] ?? (sub.score !== null ? String(sub.score) : String(selected.maxScore))}
+                                    onChange={e => setStudentScores(prev => ({ ...prev, [sub.id]: e.target.value }))}
+                                    className="w-20 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg px-2.5 py-1 text-xs font-black text-slate-800 dark:text-slate-100 text-center focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                  />
+                                  <span className="text-xs font-bold text-slate-400">/ {selected.maxScore}</span>
                                 </div>
                               </div>
-                            ) : (
-                              <div className="flex justify-end">
+
+                              <div className="flex items-center gap-1.5">
+                                {sub.status === 'GRADED' && (
+                                  <span className="text-[10px] font-bold bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 px-2 py-1 rounded-md">
+                                    Saved ({sub.score})
+                                  </span>
+                                )}
                                 <button
+                                  type="button"
                                   onClick={() => handleGradeSubmission(sub.id)}
                                   disabled={gradingLoading === sub.id}
-                                  className="flex items-center gap-1.5 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                  className="flex items-center gap-1 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
+                                  title="Save specific score for this student"
+                                >
                                   {gradingLoading === sub.id ? (
-                                    <Loader2 size={13} className="animate-spin" />
+                                    <Loader2 size={12} className="animate-spin" />
                                   ) : (
-                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                    </svg>
+                                    <Check size={12} />
                                   )}
-                                  Approve ({selected.maxScore})
+                                  {sub.status === 'GRADED' ? 'Update' : 'Save'}
                                 </button>
+                                {sub.status !== 'GRADED' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setStudentScores(prev => ({ ...prev, [sub.id]: String(selected.maxScore) }));
+                                      handleGradeSubmission(sub.id, selected.maxScore);
+                                    }}
+                                    disabled={gradingLoading === sub.id}
+                                    className="flex items-center gap-1 px-2.5 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
+                                    title="Approve with full max score"
+                                  >
+                                    Full ({selected.maxScore})
+                                  </button>
+                                )}
                               </div>
-                            )}
+                            </div>
                           </div>
                         ))}
                       </div>
