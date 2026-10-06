@@ -15,21 +15,27 @@ export async function DELETE(_: Request, { params }: { params: { id: string } })
     const student = await db.student.findUnique({ where: { id: params.id } });
     if (!student) return NextResponse.json({ success: false }, { status: 404 });
 
+    const userId = student.userId;
+
     // Delete all student-related data
-    await db.examResult.deleteMany({ where: { studentId: student.id } });
-    await db.attendance.deleteMany({ where: { studentId: student.id } });
-    await db.assignmentSubmission.deleteMany({ where: { studentId: student.id } });
-    await db.quizAttempt.deleteMany({ where: { studentId: student.id } });
-    await db.notification.deleteMany({ where: { userId: student.userId } });
+    await db.examResult.deleteMany({ where: { studentId: student.id } }).catch(() => {});
+    await db.attendance.deleteMany({ where: { studentId: student.id } }).catch(() => {});
+    await db.assignmentSubmission.deleteMany({ where: { studentId: student.id } }).catch(() => {});
+    await db.quizAttempt.deleteMany({ where: { studentId: student.id } }).catch(() => {});
+    await db.$executeRaw`DELETE FROM student_subjects WHERE "studentId" = ${student.id}`.catch(() => {});
+    await db.$executeRaw`DELETE FROM enrollment_requests WHERE "studentId" = ${student.id}`.catch(() => {});
+    if (userId) {
+      await db.notification.deleteMany({ where: { userId } }).catch(() => {});
+      await db.loginHistory.deleteMany({ where: { userId } }).catch(() => {});
+    }
 
     // Delete the student record
-    await db.student.delete({ where: { id: student.id } });
+    await db.student.delete({ where: { id: student.id } }).catch(() => {});
 
-    // Suspend the user account so they can't login or re-register with same email
-    await db.user.update({
-      where: { id: student.userId },
-      data: { status: 'SUSPENDED', name: null, image: null },
-    });
+    // Completely delete the user account so they can register again
+    if (userId) {
+      await db.user.delete({ where: { id: userId } }).catch(() => {});
+    }
 
     return NextResponse.json({ success: true });
   } catch (e) {

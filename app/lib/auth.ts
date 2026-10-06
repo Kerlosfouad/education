@@ -108,9 +108,8 @@ export const authOptions: NextAuthOptions = {
             dbUser.status = 'ACTIVE';
           }
 
-          // Always reset to PENDING if no student record (re-registration case)
-          // But don't override REJECTED or SUSPENDED status
-          if (!dbUser.student && dbUser.role === 'STUDENT' && dbUser.status !== 'REJECTED' && dbUser.status !== 'SUSPENDED') {
+          // Always reset to PENDING if no student record (re-registration / deleted student case)
+          if (!dbUser.student && dbUser.role === 'STUDENT' && dbUser.status !== 'REJECTED') {
             await db.user.update({
               where: { id: dbUser.id },
               data: { status: 'PENDING' },
@@ -118,7 +117,7 @@ export const authOptions: NextAuthOptions = {
             dbUser.status = 'PENDING';
           }
 
-          // Block suspended users from logging in via Google too
+          // Block suspended users (if they still have an active record that was suspended)
           if (dbUser.status === 'SUSPENDED') {
             throw new Error('Account suspended');
           }

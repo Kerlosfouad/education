@@ -63,13 +63,21 @@ export async function POST(req: NextRequest) {
 
     const existingUser = await db.user.findUnique({
       where: { email: normalizedEmail },
+      include: { student: true },
     });
 
     if (existingUser) {
-      return NextResponse.json(
-        { error: 'Email already registered' },
-        { status: 409 }
-      );
+      // If user has no student profile (e.g. was deleted previously by doctor), clean up old record so they can register fresh
+      if (!existingUser.student && existingUser.role === 'STUDENT') {
+        await db.notification.deleteMany({ where: { userId: existingUser.id } }).catch(() => {});
+        await db.loginHistory.deleteMany({ where: { userId: existingUser.id } }).catch(() => {});
+        await db.user.delete({ where: { id: existingUser.id } }).catch(() => {});
+      } else {
+        return NextResponse.json(
+          { error: 'Email already registered' },
+          { status: 409 }
+        );
+      }
     }
 
     const hashedPassword = await hashPassword(password);
