@@ -343,92 +343,92 @@ export default function AssignmentsPage() {
           </div>
 
           {/* Filter Bar on Assignments */}
-          <div className="flex flex-wrap gap-2 mb-4">
-            <div className="relative flex-1 min-w-[140px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+          <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-4">
+            <div className="relative flex-1 min-w-[120px]">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" size={13} />
               <input type="text" placeholder="Search..." value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-600 rounded-xl text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20" />
+                className="w-full pl-7 pr-2.5 py-1.5 sm:py-2 bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-600 rounded-xl text-xs sm:text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20" />
             </div>
             <select value={filterDept} onChange={e => { setFilterDept(e.target.value); setFilterLevel(''); setFilterSubject(''); }}
-              className="px-3 py-2 bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-600 rounded-xl text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+              className="px-2.5 py-1.5 sm:py-2 bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-600 rounded-xl text-xs sm:text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
               <option value="">All Depts</option>
               {departments.map(d => <option key={d.id} value={d.name}>{d.name}</option>)}
             </select>
             <select value={filterLevel} onChange={e => { setFilterLevel(e.target.value); setFilterSubject(''); }}
-              className="px-3 py-2 bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-600 rounded-xl text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+              className="px-2.5 py-1.5 sm:py-2 bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-600 rounded-xl text-xs sm:text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
               <option value="">All Levels</option>
               {filterAvailableLevels.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
             </select>
             <select value={filterSemester} onChange={e => { setFilterSemester(e.target.value); setFilterSubject(''); }}
-              className="px-3 py-2 bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-600 rounded-xl text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+              className="px-2.5 py-1.5 sm:py-2 bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-600 rounded-xl text-xs sm:text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
               <option value="">All Semesters</option>
               <option value="1">Semester 1</option>
               <option value="2">Semester 2</option>
             </select>
             <select value={filterSubject} onChange={e => setFilterSubject(e.target.value)}
-              className="px-3 py-2 bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-600 rounded-xl text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+              className="px-2.5 py-1.5 sm:py-2 bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-600 rounded-xl text-xs sm:text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 max-w-[140px] truncate">
               <option value="">All Subjects</option>
               {filteredSubjectsForDropdown.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
             {(filterDept || filterLevel || filterSemester || filterSubject || search) && (
               <button onClick={() => { setFilterDept(''); setFilterLevel(''); setFilterSemester(''); setFilterSubject(''); setSearch(''); }}
-                className="flex items-center gap-1 px-3 py-2 text-xs text-red-500 bg-red-50 dark:bg-red-900/20 rounded-xl hover:bg-red-100 transition-colors">
-                <X size={13} /> Reset
+                className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-red-500 bg-red-50 dark:bg-red-900/20 rounded-xl hover:bg-red-100 transition-colors">
+                <X size={12} /> Reset
               </button>
             )}
           </div>
 
           {filteredAssignments.length === 0 ? (
-            <div className="text-center py-16 text-slate-400">
-              <FileText size={40} className="mx-auto mb-3 opacity-30" />
-              <p>{assignments.length === 0 ? t('noAssignmentsYet') : 'No assignments match filters'}</p>
+            <div className="text-center py-12 text-slate-400">
+              <FileText size={36} className="mx-auto mb-2 opacity-30" />
+              <p className="text-xs sm:text-sm">{assignments.length === 0 ? t('noAssignmentsYet') : 'No assignments match filters'}</p>
             </div>
           ) : (
-            <div className="space-y-3 max-h-[520px] overflow-y-auto pr-1">
+            <div className="space-y-2.5 max-h-[520px] overflow-y-auto pr-1">
               {filteredAssignments.map(a => {
                 const isNew = Date.now() - new Date(a.createdAt).getTime() < 24 * 60 * 60 * 1000;
                 const isSelected = selected?.id === a.id;
                 return (
                   <div key={a.id}
-                    className={`flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer ${
+                    className={`flex items-center justify-between p-3 sm:p-3.5 rounded-xl sm:rounded-2xl border transition-all cursor-pointer ${
                       isSelected
                         ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-700'
                         : 'bg-slate-50 dark:bg-slate-700/40 border-slate-100 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-700'
                     }`}
                     onClick={() => openDetails(a.id)}
                   >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isNew ? 'bg-green-100 dark:bg-green-900/30' : 'bg-slate-100 dark:bg-slate-600'}`}>
-                        <FileText size={18} className={isNew ? 'text-green-600' : 'text-slate-400'} />
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl flex-shrink-0 flex items-center justify-center ${isNew ? 'bg-green-100 dark:bg-green-900/30' : 'bg-slate-100 dark:bg-slate-600'}`}>
+                        <FileText size={16} className={isNew ? 'text-green-600' : 'text-slate-400'} />
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-bold text-slate-800 dark:text-slate-100 text-sm">{a.title}</p>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <p className="font-bold text-slate-800 dark:text-slate-100 text-xs sm:text-sm truncate">{a.title}</p>
                           {a.subject?.name && (
-                            <span className="text-[10px] font-bold bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded-md">
+                            <span className="text-[10px] font-bold bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded-md">
                               {a.subject.name}
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-slate-400 mt-0.5">
-                          {a.department?.name ? `${a.department.name} • Level ${a.academicYear ?? ''} • Sem ${a.semester ?? ''} • ` : ''}
-                          {new Date(a.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} &bull; {a._count?.submissions ?? 0} submissions · Deadline: {a.deadline ? new Date(a.deadline).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+                        <p className="text-[11px] text-slate-400 mt-0.5 truncate">
+                          {a.department?.name ? `${a.department.name} • L${a.academicYear ?? ''} • S${a.semester ?? ''} • ` : ''}
+                          {new Date(a.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} &bull; {a._count?.submissions ?? 0} subs
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {isNew && <span className="text-[10px] font-black bg-green-100 dark:bg-green-900/30 text-green-600 px-2 py-1 rounded-full">New</span>}
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      {isNew && <span className="text-[9px] font-black bg-green-100 dark:bg-green-900/30 text-green-600 px-1.5 py-0.5 rounded-full">New</span>}
                       <button onClick={e => { e.stopPropagation(); handleToggleActive(a.id, e); }}
                         title={a.isActive ? 'Close assignment' : 'Open assignment'}
                         className={`p-1.5 rounded-lg transition-colors ${a.isActive ? 'text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>
-                        {a.isActive ? <Unlock size={15} /> : <Lock size={15} />}
+                        {a.isActive ? <Unlock size={14} /> : <Lock size={14} />}
                       </button>
                       <button onClick={e => { e.stopPropagation(); handleDelete(a.id); }}
                         className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
-                        <Trash2 size={15} />
+                        <Trash2 size={14} />
                       </button>
-                      <ChevronRight size={16} className={`text-slate-300 transition-transform ${isSelected ? 'rotate-90 text-indigo-500' : ''}`} />
+                      <ChevronRight size={15} className={`text-slate-300 transition-transform ${isSelected ? 'rotate-90 text-indigo-500' : ''}`} />
                     </div>
                   </div>
                 );
@@ -438,15 +438,15 @@ export default function AssignmentsPage() {
         </div>
 
         {/* Details Panel */}
-        <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm p-6">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl sm:rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm p-4 sm:p-6">
           {detailLoading ? (
-            <div className="flex items-center justify-center h-full min-h-[200px]">
-              <Loader2 className="animate-spin text-indigo-500" size={32} />
+            <div className="flex items-center justify-center h-full min-h-[180px]">
+              <Loader2 className="animate-spin text-indigo-500" size={28} />
             </div>
           ) : !selected ? (
-            <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-slate-400">
-              <ChevronRight size={40} className="opacity-20 mb-3" />
-              <p className="text-sm">Select an assignment to view submissions</p>
+            <div className="flex flex-col items-center justify-center h-full min-h-[180px] text-slate-400">
+              <ChevronRight size={36} className="opacity-20 mb-2" />
+              <p className="text-xs sm:text-sm">Select an assignment to view submissions</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -454,9 +454,9 @@ export default function AssignmentsPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-black text-slate-800 dark:text-slate-100 text-lg">{selected.title}</h3>
+                    <h3 className="font-black text-slate-800 dark:text-slate-100 text-base sm:text-lg">{selected.title}</h3>
                     {selected.subject?.name && (
-                      <span className="text-xs font-bold bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-2.5 py-1 rounded-lg">
+                      <span className="text-[11px] font-bold bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded-md">
                         {selected.subject.name}
                       </span>
                     )}
@@ -470,36 +470,36 @@ export default function AssignmentsPage() {
                 </div>
                 {selected.fileUrl && (
                   <a href={selected.fileUrl} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-xs bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 font-bold px-3 py-2 rounded-xl hover:bg-indigo-100 transition-colors">
+                    className="flex items-center gap-1 text-xs bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 font-bold px-2.5 py-1.5 rounded-xl hover:bg-indigo-100 transition-colors">
                     <ExternalLink size={12} /> Form
                   </a>
                 )}
               </div>
 
               {/* Stats */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-slate-50 dark:bg-slate-700/50 rounded-2xl p-3 text-center">
-                  <p className="text-2xl font-black text-slate-800 dark:text-slate-100">{selected.submissions.length}</p>
-                  <p className="text-xs text-slate-400 mt-0.5">Submitted</p>
+              <div className="grid grid-cols-2 gap-2.5">
+                <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl sm:rounded-2xl p-2.5 text-center">
+                  <p className="text-xl sm:text-2xl font-black text-slate-800 dark:text-slate-100">{selected.submissions.length}</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Submitted</p>
                 </div>
-                <div className="bg-green-50 dark:bg-green-900/20 rounded-2xl p-3 text-center">
-                  <p className="text-2xl font-black text-green-700 dark:text-green-400">{selected.submissions.filter(s => s.status === 'GRADED').length}</p>
-                  <p className="text-xs text-slate-400 mt-0.5">Graded</p>
+                <div className="bg-green-50 dark:bg-green-900/20 rounded-xl sm:rounded-2xl p-2.5 text-center">
+                  <p className="text-xl sm:text-2xl font-black text-green-700 dark:text-green-400">{selected.submissions.filter(s => s.status === 'GRADED').length}</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Graded</p>
                 </div>
               </div>
 
               {/* Submissions list */}
               {selected.submissions.length === 0 ? (
-                <div className="text-center py-10 text-slate-400">
-                  <Users size={36} className="mx-auto mb-2 opacity-30" />
-                  <p className="text-sm">{t('noSubmissionsYet')}</p>
+                <div className="text-center py-8 text-slate-400">
+                  <Users size={32} className="mx-auto mb-2 opacity-30" />
+                  <p className="text-xs sm:text-sm">{t('noSubmissionsYet')}</p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {/* Max Score Input */}
-                  <div className="flex items-end gap-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl p-3 border border-indigo-200 dark:border-indigo-800">
+                  <div className="flex items-end gap-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl sm:rounded-2xl p-2.5 border border-indigo-200 dark:border-indigo-800">
                     <div className="flex-1">
-                      <label className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase mb-1.5 block">
+                      <label className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase mb-1 block">
                         Max Score (current: {selected.maxScore})
                       </label>
                       <input
@@ -508,14 +508,14 @@ export default function AssignmentsPage() {
                         placeholder={String(selected.maxScore)}
                         value={maxScoreInput}
                         onChange={e => setMaxScoreInput(e.target.value)}
-                        className="w-full bg-white dark:bg-slate-700 border border-indigo-300 dark:border-indigo-700 rounded-xl px-3 py-2 text-sm font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full bg-white dark:bg-slate-700 border border-indigo-300 dark:border-indigo-700 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       />
                     </div>
                     <button
                       onClick={handleUpdateMaxScore}
                       disabled={updatingMaxScore || maxScoreInput === String(selected.maxScore)}
-                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold transition-colors disabled:opacity-50 flex items-center gap-1.5 shrink-0">
-                      {updatingMaxScore ? <Loader2 size={14} className="animate-spin" /> : (
+                      className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50 flex items-center gap-1 shrink-0">
+                      {updatingMaxScore ? <Loader2 size={12} className="animate-spin" /> : (
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
@@ -524,7 +524,7 @@ export default function AssignmentsPage() {
                     </button>
                   </div>
 
-                  <div className="max-h-[420px] overflow-y-auto pr-1 space-y-4">
+                  <div className="max-h-[380px] overflow-y-auto pr-1 space-y-3">
                   {/* Group by department + year */}
                   {Object.entries(
                     selected.submissions
@@ -536,40 +536,40 @@ export default function AssignmentsPage() {
                     }, {} as Record<string, Submission[]>)
                   ).map(([groupKey, subs]) => (
                     <div key={groupKey}>
-                      <p className="text-xs font-black text-slate-400 uppercase mb-2 px-1">{groupKey}</p>
+                      <p className="text-[11px] font-black text-slate-400 uppercase mb-1.5 px-1">{groupKey}</p>
                       <div className="space-y-2">
                         {subs.map(sub => (
-                          <div key={sub.id} className="bg-slate-50 dark:bg-slate-700/40 rounded-2xl p-3 space-y-3">
+                          <div key={sub.id} className="bg-slate-50 dark:bg-slate-700/40 rounded-xl p-2.5 space-y-2">
                             <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 font-bold text-xs">
+                              <div className="flex items-center gap-2">
+                                <div className="w-7 h-7 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 font-bold text-xs">
                                   {sub.student.user.name?.charAt(0)}
                                 </div>
                                 <div>
-                                  <p className="font-bold text-slate-800 dark:text-slate-100 text-sm">{sub.student.user.name}</p>
-                                  <p className="text-xs text-slate-400">{sub.student.studentCode} · {new Date(sub.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
+                                  <p className="font-bold text-slate-800 dark:text-slate-100 text-xs sm:text-sm">{sub.student.user.name}</p>
+                                  <p className="text-[11px] text-slate-400">{sub.student.studentCode} · {new Date(sub.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
                                 </div>
                               </div>
                               {sub.fileUrl ? (
-                                <div className="flex gap-1.5">
+                                <div className="flex gap-1">
                                   <a href={sub.fileUrl.startsWith('data:') ? `/api/assignments/submissions/${sub.id}/file` : sub.fileUrl} target="_blank" rel="noopener noreferrer"
-                                    className="flex items-center gap-1 text-xs bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 font-bold px-2.5 py-1.5 rounded-xl hover:bg-indigo-100 transition-colors">
-                                    <ExternalLink size={11} /> View
+                                    className="flex items-center gap-1 text-[11px] bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 font-bold px-2 py-1 rounded-lg hover:bg-indigo-100 transition-colors">
+                                    <ExternalLink size={10} /> View
                                   </a>
-                                  <span className="flex items-center gap-1 text-xs bg-slate-100 dark:bg-slate-600 text-slate-600 dark:text-slate-300 font-bold px-2.5 py-1.5 rounded-xl">
-                                    <FileText size={11} /> {sub.totalSubmissions}
+                                  <span className="flex items-center gap-1 text-[11px] bg-slate-100 dark:bg-slate-600 text-slate-600 dark:text-slate-300 font-bold px-2 py-1 rounded-lg">
+                                    <FileText size={10} /> {sub.totalSubmissions}
                                   </span>
                                 </div>
                               ) : (
-                                <span className="text-xs text-slate-400 bg-slate-100 dark:bg-slate-600 px-2 py-1 rounded-full">No file</span>
+                                <span className="text-[10px] text-slate-400 bg-slate-100 dark:bg-slate-600 px-2 py-0.5 rounded-full">No file</span>
                               )}
                             </div>
                             
                             {/* Grading Section */}
-                            <div className="flex flex-wrap items-center justify-between gap-2 bg-white dark:bg-slate-800/80 rounded-xl p-2.5 border border-slate-200/80 dark:border-slate-600/60">
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Score:</span>
-                                <div className="flex items-center gap-1.5">
+                            <div className="flex flex-wrap items-center justify-between gap-1.5 bg-white dark:bg-slate-800/80 rounded-lg p-2 border border-slate-200/80 dark:border-slate-600/60">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">Score:</span>
+                                <div className="flex items-center gap-1">
                                   <input
                                     type="number"
                                     min="0"
@@ -578,15 +578,15 @@ export default function AssignmentsPage() {
                                     placeholder={String(selected.maxScore)}
                                     value={studentScores[sub.id] ?? (sub.score !== null ? String(sub.score) : String(selected.maxScore))}
                                     onChange={e => setStudentScores(prev => ({ ...prev, [sub.id]: e.target.value }))}
-                                    className="w-20 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg px-2.5 py-1 text-xs font-black text-slate-800 dark:text-slate-100 text-center focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    className="w-16 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md px-1.5 py-0.5 text-xs font-black text-slate-800 dark:text-slate-100 text-center focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                   />
-                                  <span className="text-xs font-bold text-slate-400">/ {selected.maxScore}</span>
+                                  <span className="text-[11px] font-bold text-slate-400">/ {selected.maxScore}</span>
                                 </div>
                               </div>
 
-                              <div className="flex items-center gap-1.5">
+                              <div className="flex items-center gap-1">
                                 {sub.status === 'GRADED' && (
-                                  <span className="text-[10px] font-bold bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 px-2 py-1 rounded-md">
+                                  <span className="text-[9px] font-bold bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 px-1.5 py-0.5 rounded">
                                     Saved ({sub.score})
                                   </span>
                                 )}
@@ -594,13 +594,13 @@ export default function AssignmentsPage() {
                                   type="button"
                                   onClick={() => handleGradeSubmission(sub.id)}
                                   disabled={gradingLoading === sub.id}
-                                  className="flex items-center gap-1 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
+                                  className="flex items-center gap-1 px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-[11px] font-bold transition-colors disabled:opacity-50"
                                   title="Save specific score for this student"
                                 >
                                   {gradingLoading === sub.id ? (
-                                    <Loader2 size={12} className="animate-spin" />
+                                    <Loader2 size={11} className="animate-spin" />
                                   ) : (
-                                    <Check size={12} />
+                                    <Check size={11} />
                                   )}
                                   {sub.status === 'GRADED' ? 'Update' : 'Save'}
                                 </button>
@@ -612,7 +612,7 @@ export default function AssignmentsPage() {
                                       handleGradeSubmission(sub.id, selected.maxScore);
                                     }}
                                     disabled={gradingLoading === sub.id}
-                                    className="flex items-center gap-1 px-2.5 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
+                                    className="flex items-center gap-1 px-2 py-1 bg-green-600 hover:bg-green-700 text-white rounded-md text-[11px] font-bold transition-colors disabled:opacity-50"
                                     title="Approve with full max score"
                                   >
                                     Full ({selected.maxScore})
@@ -635,120 +635,124 @@ export default function AssignmentsPage() {
 
       {/* Create Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-800 w-full max-w-md rounded-3xl p-8 shadow-2xl animate-in zoom-in duration-300">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">New Assignment</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                <X size={24} />
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-800 w-full max-w-sm sm:max-w-md rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-2xl animate-in zoom-in duration-200 max-h-[92vh] overflow-y-auto my-auto">
+            <div className="flex justify-between items-center mb-3 sm:mb-4">
+              <h3 className="text-base sm:text-lg font-bold text-slate-800 dark:text-slate-100">New Assignment</h3>
+              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1">
+                <X size={20} />
               </button>
             </div>
-            <form onSubmit={handleSave} className="space-y-4">
+            <form onSubmit={handleSave} className="space-y-2.5 sm:space-y-3">
               <div>
-                <label className="text-xs font-bold text-slate-400 uppercase mb-2 block">Assignment Title</label>
+                <label className="text-[11px] font-bold text-slate-400 uppercase mb-1 block">Assignment Title *</label>
                 <input required
-                  className="w-full bg-slate-50 dark:bg-slate-700 dark:text-slate-100 border-none rounded-xl p-4 text-sm focus:ring-2 focus:ring-indigo-200 outline-none"
-                  placeholder="e.g., Week 5 Quiz"
+                  className="w-full bg-slate-50 dark:bg-slate-700 dark:text-slate-100 border border-slate-200/80 dark:border-slate-600 rounded-xl px-3 py-2 text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none"
+                  placeholder="e.g., Week 5 Quiz / Sheet"
                   value={newAssignment.title}
                   onChange={e => setNewAssignment({ ...newAssignment, title: e.target.value })}
                 />
               </div>
-              <div>
-                <label className="text-xs font-bold text-slate-400 uppercase mb-2 block">Department *</label>
-                <select
-                  required
-                  className="w-full bg-slate-50 dark:bg-slate-700 dark:text-slate-100 border-none rounded-xl p-4 text-sm focus:ring-2 focus:ring-indigo-200 outline-none"
-                  value={newAssignment.departmentId}
-                  onChange={e => setNewAssignment(p => ({ ...p, departmentId: e.target.value, academicYear: '' }))}
-                >
-                  <option value="">Select department...</option>
-                  {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                </select>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[11px] font-bold text-slate-400 uppercase mb-1 block">Department *</label>
+                  <select
+                    required
+                    className="w-full bg-slate-50 dark:bg-slate-700 dark:text-slate-100 border border-slate-200/80 dark:border-slate-600 rounded-xl px-2.5 py-2 text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none"
+                    value={newAssignment.departmentId}
+                    onChange={e => setNewAssignment(p => ({ ...p, departmentId: e.target.value, academicYear: '' }))}
+                  >
+                    <option value="">Select dept...</option>
+                    {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-slate-400 uppercase mb-1 block">Academic Year *</label>
+                  <select
+                    required
+                    disabled={!newAssignment.departmentId}
+                    className="w-full bg-slate-50 dark:bg-slate-700 dark:text-slate-100 border border-slate-200/80 dark:border-slate-600 rounded-xl px-2.5 py-2 text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none disabled:opacity-50"
+                    value={newAssignment.academicYear}
+                    onChange={e => setNewAssignment(p => ({ ...p, academicYear: e.target.value }))}
+                  >
+                    <option value="">Select year...</option>
+                    {academicYears.map(y => <option key={y.value} value={y.value}>{y.label}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[11px] font-bold text-slate-400 uppercase mb-1 block">Semester *</label>
+                  <select
+                    required
+                    className="w-full bg-slate-50 dark:bg-slate-700 dark:text-slate-100 border border-slate-200/80 dark:border-slate-600 rounded-xl px-2.5 py-2 text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none"
+                    value={newAssignment.semester}
+                    onChange={e => setNewAssignment(p => ({ ...p, semester: e.target.value }))}
+                  >
+                    <option value="1">Semester 1</option>
+                    <option value="2">Semester 2</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-slate-400 uppercase mb-1 flex items-center justify-between">
+                    <span>Subject *</span>
+                    {modalLoadingSubjects && <Loader2 size={11} className="animate-spin text-indigo-500" />}
+                  </label>
+                  <select
+                    required
+                    disabled={!newAssignment.departmentId || newAssignment.academicYear === '' || modalLoadingSubjects}
+                    className="w-full bg-slate-50 dark:bg-slate-700 dark:text-slate-100 border border-slate-200/80 dark:border-slate-600 rounded-xl px-2.5 py-2 text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none disabled:opacity-50"
+                    value={newAssignment.subjectId}
+                    onChange={e => setNewAssignment(p => ({ ...p, subjectId: e.target.value }))}
+                  >
+                    <option value="">
+                      {!newAssignment.departmentId || newAssignment.academicYear === ''
+                        ? 'Select dept/level...'
+                        : modalLoadingSubjects
+                        ? 'Loading...'
+                        : modalSubjects.length === 0
+                        ? 'No subjects'
+                        : 'Select subject...'}
+                    </option>
+                    {modalSubjects.map(s => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
               <div>
-                <label className="text-xs font-bold text-slate-400 uppercase mb-2 block">Academic Year *</label>
-                <select
-                  required
-                  disabled={!newAssignment.departmentId}
-                  className="w-full bg-slate-50 dark:bg-slate-700 dark:text-slate-100 border-none rounded-xl p-4 text-sm focus:ring-2 focus:ring-indigo-200 outline-none disabled:opacity-50"
-                  value={newAssignment.academicYear}
-                  onChange={e => setNewAssignment(p => ({ ...p, academicYear: e.target.value }))}
-                >
-                  <option value="">Select year...</option>
-                  {academicYears.map(y => <option key={y.value} value={y.value}>{y.label}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-bold text-slate-400 uppercase mb-2 block">Semester *</label>
-                <select
-                  required
-                  className="w-full bg-slate-50 dark:bg-slate-700 dark:text-slate-100 border-none rounded-xl p-4 text-sm focus:ring-2 focus:ring-indigo-200 outline-none"
-                  value={newAssignment.semester}
-                  onChange={e => setNewAssignment(p => ({ ...p, semester: e.target.value }))}
-                >
-                  <option value="1">Semester 1</option>
-                  <option value="2">Semester 2</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-bold text-slate-400 uppercase mb-2 flex items-center justify-between">
-                  <span>Subject (المادة) *</span>
-                  {modalLoadingSubjects && <Loader2 size={13} className="animate-spin text-indigo-500" />}
-                </label>
-                <select
-                  required
-                  disabled={!newAssignment.departmentId || newAssignment.academicYear === '' || modalLoadingSubjects}
-                  className="w-full bg-slate-50 dark:bg-slate-700 dark:text-slate-100 border-none rounded-xl p-4 text-sm focus:ring-2 focus:ring-indigo-200 outline-none disabled:opacity-50"
-                  value={newAssignment.subjectId}
-                  onChange={e => setNewAssignment(p => ({ ...p, subjectId: e.target.value }))}
-                >
-                  <option value="">
-                    {!newAssignment.departmentId || newAssignment.academicYear === ''
-                      ? 'Select department and level first...'
-                      : modalLoadingSubjects
-                      ? 'Loading subjects...'
-                      : modalSubjects.length === 0
-                      ? 'No subjects found for this selection'
-                      : 'Select subject...'}
-                  </option>
-                  {modalSubjects.map(s => (
-                    <option key={s.id} value={s.id}>{s.name} ({s.code})</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-bold text-slate-400 uppercase mb-2 block">Start Date & Time *</label>
-                <div className="flex gap-2">
+                <label className="text-[11px] font-bold text-slate-400 uppercase mb-1 block">Start Date & Time *</label>
+                <div className="flex gap-1.5">
                   <input required type="date"
-                    className="flex-1 bg-slate-50 dark:bg-slate-700 dark:text-slate-100 border-none rounded-xl p-4 text-sm focus:ring-2 focus:ring-indigo-200 outline-none"
+                    className="flex-1 bg-slate-50 dark:bg-slate-700 dark:text-slate-100 border border-slate-200/80 dark:border-slate-600 rounded-xl px-2.5 py-2 text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none"
                     value={newAssignment.startDate}
                     onChange={e => setNewAssignment({ ...newAssignment, startDate: e.target.value })}
                   />
                   <input required type="time"
-                    className="w-32 bg-slate-50 dark:bg-slate-700 dark:text-slate-100 border-none rounded-xl p-4 text-sm focus:ring-2 focus:ring-indigo-200 outline-none"
+                    className="w-24 sm:w-28 bg-slate-50 dark:bg-slate-700 dark:text-slate-100 border border-slate-200/80 dark:border-slate-600 rounded-xl px-2 py-2 text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none"
                     value={newAssignment.startTime}
                     onChange={e => setNewAssignment({ ...newAssignment, startTime: e.target.value })}
                   />
                 </div>
               </div>
               <div>
-                <label className="text-xs font-bold text-slate-400 uppercase mb-2 block">End Date & Time (Deadline) *</label>
-                <div className="flex gap-2">
+                <label className="text-[11px] font-bold text-slate-400 uppercase mb-1 block">End Date (Deadline) *</label>
+                <div className="flex gap-1.5">
                   <input required type="date"
-                    className="flex-1 bg-slate-50 dark:bg-slate-700 dark:text-slate-100 border-none rounded-xl p-4 text-sm focus:ring-2 focus:ring-indigo-200 outline-none"
+                    className="flex-1 bg-slate-50 dark:bg-slate-700 dark:text-slate-100 border border-slate-200/80 dark:border-slate-600 rounded-xl px-2.5 py-2 text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none"
                     value={newAssignment.endDate}
                     onChange={e => setNewAssignment({ ...newAssignment, endDate: e.target.value })}
                   />
                   <input required type="time"
-                    className="w-32 bg-slate-50 dark:bg-slate-700 dark:text-slate-100 border-none rounded-xl p-4 text-sm focus:ring-2 focus:ring-indigo-200 outline-none"
+                    className="w-24 sm:w-28 bg-slate-50 dark:bg-slate-700 dark:text-slate-100 border border-slate-200/80 dark:border-slate-600 rounded-xl px-2 py-2 text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none"
                     value={newAssignment.endTime}
                     onChange={e => setNewAssignment({ ...newAssignment, endTime: e.target.value })}
                   />
                 </div>
               </div>
               <button type="submit" disabled={loading}
-                className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold mt-2 hover:bg-indigo-700 transition-all shadow-lg disabled:opacity-50 flex items-center justify-center gap-2">
-                {loading ? <Loader2 size={18} className="animate-spin" /> : <Plus size={18} />}
+                className="w-full py-2.5 sm:py-3 bg-indigo-600 text-white rounded-xl font-bold mt-1 hover:bg-indigo-700 transition-all shadow-md disabled:opacity-50 flex items-center justify-center gap-1.5 text-xs sm:text-sm">
+                {loading ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
                 {loading ? 'Saving...' : 'Save and Publish'}
               </button>
             </form>
