@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import * as XLSX from 'xlsx';
 import { GraduationCap, Download, Loader2, Check, Pencil, Plus, X, ChevronRight, BookOpen, CalendarCheck2, Trophy, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -271,8 +272,26 @@ export default function GradesPage() {
     setSaving(false);
   };
 
-  const getTotal = (grades: Record<string, number>) => examTypes.reduce((sum, t) => sum + (grades[t.key] ?? 0), 0);
-  const hasGrades = (s: StudentGrade) => examTypes.some(t => s.grades[t.key] !== undefined);
+  const getEffectiveScore = (s: StudentGrade, typeKey: string, max: number): number => {
+    if (s.grades && s.grades[typeKey] !== undefined && s.grades[typeKey] !== null) {
+      return Number(s.grades[typeKey]);
+    }
+    const auto = getAutoScoreForType(s, typeKey, max);
+    if (auto !== null && auto !== undefined) {
+      return auto;
+    }
+    return 0;
+  };
+
+  const getTotal = (s: StudentGrade) =>
+    examTypes.reduce((sum, t) => sum + getEffectiveScore(s, t.key, t.max), 0);
+
+  const hasGrades = (s: StudentGrade) =>
+    examTypes.some(t => {
+      if (s.grades && s.grades[t.key] !== undefined && s.grades[t.key] !== null) return true;
+      const auto = getAutoScoreForType(s, t.key, t.max);
+      return auto !== null && auto !== undefined;
+    });
 
   const filterStudents = (list: StudentGrade[]) =>
     list.filter(s =>
@@ -281,54 +300,111 @@ export default function GradesPage() {
     );
 
   const exportExcel = async () => {
-    if (!students.length) return;
-    const name = subjectInfo?.name || 'All Subjects';
-
-    const border = 'border:1px solid #2E4DA0';
-    const buildHtmlTable = (list: StudentGrade[], subjName: string, deptName?: string, level?: number) => {
-      const headers = ['#', 'Student Name', 'Code', ...examTypes.map(t => `${t.label} (/${t.max})`), 'Total'];
-      const colCount = headers.length;
-      const rows = list.map((s, i) => {
-        const total = getTotal(s.grades);
-        const graded = hasGrades(s);
-        const totalColor = graded ? '#00A651' : '#999999';
-        const bg = i % 2 === 0 ? '#FFFFFF' : '#F8F9FF';
-        return `<tr style="background:${bg}">
-          <td style="text-align:center;${border};padding:5px">${i + 1}</td>
-          <td style="${border};padding:5px 8px">${s.name}</td>
-          <td style="text-align:center;${border};padding:5px">${s.studentCode}</td>
-          ${examTypes.map(t => `<td style="text-align:center;${border};padding:5px;font-weight:bold">${s.grades[t.key] ?? 0}</td>`).join('')}
-          <td style="text-align:center;${border};padding:5px;font-weight:bold;color:${totalColor}">${graded ? `${total} / ${maxTotal}` : `0 / ${maxTotal}`}</td>
-        </tr>`;
-      }).join('');
-      const titleParts = [deptName, level !== undefined ? `Level ${level}` : undefined, subjName].filter(Boolean).join(' - ');
-      return `<table style="border-collapse:collapse;width:100%">
-        <tr><td colspan="${colCount}" style="background:#1F3864;color:white;font-size:14pt;font-weight:bold;text-align:center;padding:10px;${border}">${titleParts}</td></tr>
-        <tr><td colspan="${colCount}" style="padding:4px"></td></tr>
-        <tr>${headers.map(h => `<th style="background:#2E4DA0;color:white;font-weight:bold;text-align:center;${border};padding:7px">${h}</th>`).join('')}</tr>
-        ${rows}
-        <tr><td colspan="${colCount}" style="padding:4px"></td></tr>
-        <tr>${Array(colCount - 2).fill(`<td style="${border}"></td>`).join('')}<td colspan="2" style="background:#EEF2FF;font-weight:bold;text-align:right;padding:6px 10px;${border}">Total Students: ${list.length}</td></tr>
-      </table>`;
-    };
-
-    let html = '';
-    if (selectedSubject === 'all') {
-      html = subjects.map(subj => {
-        const list = students.filter(s => s.subjectId === subj.id);
-        return list.length ? buildHtmlTable(list, subj.name, subj.department?.name, subj.academicYear) : '';
-      }).filter(Boolean).join('<br/><br/>');
-    } else {
-      html = buildHtmlTable(students, name, subjectInfo?.department?.name, subjectInfo?.academicYear);
+    if (!students.length) {
+      toast.error('No students to export');
+      return;
     }
 
-    const blob = new Blob([`<html><head><meta charset="utf-8"></head><body>${html}</body></html>`], { type: 'application/vnd.ms-excel;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `grades-${name}-${Date.now()}.xls`;
-    a.click();
-    URL.revokeObjectURL(url);
+    try {
+      const wb = XLSX.utils.book_new();
+
+      const buildSheetForList = (list: StudentGrade[], title: string) => {
+        const wsData: any[][] = [];
+        // Title header
+        wsData.push([title]);
+        wsData.push([]); // blank row
+
+        // Column Headers
+        const headers = [
+          '#',
+          'Student Name',
+          'Student Code',
+          ...examTypes.map(t => `${t.label} (/${t.max})`),
+          `Total (/${maxTotal})`,
+          'Percentage (%)',
+        ];
+        wsData.push(headers);
+
+        // Data rows
+        list.forEach((s, idx) => {
+          const scores = examTypes.map(t => getEffectiveScore(s, t.key, t.max));
+          const total = scores.reduce((a, b) => a + b, 0);
+          const percentage = maxTotal > 0 ? Math.round((total / maxTotal) * 100) : 0;
+
+          wsData.push([
+            idx + 1,
+            s.name,
+            s.studentCode,
+            ...scores,
+            total,
+            `${percentage}%`,
+          ]);
+        });
+
+        // Summary row
+        wsData.push([]);
+        wsData.push([
+          `Total Students: ${list.length}`,
+          '',
+          '',
+          ...examTypes.map(() => ''),
+          '',
+          '',
+        ]);
+
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+        // Column widths
+        const colWidths = [
+          { wch: 6 },  // #
+          { wch: 28 }, // Name
+          { wch: 16 }, // Code
+          ...examTypes.map(t => ({ wch: Math.max(t.label.length + 8, 14) })),
+          { wch: 14 }, // Total
+          { wch: 14 }, // Percentage
+        ];
+        ws['!cols'] = colWidths;
+
+        return ws;
+      };
+
+      if (selectedSubject === 'all') {
+        // Create a sheet for each subject that has students
+        let createdSheets = 0;
+        subjects.forEach(subj => {
+          const list = students.filter(s => s.subjectId === subj.id);
+          if (list.length > 0) {
+            const safeSheetName = (subj.name || 'Subject')
+              .replace(/[*?:\/\\\[\]]/g, '')
+              .substring(0, 31);
+            const title = `${subj.department?.name || ''} - Level ${subj.academicYear} - ${subj.name}`;
+            const ws = buildSheetForList(list, title);
+            XLSX.utils.book_append_sheet(wb, ws, safeSheetName);
+            createdSheets++;
+          }
+        });
+
+        // If no per-subject division matched, create one master sheet
+        if (createdSheets === 0) {
+          const ws = buildSheetForList(students, 'All Students Grades');
+          XLSX.utils.book_append_sheet(wb, ws, 'Grades');
+        }
+      } else {
+        const title = `${subjectInfo?.department?.name || ''} - Level ${subjectInfo?.academicYear ?? ''} - ${subjectInfo?.name || 'Grades'}`;
+        const safeSheetName = (subjectInfo?.name || 'Grades')
+          .replace(/[*?:\/\\\[\]]/g, '')
+          .substring(0, 31);
+        const ws = buildSheetForList(students, title);
+        XLSX.utils.book_append_sheet(wb, ws, safeSheetName);
+      }
+
+      const fileName = `Grades_${(subjectInfo?.name || 'All_Subjects').replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+      toast.success('Excel exported successfully with all student grades!');
+    } catch (err: any) {
+      console.error('Excel Export Error:', err);
+      toast.error('Failed to export Excel file');
+    }
   };
 
   const clearAllGrades = async () => {
