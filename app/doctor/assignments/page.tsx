@@ -3,10 +3,12 @@
 import { useState, useEffect } from 'react';
 import {
   Plus, FileText, ExternalLink, Users,
-  History, X, Trash2, ChevronRight, Loader2, Search, Filter, Lock, Unlock, Check
+  History, X, Trash2, ChevronRight, Loader2, Search, Filter, Lock, Unlock, Check,
+  Image as ImageIcon, Eye
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useI18n } from '@/lib/i18n';
+import { useUploadThing } from '@/lib/uploadthing';
 import {
   getAssignmentsAction,
   createAssignmentAction,
@@ -34,6 +36,7 @@ interface Submission {
 interface AssignmentDetail {
   id: string;
   title: string;
+  description?: string | null;
   maxScore: number;
   academicYear: number | null;
   fileUrl: string | null;
@@ -48,6 +51,7 @@ export default function AssignmentsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newAssignment, setNewAssignment] = useState({
     title: '',
+    description: '',
     departmentId: '',
     academicYear: '',
     semester: '1',
@@ -56,7 +60,13 @@ export default function AssignmentsPage() {
     startTime: '00:00',
     endDate: '',
     endTime: '23:59',
+    fileUrl: '',
   });
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>('');
+  const [previewModalUrl, setPreviewModalUrl] = useState<string | null>(null);
+
+  const { startUpload } = useUploadThing('imageUploader');
   const [loading, setLoading] = useState(false);
   const [departments, setDepartments] = useState<{ id: string; name: string; code: string }[]>([]);
   const [allSubjects, setAllSubjects] = useState<{ id: string; name: string; code: string; departmentId: string; academicYear: number; semester: number }[]>([]);
@@ -183,7 +193,30 @@ export default function AssignmentsPage() {
   };
 
   const handleCreateClick = () => {
+    setImageFile(null);
+    setImagePreview('');
     setIsModalOpen(true);
+  };
+
+  const handleImageSelect = (file: File | undefined) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select a valid image file (PNG, JPG, WEBP)');
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error('Image size must be less than 8MB');
+      return;
+    }
+    setImageFile(file);
+    const localUrl = URL.createObjectURL(file);
+    setImagePreview(localUrl);
+  };
+
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview('');
+    setNewAssignment(p => ({ ...p, fileUrl: '' }));
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -197,38 +230,75 @@ export default function AssignmentsPage() {
       return;
     }
     setLoading(true);
-    const startDate = newAssignment.startDate && newAssignment.startTime
-      ? new Date(`${newAssignment.startDate}T${newAssignment.startTime}`).toISOString()
-      : new Date().toISOString();
-    const deadline = new Date(`${newAssignment.endDate}T${newAssignment.endTime}`).toISOString();
-    const res = await createAssignmentAction({
-      title: newAssignment.title,
-      departmentId: newAssignment.departmentId,
-      academicYear: parseInt(newAssignment.academicYear),
-      semester: parseInt(newAssignment.semester),
-      subjectId: newAssignment.subjectId,
-      startDate,
-      deadline,
-    });
-    if (res.success) {
-      setIsModalOpen(false);
-      setNewAssignment({
-        title: '',
-        departmentId: '',
-        academicYear: '',
-        semester: '1',
-        subjectId: '',
-        startDate: '',
-        startTime: '00:00',
-        endDate: '',
-        endTime: '23:59',
+    try {
+      let finalFileUrl: string | null = newAssignment.fileUrl || null;
+
+      // If an image file was selected, upload it
+      if (imageFile) {
+        try {
+          const uploaded = await startUpload([imageFile]);
+          if (uploaded?.[0]) {
+            const uploadedData = uploaded[0] as any;
+            finalFileUrl = uploadedData.ufsUrl || uploadedData.url || uploadedData.serverData?.url || null;
+          }
+        } catch (utErr) {
+          console.warn('UploadThing upload error, falling back to base64:', utErr);
+        }
+
+        // Base64 fallback if UploadThing is offline or failed
+        if (!finalFileUrl) {
+          finalFileUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(imageFile);
+          });
+        }
+      }
+
+      const startDate = newAssignment.startDate && newAssignment.startTime
+        ? new Date(`${newAssignment.startDate}T${newAssignment.startTime}`).toISOString()
+        : new Date().toISOString();
+      const deadline = new Date(`${newAssignment.endDate}T${newAssignment.endTime}`).toISOString();
+      const res = await createAssignmentAction({
+        title: newAssignment.title,
+        description: newAssignment.description || null,
+        fileUrl: finalFileUrl,
+        departmentId: newAssignment.departmentId,
+        academicYear: parseInt(newAssignment.academicYear),
+        semester: parseInt(newAssignment.semester),
+        subjectId: newAssignment.subjectId,
+        startDate,
+        deadline,
       });
-      refreshData();
-      toast.success('Assignment published successfully!');
-    } else {
-      toast.error('Error: ' + res.error);
+      if (res.success) {
+        setIsModalOpen(false);
+        setNewAssignment({
+          title: '',
+          description: '',
+          departmentId: '',
+          academicYear: '',
+          semester: '1',
+          subjectId: '',
+          startDate: '',
+          startTime: '00:00',
+          endDate: '',
+          endTime: '23:59',
+          fileUrl: '',
+        });
+        setImageFile(null);
+        setImagePreview('');
+        refreshData();
+        toast.success('Assignment published successfully with attached image!');
+      } else {
+        toast.error('Error: ' + res.error);
+      }
+    } catch (err: any) {
+      console.error('Save assignment error:', err);
+      toast.error('Failed to publish assignment: ' + (err?.message || String(err)));
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleDelete = async (id: string) => {
@@ -469,12 +539,42 @@ export default function AssignmentsPage() {
                   </p>
                 </div>
                 {selected.fileUrl && (
-                  <a href={selected.fileUrl} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-xs bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 font-bold px-2.5 py-1.5 rounded-xl hover:bg-indigo-100 transition-colors">
-                    <ExternalLink size={12} /> Form
-                  </a>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewModalUrl(selected.fileUrl)}
+                    className="flex items-center gap-1.5 text-xs bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300 font-bold px-3 py-1.5 rounded-xl hover:bg-indigo-100 transition-colors border border-indigo-200/60 dark:border-indigo-800"
+                  >
+                    <ImageIcon size={14} /> View Image
+                  </button>
                 )}
               </div>
+
+              {selected.fileUrl && (
+                <div className="bg-slate-50 dark:bg-slate-700/40 rounded-xl p-2.5 border border-slate-200/80 dark:border-slate-600">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                      <ImageIcon size={13} /> Assignment Image / Sheet
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setPreviewModalUrl(selected.fileUrl)}
+                      className="text-[10px] font-bold text-slate-500 hover:text-indigo-600 flex items-center gap-0.5"
+                    >
+                      <Eye size={12} /> Click to zoom
+                    </button>
+                  </div>
+                  <div
+                    onClick={() => setPreviewModalUrl(selected.fileUrl)}
+                    className="cursor-pointer overflow-hidden rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-900/5 max-h-44 flex items-center justify-center group"
+                  >
+                    <img
+                      src={selected.fileUrl}
+                      alt={selected.title}
+                      className="w-full h-full max-h-44 object-contain group-hover:scale-105 transition-transform duration-200"
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Stats */}
               <div className="grid grid-cols-2 gap-2.5">
@@ -750,12 +850,111 @@ export default function AssignmentsPage() {
                   />
                 </div>
               </div>
+
+              {/* Optional Assignment Image */}
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 uppercase mb-1 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <ImageIcon size={13} className="text-indigo-500" /> Assignment Image (Optional)
+                  </span>
+                  {imagePreview && (
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      className="text-[10px] text-red-500 hover:text-red-700 font-bold flex items-center gap-0.5"
+                    >
+                      <Trash2 size={11} /> Remove
+                    </button>
+                  )}
+                </label>
+
+                {imagePreview ? (
+                  <div className="relative rounded-xl overflow-hidden border border-indigo-200 dark:border-indigo-800 bg-slate-900/5 group">
+                    <img src={imagePreview} alt="Preview" className="w-full h-28 object-contain bg-slate-950/10" />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setPreviewModalUrl(imagePreview)}
+                        className="px-2.5 py-1 bg-white text-slate-800 rounded-lg text-xs font-bold flex items-center gap-1 shadow"
+                      >
+                        <Eye size={12} /> View
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleRemoveImage}
+                        className="px-2.5 py-1 bg-red-600 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow"
+                      >
+                        <Trash2 size={12} /> Remove
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center w-full h-20 border-2 border-dashed border-slate-200 dark:border-slate-600 hover:border-indigo-400 dark:hover:border-indigo-500 rounded-xl cursor-pointer bg-slate-50 dark:bg-slate-700/40 transition-colors">
+                    <input
+                      type="file"
+                      accept="image/*,.png,.jpg,.jpeg,.webp"
+                      className="hidden"
+                      onChange={e => handleImageSelect(e.target.files?.[0])}
+                    />
+                    <div className="flex items-center gap-2 text-slate-500 dark:text-slate-300">
+                      <ImageIcon size={16} className="text-indigo-500" />
+                      <span className="text-xs font-medium">Attach assignment image / sheet</span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-0.5">PNG, JPG, WEBP (Optional)</p>
+                  </label>
+                )}
+              </div>
+
+              {/* Optional Notes/Description */}
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 uppercase mb-1 block">Notes / Description (Optional)</label>
+                <textarea
+                  rows={2}
+                  className="w-full bg-slate-50 dark:bg-slate-700 dark:text-slate-100 border border-slate-200/80 dark:border-slate-600 rounded-xl px-2.5 py-1.5 text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none resize-none"
+                  placeholder="Instructions or remarks for students..."
+                  value={newAssignment.description}
+                  onChange={e => setNewAssignment({ ...newAssignment, description: e.target.value })}
+                />
+              </div>
+
               <button type="submit" disabled={loading}
                 className="w-full py-2.5 sm:py-3 bg-indigo-600 text-white rounded-xl font-bold mt-1 hover:bg-indigo-700 transition-all shadow-md disabled:opacity-50 flex items-center justify-center gap-1.5 text-xs sm:text-sm">
                 {loading ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
                 {loading ? 'Saving...' : 'Save and Publish'}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Full-Screen Image Lightbox Modal */}
+      {previewModalUrl && (
+        <div
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-200"
+          onClick={() => setPreviewModalUrl(null)}
+        >
+          <div className="relative max-w-4xl w-full max-h-[90vh] bg-slate-900 rounded-2xl overflow-hidden shadow-2xl p-2 flex flex-col items-center" onClick={e => e.stopPropagation()}>
+            <button
+              onClick={() => setPreviewModalUrl(null)}
+              className="absolute top-3 right-3 z-10 p-2 bg-black/60 hover:bg-black/90 text-white rounded-full transition-colors"
+            >
+              <X size={20} />
+            </button>
+            <img
+              src={previewModalUrl}
+              alt="Assignment full view"
+              className="max-w-full max-h-[82vh] object-contain rounded-lg"
+            />
+            <div className="mt-2 flex items-center gap-3">
+              <a
+                href={previewModalUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
+              >
+                <ExternalLink size={13} /> Open Original in New Tab
+              </a>
+            </div>
           </div>
         </div>
       )}

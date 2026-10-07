@@ -13,6 +13,8 @@ export async function createAssignmentAction(data: {
   subjectId?: string | null;
   startDate: string;
   deadline: string;
+  description?: string | null;
+  fileUrl?: string | null;
 }) {
   try {
     const session = await getServerSession(authOptions);
@@ -22,6 +24,8 @@ export async function createAssignmentAction(data: {
     const created = await db.assignment.create({
       data: {
         title: data.title,
+        description: data.description || null,
+        fileUrl: data.fileUrl || null,
         departmentId: data.departmentId,
         academicYear: data.academicYear,
         semester: data.semester,
