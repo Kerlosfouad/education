@@ -178,7 +178,7 @@ export default function StudentAssignmentsPage() {
                     <label className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-xl cursor-pointer transition-colors ${
                       file ? 'border-indigo-400 bg-indigo-50 dark:bg-indigo-900/20' : 'border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/30'
                     }`}>
-                      <input type="file" accept=".pdf" className="hidden"
+                      <input type="file" accept=".pdf,application/pdf,image/*" className="hidden"
                         onChange={e => {
                           const f = e.target.files?.[0];
                           if (f) setSelectedFile(prev => ({ ...prev, [a.id]: f }));
