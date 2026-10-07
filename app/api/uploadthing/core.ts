@@ -16,8 +16,8 @@ export const ourFileRouter = {
     }),
 
   pdfUploader: f({ 
-    pdf: { maxFileSize: "32MB" },
-    blob: { maxFileSize: "32MB" } 
+    pdf: { maxFileSize: "16MB" },
+    blob: { maxFileSize: "16MB" } 
   })
     .middleware(async () => {
       const session = await getServerSession(authOptions);

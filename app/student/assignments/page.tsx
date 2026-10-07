@@ -50,6 +50,11 @@ export default function StudentAssignmentsPage() {
       return;
     }
 
+    if (file.size > 16 * 1024 * 1024) {
+      alert('حجم الملف يتجاوز الحد الأقصى المسموح به (16 ميجابايت). يرجى تقليل حجم الملف والمحاولة مرة أخرى.');
+      return;
+    }
+
     setUploadingId(assignmentId);
     setProgress(0);
     setUploadError(null);
