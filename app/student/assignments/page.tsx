@@ -24,8 +24,14 @@ export default function StudentAssignmentsPage() {
   const [progress, setProgress] = useState(0);
   const [doneId, setDoneId] = useState<string | null>(null);
 
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
   const { startUpload } = useUploadThing('pdfUploader', {
     onUploadProgress: p => setProgress(p),
+    onUploadError: (err) => {
+      console.error('UploadThing Error:', err);
+      setUploadError(err.message || 'حدث خطأ أثناء رفع الملف إلى الخادم');
+    },
   });
 
   useEffect(() => {
@@ -38,31 +44,60 @@ export default function StudentAssignmentsPage() {
   const handleSubmit = async (assignmentId: string) => {
     const file = selectedFile[assignmentId];
     if (!file) return;
+
+    if (file.size === 0) {
+      alert('الملف المختار فارغ. يرجى اختيار ملف صالح.');
+      return;
+    }
+
     setUploadingId(assignmentId);
     setProgress(0);
+    setUploadError(null);
+
     try {
-      const uploaded = await startUpload([file]);
-      if (!uploaded?.[0]) { alert('Upload failed'); return; }
+      // Sanitize file name (replace non-ASCII / Arabic chars to prevent S3 & XHR header failure)
+      const ext = file.name.includes('.') ? file.name.split('.').pop()?.toLowerCase() || 'pdf' : 'pdf';
+      const cleanFileName = `assignment_${assignmentId}_${Date.now()}.${ext}`;
+      const safeFile = new File([file], cleanFileName, {
+        type: file.type && file.type !== '' ? file.type : 'application/pdf',
+      });
+
+      const uploaded = await startUpload([safeFile]);
+      if (!uploaded?.[0]) {
+        alert(uploadError || 'فشل رفع الملف. يرجى التأكد من اتصال الإنترنت وصيغة الملف والمحاولة مرة أخرى.');
+        setUploadingId(null);
+        return;
+      }
+
+      const uploadedData = uploaded[0] as any;
+      const fileUrl = uploadedData.ufsUrl || uploadedData.url || uploadedData.serverData?.url;
+
+      if (!fileUrl) {
+        alert('تعذر استخراج رابط الملف بعد الرفع. يرجى المحاولة مرة أخرى.');
+        setUploadingId(null);
+        return;
+      }
 
       const res = await fetch(`/api/assignments/${assignmentId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fileUrl: uploaded[0].url }),
+        body: JSON.stringify({ fileUrl }),
       });
       const json = await res.json();
       if (json.success) {
         setDoneId(assignmentId);
         setAssignments(prev => prev.map(a =>
           a.id === assignmentId
-            ? { ...a, submissions: [{ id: json.data.id, status: 'SUBMITTED', fileUrl: uploaded[0].url, score: null, gradedAt: null }] }
+            ? { ...a, submissions: [{ id: json.data.id, status: 'SUBMITTED', fileUrl, score: null, gradedAt: null }] }
             : a
         ));
         setSelectedFile(prev => { const n = { ...prev }; delete n[assignmentId]; return n; });
       } else {
-        alert(json.error || 'Submission failed');
+        alert(json.error || 'فشل حفظ التسليم');
       }
-    } catch (e) {
-      alert('Error: ' + String(e));
+    } catch (e: any) {
+      console.error('Submission Error:', e);
+      alert('حدث خطأ: ' + (e?.message || String(e)));
     }
     setUploadingId(null);
   };

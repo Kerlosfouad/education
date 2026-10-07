@@ -16,8 +16,8 @@ export const ourFileRouter = {
     }),
 
   pdfUploader: f({ 
-    pdf: { maxFileSize: "16MB" },
-    blob: { maxFileSize: "16MB" } 
+    pdf: { maxFileSize: "32MB" },
+    blob: { maxFileSize: "32MB" } 
   })
     .middleware(async () => {
       const session = await getServerSession(authOptions);
@@ -25,7 +25,8 @@ export const ourFileRouter = {
       return { userId: session.user.id };
     })
     .onUploadComplete(async ({ file }) => {
-      return { url: file.url };
+      const fileUrl = (file as any).ufsUrl || file.url;
+      return { url: fileUrl };
     }),
 
   videoUploader: f({ 
