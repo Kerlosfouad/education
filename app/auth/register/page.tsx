@@ -129,14 +129,17 @@ export default function RegisterPage() {
       return;
     }
 
-    if (!/^\d{5}$/.test(formData.studentCode.trim())) {
-      setError('Student code must be exactly 5 digits');
+    const normalizedCode = formData.studentCode.trim().replace(/[٠-٩]/g, (d) => '٠١٢٣٤٥٦٧٨٩'.indexOf(d).toString());
+    const normalizedPhone = formData.phone.trim().replace(/[٠-٩]/g, (d) => '٠١٢٣٤٥٦٧٨٩'.indexOf(d).toString());
+
+    if (!/^\d{5}$/.test(normalizedCode)) {
+      setError('Student code must be exactly 5 digits (كود الطالب يجب أن يتكون من 5 أرقام)');
       setIsLoading(false);
       return;
     }
 
-    if (!formData.phone.trim()) {
-      setError('Phone number is required');
+    if (!normalizedPhone) {
+      setError('Phone number is required (رقم الهاتف مطلوب)');
       setIsLoading(false);
       return;
     }
@@ -149,8 +152,8 @@ export default function RegisterPage() {
           name: formData.name,
           email: formData.email,
           password: formData.password,
-          phone: formData.phone,
-          studentCode: formData.studentCode.trim(),
+          phone: normalizedPhone,
+          studentCode: normalizedCode,
           departmentId: formData.departmentId,
           academicYear: parseInt(formData.academicYear),
           semester: formData.semester ? parseInt(formData.semester) : 1,

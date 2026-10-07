@@ -8,6 +8,11 @@ import QRCode from 'qrcode';
 import { isDoctorEmail } from '@/lib/role-rules';
 import { checkRateLimit } from '@/lib/rate-limit';
 
+function normalizeDigits(str: string): string {
+  if (!str) return '';
+  return str.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d).toString());
+}
+
 const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').refine(
     (val) => val.trim().split(/\s+/).length >= 2,
@@ -23,32 +28,50 @@ const registerSchema = z.object({
   selectedSubjectIds: z.array(z.string()).optional(),
 });
 
-/** Generate a unique 6-digit numeric student code */
+/** Generate a unique 5-digit numeric student code */
 async function generateStudentCode(): Promise<string> {
   let code: string;
   let exists = true;
+  let attempts = 0;
   do {
     code = String(Math.floor(10000 + Math.random() * 90000));
     const existing = await db.student.findUnique({ where: { studentCode: code } });
     exists = !!existing;
-  } while (exists);
+    attempts++;
+  } while (exists && attempts < 20);
   return code;
 }
 
-/** Generate a QR code data URL for the given student code */
+/** Generate a compact QR code data URL (under 600 bytes to prevent PostgreSQL btree index overflow) */
 async function generateQRCode(studentCode: string): Promise<string> {
-  const url = `${process.env.QR_CODE_BASE_URL || 'http://localhost:3000'}/student/${studentCode}`;
-  return QRCode.toDataURL(url, { width: 300, margin: 2 });
+  try {
+    const url = `${process.env.QR_CODE_BASE_URL || 'http://localhost:3000'}/student/${studentCode}`;
+    return await QRCode.toDataURL(url, { width: 160, margin: 1, errorCorrectionLevel: 'M' });
+  } catch (e) {
+    console.error('QR code generation error:', e);
+    return `${process.env.QR_CODE_BASE_URL || 'http://localhost:3000'}/student/${studentCode}`;
+  }
 }
 
 export async function POST(req: NextRequest) {
   try {
     const ip = req.headers.get('x-forwarded-for') ?? req.headers.get('x-real-ip') ?? 'unknown';
-    if (!checkRateLimit(`register:${ip}`, 10, 60 * 60 * 1000)) {
-      return NextResponse.json({ error: 'Too many registration attempts. Please try again later.' }, { status: 429 });
+    if (!checkRateLimit(`register:${ip}`, 20, 60 * 60 * 1000)) {
+      return NextResponse.json({ error: 'محاولات تسجيل كثيرة. يرجى المحاولة بعد قليل.' }, { status: 429 });
     }
 
-    const body = await req.json();
+    const body = await req.json().catch(() => null);
+    if (!body) {
+      return NextResponse.json({ error: 'بيانات الطلب غير صالحة' }, { status: 400 });
+    }
+
+    // Normalize phone & studentCode digits before schema validation
+    if (typeof body.studentCode === 'string') {
+      body.studentCode = normalizeDigits(body.studentCode.trim());
+    }
+    if (typeof body.phone === 'string') {
+      body.phone = normalizeDigits(body.phone.trim());
+    }
 
     const result = registerSchema.safeParse(body);
     if (!result.success) {
@@ -59,93 +82,129 @@ export async function POST(req: NextRequest) {
     }
 
     const { name, email, password, phone, studentCode: inputCode, departmentId, academicYear, semester, selectedSubjectIds } = result.data;
-    const normalizedEmail = email.toLowerCase();
+    const normalizedEmail = email.trim().toLowerCase();
     const isDoctor = isDoctorEmail(normalizedEmail);
 
+    // Check if email already registered
     const existingUser = await db.user.findUnique({
       where: { email: normalizedEmail },
       include: { student: true },
     });
 
     if (existingUser) {
-      // If user has no student profile (e.g. was deleted previously by doctor), clean up old record so they can register fresh
+      // If user has no student profile (orphaned record), clean it up safely
       if (!existingUser.student && existingUser.role === 'STUDENT') {
-        await db.notification.deleteMany({ where: { userId: existingUser.id } }).catch(() => {});
-        await db.loginHistory.deleteMany({ where: { userId: existingUser.id } }).catch(() => {});
-        await db.user.delete({ where: { id: existingUser.id } }).catch(() => {});
+        try {
+          await db.notification.deleteMany({ where: { userId: existingUser.id } }).catch(() => {});
+          await db.loginHistory.deleteMany({ where: { userId: existingUser.id } }).catch(() => {});
+          await db.user.delete({ where: { id: existingUser.id } }).catch(() => {});
+        } catch (cleanErr) {
+          console.warn('Could not cleanup orphaned user:', cleanErr);
+        }
       } else {
         return NextResponse.json(
-          { error: 'Email already registered' },
+          { error: 'البريد الإلكتروني مسجل بالفعل' },
           { status: 409 }
         );
       }
     }
 
-    const hashedPassword = await hashPassword(password);
-
-    const user = await db.user.create({
-      data: {
-        name,
-        email: normalizedEmail,
-        password: hashedPassword,
-        role: isDoctor ? 'DOCTOR' : 'STUDENT',
-        status: isDoctor ? 'ACTIVE' : 'PENDING',
-      },
-    });
+    // Validate Student-specific fields
+    let validatedDeptId = departmentId || '';
+    let validatedStudentCode = '';
+    let validatedQrCode = '';
 
     if (!isDoctor) {
       if (!departmentId) {
-        return NextResponse.json({ error: 'Department is required' }, { status: 400 });
+        return NextResponse.json({ error: 'يرجى اختيار القسم الأكاديمي' }, { status: 400 });
       }
+
+      const dept = await db.department.findUnique({ where: { id: departmentId } });
+      if (!dept) {
+        return NextResponse.json({ error: 'القسم المختار غير موجود في النظام' }, { status: 400 });
+      }
+      validatedDeptId = dept.id;
+
       if (academicYear === undefined || academicYear === null || academicYear < 0 || academicYear > 5) {
-        return NextResponse.json({ error: 'Academic year must be between 0 and 5' }, { status: 400 });
+        return NextResponse.json({ error: 'يرجى تحديد السنة الدراسية بشكل صحيح' }, { status: 400 });
       }
 
-      // Use provided code or generate one
-      let studentCode: string;
+      // Handle student code
       if (inputCode && inputCode.trim()) {
-        const existing = await db.student.findUnique({
-          where: { studentCode: inputCode.trim() },
-          include: { user: { select: { status: true } } },
+        const rawCode = normalizeDigits(inputCode.trim());
+        const existingStudent = await db.student.findUnique({
+          where: { studentCode: rawCode },
+          include: { user: { select: { id: true, status: true } } },
         });
-        // Block only if the existing student is ACTIVE or PENDING
-        if (existing && existing.user.status !== 'REJECTED') {
-          await db.user.delete({ where: { id: user.id } });
-          return NextResponse.json({ error: 'Student code already in use' }, { status: 409 });
-        }
-        // If rejected student had this code, delete them to free it up
-        if (existing && existing.user.status === 'REJECTED') {
-          await db.student.delete({ where: { studentCode: inputCode.trim() } });
-        }
-        studentCode = inputCode.trim();
-      } else {
-        studentCode = await generateStudentCode();
-      }
-      const qrCode = await generateQRCode(studentCode);
 
-      const newStudent = await db.student.create({
+        if (existingStudent) {
+          if (existingStudent.user?.status === 'REJECTED') {
+            // Safely cascade delete the rejected student
+            try {
+              await db.studentSubject.deleteMany({ where: { studentId: existingStudent.id } }).catch(() => {});
+              await db.attendance.deleteMany({ where: { studentId: existingStudent.id } }).catch(() => {});
+              await db.assignmentSubmission.deleteMany({ where: { studentId: existingStudent.id } }).catch(() => {});
+              await db.student.delete({ where: { id: existingStudent.id } }).catch(() => {});
+              if (existingStudent.user?.id) {
+                await db.user.delete({ where: { id: existingStudent.user.id } }).catch(() => {});
+              }
+            } catch (err) {
+              console.warn('Error deleting rejected student record:', err);
+            }
+            validatedStudentCode = rawCode;
+          } else {
+            return NextResponse.json({ error: 'كود الطالب مسجل مسبقاً في النظام' }, { status: 409 });
+          }
+        } else {
+          validatedStudentCode = rawCode;
+        }
+      } else {
+        validatedStudentCode = await generateStudentCode();
+      }
+
+      validatedQrCode = await generateQRCode(validatedStudentCode);
+    }
+
+    const hashedPassword = await hashPassword(password);
+
+    // Atomic creation of user and student
+    const created = await db.$transaction(async (tx) => {
+      const newUser = await tx.user.create({
         data: {
-          userId: user.id,
-          studentCode,
-          qrCode,
-          departmentId,
-          academicYear,
-          phone: phone || null,
-        } as any,
+          name: name.trim(),
+          email: normalizedEmail,
+          password: hashedPassword,
+          role: isDoctor ? 'DOCTOR' : 'STUDENT',
+          status: isDoctor ? 'ACTIVE' : 'PENDING',
+        },
       });
 
-      // Update semester separately since it may not be in generated types yet
-      await db.$executeRaw`UPDATE students SET semester = ${semester ?? 1} WHERE id = ${newStudent.id}`;
+      if (isDoctor) {
+        return { user: newUser, student: null };
+      }
 
-      // Enroll student into selected subjects (or all matching active subjects if not specified)
+      const newStudent = await tx.student.create({
+        data: {
+          userId: newUser.id,
+          studentCode: validatedStudentCode,
+          qrCode: validatedQrCode,
+          barcode: validatedStudentCode,
+          departmentId: validatedDeptId,
+          academicYear: academicYear ?? 1,
+          semester: semester ?? 1,
+          phone: phone ? normalizeDigits(phone.trim()) : null,
+        },
+      });
+
+      // Find subjects to enroll
       let subjectIdsToEnroll: string[] = [];
-      if (Array.isArray(selectedSubjectIds)) {
+      if (Array.isArray(selectedSubjectIds) && selectedSubjectIds.length > 0) {
         subjectIdsToEnroll = selectedSubjectIds;
       } else {
-        const matchingSubjects = await db.subject.findMany({
+        const matchingSubjects = await tx.subject.findMany({
           where: {
-            departmentId,
-            academicYear,
+            departmentId: validatedDeptId,
+            academicYear: academicYear ?? 1,
             semester: semester ?? 1,
             isActive: true,
           },
@@ -155,31 +214,36 @@ export async function POST(req: NextRequest) {
       }
 
       if (subjectIdsToEnroll.length > 0) {
-        for (const subId of subjectIdsToEnroll) {
-          await db.$executeRaw`
-            INSERT INTO student_subjects (id, "studentId", "subjectId", "enrolledAt")
-            VALUES (gen_random_uuid(), ${newStudent.id}, ${subId}, NOW())
-            ON CONFLICT ("studentId", "subjectId") DO NOTHING
-          `.catch(() => {});
-        }
+        await tx.studentSubject.createMany({
+          data: subjectIdsToEnroll.map((subId) => ({
+            studentId: newStudent.id,
+            subjectId: subId,
+          })),
+          skipDuplicates: true,
+        });
       }
-    }
+
+      return { user: newUser, student: newStudent };
+    });
 
     return NextResponse.json(
       {
         success: true,
-        message: 'Registration successful',
+        message: 'تم تسجيل الحساب بنجاح',
         data: {
-          id: user.id,
-          email: user.email,
-          role: user.role,
-          status: user.status,
+          id: created.user.id,
+          email: created.user.email,
+          role: created.user.role,
+          status: created.user.status,
         },
       },
       { status: 201 }
     );
   } catch (error: any) {
-    console.error('Registration error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Registration API Error:', error);
+    return NextResponse.json(
+      { error: error?.message || 'حدث خطأ في الخادم أثناء إنشاء الحساب. يرجى المحاولة مرة أخرى.' },
+      { status: 500 }
+    );
   }
 }
