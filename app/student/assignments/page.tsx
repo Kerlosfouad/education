@@ -13,6 +13,7 @@ interface Assignment {
   deadline: string;
   maxScore: number;
   isActive: boolean;
+  subject?: { id: string; name: string; code?: string } | null;
   submissions: { id: string; status: string; fileUrl: string | null; score: number | null; gradedAt: string | null }[];
 }
 
@@ -166,7 +167,14 @@ export default function StudentAssignmentsPage() {
                       }
                     </div>
                     <div>
-                      <h3 className="font-bold text-slate-800 dark:text-slate-100">{a.title}</h3>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-bold text-slate-800 dark:text-slate-100">{a.title}</h3>
+                        {a.subject?.name && (
+                          <span className="text-[10px] font-bold bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded-md">
+                            {a.subject.name}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
                         <Clock size={11} />
                         {a.startDate && (

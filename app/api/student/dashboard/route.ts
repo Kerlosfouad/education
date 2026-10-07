@@ -45,8 +45,19 @@ export async function GET() {
       where: {
         isActive: true,
         OR: [
-          { subjectId: { in: subjectIds } },
-          { departmentId: student.departmentId, academicYear: student.academicYear, subjectId: null, semester: semester ?? undefined },
+          {
+            subjectId: { in: subjectIds },
+          },
+          {
+            subjectId: null,
+            departmentId: student.departmentId,
+            academicYear: student.academicYear,
+            ...(semester !== null && semester !== undefined ? { semester } : {}),
+          },
+          {
+            subjectId: null,
+            departmentId: null,
+          },
         ],
       },
       include: { subject: { select: { name: true } } },

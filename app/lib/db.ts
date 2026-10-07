@@ -47,7 +47,21 @@ export async function getStudentSubjectAccess(student: StudentAccessInput) {
     WHERE ss."studentId" = ${student.id} AND s."isActive" = true
   `;
 
-  const subjectIds = Array.from(new Set(enrolledSubjects.map((subject) => subject.id)));
+  let subjectIds = Array.from(new Set(enrolledSubjects.map((subject) => subject.id)));
+
+  // Fallback: if student has no explicit student_subjects rows, find active subjects by department + academicYear (+ semester)
+  if (subjectIds.length === 0 && student.departmentId) {
+    const fallbackSubjects = await db.subject.findMany({
+      where: {
+        departmentId: student.departmentId,
+        academicYear: student.academicYear,
+        ...(semester !== null ? { semester } : {}),
+        isActive: true,
+      },
+      select: { id: true },
+    });
+    subjectIds = fallbackSubjects.map(s => s.id);
+  }
 
   return {
     semester,
@@ -70,7 +84,15 @@ export async function canStudentAccessScopedContent(
 ) {
   const { semester, subjectIds } = await getStudentSubjectAccess(student);
 
-  if (content.subjectId) return subjectIds.includes(content.subjectId);
+  // If content has a specific subject, student must have access to that subject
+  if (content.subjectId) {
+    if (!subjectIds.includes(content.subjectId)) return false;
+    // Also verify department / academicYear / semester if explicitly provided
+    if (content.departmentId && content.departmentId !== student.departmentId) return false;
+    if (content.academicYear !== null && content.academicYear !== undefined && content.academicYear !== student.academicYear) return false;
+    if (content.semester !== null && content.semester !== undefined && semester !== null && content.semester !== semester) return false;
+    return true;
+  }
 
   const departmentMatches = !content.departmentId || content.departmentId === student.departmentId;
   const yearMatches = content.academicYear === null || content.academicYear === undefined || content.academicYear === student.academicYear;

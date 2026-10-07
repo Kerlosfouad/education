@@ -20,13 +20,23 @@ export async function GET() {
       where: {
         isActive: true,
         OR: [
-          { subjectId: { in: subjectIds } },
-          { departmentId: student.departmentId, academicYear: student.academicYear, subjectId: null, semester: semester ?? undefined },
-          { departmentId: null },
+          {
+            subjectId: { in: subjectIds },
+          },
+          {
+            subjectId: null,
+            departmentId: student.departmentId,
+            academicYear: student.academicYear,
+            ...(semester !== null && semester !== undefined ? { semester } : {}),
+          },
+          {
+            subjectId: null,
+            departmentId: null,
+          },
         ],
       },
       include: {
-        subject: { select: { name: true } },
+        subject: { select: { id: true, name: true, code: true } },
         submissions: {
           where: { studentId: student.id },
           select: { id: true, status: true, score: true, fileUrl: true },

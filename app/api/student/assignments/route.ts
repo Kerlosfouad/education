@@ -18,18 +18,24 @@ export async function GET() {
     const assignments = await db.assignment.findMany({
       where: {
         isActive: true,
-        AND: [
+        OR: [
           {
-            OR: [
-              { subjectId: { in: subjectIds } },
-              { departmentId: student.departmentId, academicYear: student.academicYear, subjectId: null, semester: semester ?? undefined },
-              { departmentId: null },
-            ],
+            subjectId: { in: subjectIds },
+          },
+          {
+            subjectId: null,
+            departmentId: student.departmentId,
+            academicYear: student.academicYear,
+            ...(semester !== null && semester !== undefined ? { semester } : {}),
+          },
+          {
+            subjectId: null,
+            departmentId: null,
           },
         ],
       },
       include: {
-        subject: { select: { name: true } },
+        subject: { select: { id: true, name: true, code: true } },
         submissions: {
           where: { studentId: student.id },
           select: { id: true, status: true, fileUrl: true, score: true, gradedAt: true },

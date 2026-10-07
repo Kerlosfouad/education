@@ -46,13 +46,28 @@ export default function AssignmentsPage() {
   const { t } = useI18n();
   const [assignments, setAssignments] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newAssignment, setNewAssignment] = useState({ title: '', departmentId: '', academicYear: '', semester: '1', startDate: '', startTime: '00:00', endDate: '', endTime: '23:59' });
+  const [newAssignment, setNewAssignment] = useState({
+    title: '',
+    departmentId: '',
+    academicYear: '',
+    semester: '1',
+    subjectId: '',
+    startDate: '',
+    startTime: '00:00',
+    endDate: '',
+    endTime: '23:59',
+  });
   const [loading, setLoading] = useState(false);
   const [departments, setDepartments] = useState<{ id: string; name: string; code: string }[]>([]);
+  const [allSubjects, setAllSubjects] = useState<{ id: string; name: string; code: string; departmentId: string; academicYear: number; semester: number }[]>([]);
+  const [modalSubjects, setModalSubjects] = useState<{ id: string; name: string; code: string }[]>([]);
+  const [modalLoadingSubjects, setModalLoadingSubjects] = useState(false);
+
   const [search, setSearch] = useState('');
   const [filterDept, setFilterDept] = useState('');
   const [filterLevel, setFilterLevel] = useState('');
   const [filterSemester, setFilterSemester] = useState('');
+  const [filterSubject, setFilterSubject] = useState('');
   const [filterAvailableLevels, setFilterAvailableLevels] = useState<{ value: string; label: string }[]>([]);
 
   // Details panel
@@ -82,6 +97,7 @@ export default function AssignmentsPage() {
   useEffect(() => {
     refreshData();
     fetch('/api/subjects/departments').then(r => r.json()).then(j => { if (j.success) setDepartments(j.data); });
+    fetch('/api/subjects').then(r => r.json()).then(j => { if (j.success) setAllSubjects(j.data); });
   }, []);
 
   useEffect(() => {
@@ -96,12 +112,52 @@ export default function AssignmentsPage() {
     }
   }, [filterDept, departments]);
 
+  // Fetch subjects for the create modal when department, year, or semester changes
+  useEffect(() => {
+    if (!newAssignment.departmentId || newAssignment.academicYear === '') {
+      setModalSubjects([]);
+      setNewAssignment(prev => ({ ...prev, subjectId: '' }));
+      return;
+    }
+    setModalLoadingSubjects(true);
+    const params = new URLSearchParams({
+      departmentId: newAssignment.departmentId,
+      academicYear: newAssignment.academicYear,
+      semester: newAssignment.semester,
+    });
+    fetch(`/api/subjects?${params.toString()}`)
+      .then(r => r.json())
+      .then(j => {
+        if (j.success) {
+          setModalSubjects(j.data || []);
+          // If current subjectId is not in new list, reset it
+          if (newAssignment.subjectId && !j.data.some((s: any) => s.id === newAssignment.subjectId)) {
+            setNewAssignment(prev => ({ ...prev, subjectId: '' }));
+          }
+        }
+      })
+      .catch(() => setModalSubjects([]))
+      .finally(() => setModalLoadingSubjects(false));
+  }, [newAssignment.departmentId, newAssignment.academicYear, newAssignment.semester]);
+
+  // Available subjects for the filter dropdown
+  const filteredSubjectsForDropdown = allSubjects.filter(s => {
+    if (filterDept) {
+      const dept = departments.find(d => d.name === filterDept);
+      if (dept && s.departmentId !== dept.id) return false;
+    }
+    if (filterLevel && String(s.academicYear) !== filterLevel) return false;
+    if (filterSemester && String(s.semester) !== filterSemester) return false;
+    return true;
+  });
+
   const filteredAssignments = assignments.filter(a => {
-    const matchSearch = !search || a.title.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = !search || a.title.toLowerCase().includes(search.toLowerCase()) || (a.subject?.name && a.subject.name.toLowerCase().includes(search.toLowerCase()));
     const matchDept = !filterDept || a.department?.name === filterDept;
     const matchLevel = !filterLevel || String(a.academicYear) === filterLevel;
     const matchSemester = !filterSemester || String(a.semester) === filterSemester;
-    return matchSearch && matchDept && matchLevel && matchSemester;
+    const matchSubject = !filterSubject || a.subjectId === filterSubject || a.subject?.id === filterSubject;
+    return matchSearch && matchDept && matchLevel && matchSemester && matchSubject;
   });
 
   const refreshData = async () => {
@@ -133,7 +189,11 @@ export default function AssignmentsPage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newAssignment.departmentId || newAssignment.academicYear === '' || newAssignment.academicYear === undefined) {
-      alert('Please select department and academic year');
+      toast.error('Please select department and academic year');
+      return;
+    }
+    if (!newAssignment.subjectId) {
+      toast.error('Please select a subject for this assignment');
       return;
     }
     setLoading(true);
@@ -146,15 +206,27 @@ export default function AssignmentsPage() {
       departmentId: newAssignment.departmentId,
       academicYear: parseInt(newAssignment.academicYear),
       semester: parseInt(newAssignment.semester),
+      subjectId: newAssignment.subjectId,
       startDate,
       deadline,
     });
     if (res.success) {
       setIsModalOpen(false);
-      setNewAssignment({ title: '', departmentId: '', academicYear: '', semester: '1', startDate: '', startTime: '00:00', endDate: '', endTime: '23:59' });
+      setNewAssignment({
+        title: '',
+        departmentId: '',
+        academicYear: '',
+        semester: '1',
+        subjectId: '',
+        startDate: '',
+        startTime: '00:00',
+        endDate: '',
+        endTime: '23:59',
+      });
       refreshData();
+      toast.success('Assignment published successfully!');
     } else {
-      alert('Error: ' + res.error);
+      toast.error('Error: ' + res.error);
     }
     setLoading(false);
   };
@@ -278,24 +350,29 @@ export default function AssignmentsPage() {
                 onChange={e => setSearch(e.target.value)}
                 className="w-full pl-8 pr-3 py-2 bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-600 rounded-xl text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20" />
             </div>
-            <select value={filterDept} onChange={e => { setFilterDept(e.target.value); setFilterLevel(''); }}
+            <select value={filterDept} onChange={e => { setFilterDept(e.target.value); setFilterLevel(''); setFilterSubject(''); }}
               className="px-3 py-2 bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-600 rounded-xl text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
               <option value="">All Depts</option>
               {departments.map(d => <option key={d.id} value={d.name}>{d.name}</option>)}
             </select>
-            <select value={filterLevel} onChange={e => setFilterLevel(e.target.value)}
+            <select value={filterLevel} onChange={e => { setFilterLevel(e.target.value); setFilterSubject(''); }}
               className="px-3 py-2 bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-600 rounded-xl text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
               <option value="">All Levels</option>
               {filterAvailableLevels.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
             </select>
-            <select value={filterSemester} onChange={e => setFilterSemester(e.target.value)}
+            <select value={filterSemester} onChange={e => { setFilterSemester(e.target.value); setFilterSubject(''); }}
               className="px-3 py-2 bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-600 rounded-xl text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
               <option value="">All Semesters</option>
               <option value="1">Semester 1</option>
               <option value="2">Semester 2</option>
             </select>
-            {(filterDept || filterLevel || filterSemester || search) && (
-              <button onClick={() => { setFilterDept(''); setFilterLevel(''); setFilterSemester(''); setSearch(''); }}
+            <select value={filterSubject} onChange={e => setFilterSubject(e.target.value)}
+              className="px-3 py-2 bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-600 rounded-xl text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+              <option value="">All Subjects</option>
+              {filteredSubjectsForDropdown.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+            {(filterDept || filterLevel || filterSemester || filterSubject || search) && (
+              <button onClick={() => { setFilterDept(''); setFilterLevel(''); setFilterSemester(''); setFilterSubject(''); setSearch(''); }}
                 className="flex items-center gap-1 px-3 py-2 text-xs text-red-500 bg-red-50 dark:bg-red-900/20 rounded-xl hover:bg-red-100 transition-colors">
                 <X size={13} /> Reset
               </button>
@@ -326,8 +403,18 @@ export default function AssignmentsPage() {
                         <FileText size={18} className={isNew ? 'text-green-600' : 'text-slate-400'} />
                       </div>
                       <div>
-                        <p className="font-bold text-slate-800 dark:text-slate-100 text-sm">{a.title}</p>
-                        <p className="text-xs text-slate-400">{new Date(a.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} &bull; {a._count?.submissions ?? 0} submissions · Deadline: {a.deadline ? new Date(a.deadline).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-bold text-slate-800 dark:text-slate-100 text-sm">{a.title}</p>
+                          {a.subject?.name && (
+                            <span className="text-[10px] font-bold bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded-md">
+                              {a.subject.name}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          {a.department?.name ? `${a.department.name} • Level ${a.academicYear ?? ''} • Sem ${a.semester ?? ''} • ` : ''}
+                          {new Date(a.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} &bull; {a._count?.submissions ?? 0} submissions · Deadline: {a.deadline ? new Date(a.deadline).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -366,7 +453,14 @@ export default function AssignmentsPage() {
               {/* Assignment header */}
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="font-black text-slate-800 dark:text-slate-100 text-lg">{selected.title}</h3>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-black text-slate-800 dark:text-slate-100 text-lg">{selected.title}</h3>
+                    {selected.subject?.name && (
+                      <span className="text-xs font-bold bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-2.5 py-1 rounded-lg">
+                        {selected.subject.name}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-slate-400 mt-0.5">
                     {selected.department
                       ? `${selected.department.name}${selected.academicYear !== null && selected.academicYear !== undefined ? ` • Level ${selected.academicYear}` : ''}`
@@ -594,6 +688,32 @@ export default function AssignmentsPage() {
                 >
                   <option value="1">Semester 1</option>
                   <option value="2">Semester 2</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-400 uppercase mb-2 flex items-center justify-between">
+                  <span>Subject (المادة) *</span>
+                  {modalLoadingSubjects && <Loader2 size={13} className="animate-spin text-indigo-500" />}
+                </label>
+                <select
+                  required
+                  disabled={!newAssignment.departmentId || newAssignment.academicYear === '' || modalLoadingSubjects}
+                  className="w-full bg-slate-50 dark:bg-slate-700 dark:text-slate-100 border-none rounded-xl p-4 text-sm focus:ring-2 focus:ring-indigo-200 outline-none disabled:opacity-50"
+                  value={newAssignment.subjectId}
+                  onChange={e => setNewAssignment(p => ({ ...p, subjectId: e.target.value }))}
+                >
+                  <option value="">
+                    {!newAssignment.departmentId || newAssignment.academicYear === ''
+                      ? 'Select department and level first...'
+                      : modalLoadingSubjects
+                      ? 'Loading subjects...'
+                      : modalSubjects.length === 0
+                      ? 'No subjects found for this selection'
+                      : 'Select subject...'}
+                  </option>
+                  {modalSubjects.map(s => (
+                    <option key={s.id} value={s.id}>{s.name} ({s.code})</option>
+                  ))}
                 </select>
               </div>
               <div>

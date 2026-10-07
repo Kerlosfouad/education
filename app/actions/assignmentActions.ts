@@ -10,6 +10,7 @@ export async function createAssignmentAction(data: {
   departmentId: string;
   academicYear: number;
   semester: number;
+  subjectId?: string | null;
   startDate: string;
   deadline: string;
 }) {
@@ -24,6 +25,7 @@ export async function createAssignmentAction(data: {
         departmentId: data.departmentId,
         academicYear: data.academicYear,
         semester: data.semester,
+        subjectId: data.subjectId || null,
         deadline: new Date(data.deadline),
         allowUpload: true,
       },
@@ -36,9 +38,15 @@ export async function createAssignmentAction(data: {
       `;
     }
 
+    let subjectName = '';
+    if (data.subjectId) {
+      const subj = await db.subject.findUnique({ where: { id: data.subjectId }, select: { name: true } });
+      if (subj?.name) subjectName = ` (${subj.name})`;
+    }
+
     await notifyStudentsByFilter(
-      '📝 New Assignment',
-      `A new assignment has been published: ${data.title}. Please submit your PDF before the deadline.`,
+      `📝 New Assignment${subjectName}`,
+      `A new assignment has been published: ${data.title}${subjectName}. Please submit your work before the deadline.`,
       'ASSIGNMENT',
       data.departmentId,
       data.academicYear
@@ -57,6 +65,7 @@ export async function getAssignmentsAction() {
     const assignments = await db.assignment.findMany({
       orderBy: { createdAt: 'desc' },
       include: {
+        subject: { select: { id: true, name: true, code: true } },
         _count: { select: { submissions: true } },
       },
     });
