@@ -56,44 +56,55 @@ export default function StudentAssignmentsPage() {
     }
 
     setUploadingId(assignmentId);
-    setProgress(0);
+    setProgress(15);
     setUploadError(null);
 
     try {
-      // Sanitize file name (replace non-ASCII / Arabic chars to prevent S3 & XHR header failure)
-      const ext = file.name.includes('.') ? file.name.split('.').pop()?.toLowerCase() || 'pdf' : 'pdf';
-      const cleanFileName = `assignment_${assignmentId}_${Date.now()}.${ext}`;
-      const safeFile = new File([file], cleanFileName, {
-        type: file.type && file.type !== '' ? file.type : 'application/pdf',
-      });
+      let finalFileUrl: string | null = null;
 
-      const uploaded = await startUpload([safeFile]);
-      if (!uploaded?.[0]) {
-        alert(uploadError || 'فشل رفع الملف. يرجى التأكد من اتصال الإنترنت وصيغة الملف والمحاولة مرة أخرى.');
-        setUploadingId(null);
-        return;
+      // 1. Try UploadThing first
+      try {
+        const ext = file.name.includes('.') ? file.name.split('.').pop()?.toLowerCase() || 'pdf' : 'pdf';
+        const cleanFileName = `assignment_${assignmentId}_${Date.now()}.${ext}`;
+        const safeFile = new File([file], cleanFileName, {
+          type: file.type && file.type !== '' ? file.type : 'application/pdf',
+        });
+
+        const uploaded = await startUpload([safeFile]);
+        if (uploaded?.[0]) {
+          const uploadedData = uploaded[0] as any;
+          finalFileUrl = uploadedData.ufsUrl || uploadedData.url || uploadedData.serverData?.url || null;
+        }
+      } catch (utError) {
+        console.warn('UploadThing unavailable, using direct upload fallback:', utError);
       }
 
-      const uploadedData = uploaded[0] as any;
-      const fileUrl = uploadedData.ufsUrl || uploadedData.url || uploadedData.serverData?.url;
-
-      if (!fileUrl) {
-        alert('تعذر استخراج رابط الملف بعد الرفع. يرجى المحاولة مرة أخرى.');
-        setUploadingId(null);
-        return;
+      // 2. If UploadThing did not succeed (e.g. quota limit, network error, 400), automatically use Direct Base64 upload
+      if (!finalFileUrl) {
+        setProgress(50);
+        finalFileUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = (err) => reject(err);
+          reader.readAsDataURL(file);
+        });
       }
 
+      setProgress(85);
+
+      // 3. Save submission to the database
       const res = await fetch(`/api/assignments/${assignmentId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fileUrl }),
+        body: JSON.stringify({ fileUrl: finalFileUrl }),
       });
       const json = await res.json();
       if (json.success) {
+        setProgress(100);
         setDoneId(assignmentId);
         setAssignments(prev => prev.map(a =>
           a.id === assignmentId
-            ? { ...a, submissions: [{ id: json.data.id, status: 'SUBMITTED', fileUrl, score: null, gradedAt: null }] }
+            ? { ...a, submissions: [{ id: json.data.id, status: 'SUBMITTED', fileUrl: finalFileUrl, score: null, gradedAt: null }] }
             : a
         ));
         setSelectedFile(prev => { const n = { ...prev }; delete n[assignmentId]; return n; });
@@ -102,9 +113,10 @@ export default function StudentAssignmentsPage() {
       }
     } catch (e: any) {
       console.error('Submission Error:', e);
-      alert('حدث خطأ: ' + (e?.message || String(e)));
+      alert('حدث خطأ أثناء رفع وحفظ التسليم: ' + (e?.message || String(e)));
+    } finally {
+      setUploadingId(null);
     }
-    setUploadingId(null);
   };
 
   // Assignment is overdue if deadline has passed, regardless of isActive flag

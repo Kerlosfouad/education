@@ -458,7 +458,7 @@ export default function AssignmentsPage() {
                               </div>
                               {sub.fileUrl ? (
                                 <div className="flex gap-1.5">
-                                  <a href={sub.fileUrl} target="_blank" rel="noopener noreferrer"
+                                  <a href={sub.fileUrl.startsWith('data:') ? `/api/assignments/submissions/${sub.id}/file` : sub.fileUrl} target="_blank" rel="noopener noreferrer"
                                     className="flex items-center gap-1 text-xs bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 font-bold px-2.5 py-1.5 rounded-xl hover:bg-indigo-100 transition-colors">
                                     <ExternalLink size={11} /> View
                                   </a>
