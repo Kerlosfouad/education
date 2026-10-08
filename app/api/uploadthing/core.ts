@@ -1,6 +1,7 @@
 import { createUploadthing, type FileRouter } from "uploadthing/next";
 import { getServerSession } from "next-auth/next";
 import { getToken } from "next-auth/jwt";
+import { cookies } from "next/headers";
 import { authOptions } from "@/lib/auth";
 
 const f = createUploadthing();
@@ -12,7 +13,22 @@ async function getAuthUser(req: any) {
       if (token?.id) return { userId: token.id as string };
     }
   } catch (e) {
-    console.error("UploadThing getToken error:", e);
+    console.error("UploadThing getToken (req) error:", e);
+  }
+
+  try {
+    const cookieStore = cookies();
+    const cookieHeader = cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ');
+    const token = await getToken({
+      req: {
+        headers: { cookie: cookieHeader },
+        cookies: Object.fromEntries(cookieStore.getAll().map(c => [c.name, c.value])),
+      } as any,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+    if (token?.id) return { userId: token.id as string };
+  } catch (e) {
+    console.error("UploadThing getToken (cookies) error:", e);
   }
 
   try {

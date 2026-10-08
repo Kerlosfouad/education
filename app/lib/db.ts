@@ -47,11 +47,10 @@ export async function getStudentSubjectAccess(student: StudentAccessInput) {
     WHERE ss."studentId" = ${student.id} AND s."isActive" = true
   `;
 
-  let subjectIds = Array.from(new Set(enrolledSubjects.map((subject) => subject.id)));
-
-  // Fallback: if student has no explicit student_subjects rows, find active subjects by department + academicYear (+ semester)
-  if (subjectIds.length === 0 && student.departmentId) {
-    const fallbackSubjects = await db.subject.findMany({
+  // 2. Active subjects matching student's department + academicYear (+ semester if set)
+  let departmentalSubjects: { id: string }[] = [];
+  if (student.departmentId) {
+    departmentalSubjects = await db.subject.findMany({
       where: {
         departmentId: student.departmentId,
         academicYear: student.academicYear,
@@ -60,8 +59,12 @@ export async function getStudentSubjectAccess(student: StudentAccessInput) {
       },
       select: { id: true },
     });
-    subjectIds = fallbackSubjects.map(s => s.id);
   }
+
+  const subjectIds = Array.from(new Set([
+    ...enrolledSubjects.map((s) => s.id),
+    ...departmentalSubjects.map((s) => s.id),
+  ]));
 
   return {
     semester,
@@ -84,14 +87,9 @@ export async function canStudentAccessScopedContent(
 ) {
   const { semester, subjectIds } = await getStudentSubjectAccess(student);
 
-  // If content has a specific subject, student must have access to that subject
+  // If content is tied to a specific subject, having access to that subject is sufficient
   if (content.subjectId) {
-    if (!subjectIds.includes(content.subjectId)) return false;
-    // Also verify department / academicYear / semester if explicitly provided
-    if (content.departmentId && content.departmentId !== student.departmentId) return false;
-    if (content.academicYear !== null && content.academicYear !== undefined && content.academicYear !== student.academicYear) return false;
-    if (content.semester !== null && content.semester !== undefined && semester !== null && content.semester !== semester) return false;
-    return true;
+    return subjectIds.includes(content.subjectId);
   }
 
   const departmentMatches = !content.departmentId || content.departmentId === student.departmentId;

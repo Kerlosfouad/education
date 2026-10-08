@@ -21,6 +21,56 @@ interface Assignment {
   submissions: { id: string; status: string; fileUrl: string | null; score: number | null; gradedAt: string | null }[];
 }
 
+async function compressImageIfNeeded(file: File): Promise<File> {
+  if (!file.type.startsWith('image/')) return file;
+  if (file.size <= 1024 * 1024) return file;
+
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        const maxDim = 1800;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                resolve(new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", { type: "image/jpeg" }));
+                return;
+              }
+              resolve(file);
+            },
+            'image/jpeg',
+            0.8
+          );
+        } else {
+          resolve(file);
+        }
+      };
+      img.onerror = () => resolve(file);
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => resolve(file);
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function StudentAssignmentsPage() {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,16 +98,16 @@ export default function StudentAssignmentsPage() {
   }, []);
 
   const handleSubmit = async (assignmentId: string) => {
-    const file = selectedFile[assignmentId];
-    if (!file) return;
+    const rawFile = selectedFile[assignmentId];
+    if (!rawFile) return;
 
-    if (file.size === 0) {
+    if (rawFile.size === 0) {
       alert('الملف المختار فارغ. يرجى اختيار ملف صالح.');
       return;
     }
 
-    if (file.size > 16 * 1024 * 1024) {
-      alert('حجم الملف يتجاوز الحد الأقصى المسموح به (16 ميجابايت). يرجى تقليل حجم الملف والمحاولة مرة أخرى.');
+    if (rawFile.size > 20 * 1024 * 1024) {
+      alert('حجم الملف يتجاوز الحد الأقصى المسموح به (20 ميجابايت). يرجى تقليل حجم الملف والمحاولة مرة أخرى.');
       return;
     }
 
@@ -66,6 +116,7 @@ export default function StudentAssignmentsPage() {
     setUploadError(null);
 
     try {
+      const file = await compressImageIfNeeded(rawFile);
       let finalFileUrl: string | null = null;
 
       // 1. Try UploadThing first
@@ -87,6 +138,9 @@ export default function StudentAssignmentsPage() {
 
       // 2. If UploadThing did not succeed (e.g. quota limit, network error, 400), automatically use Direct Base64 upload
       if (!finalFileUrl) {
+        if (file.size > 3.5 * 1024 * 1024) {
+          throw new Error('تعذر رفع الملف وحجمه كبير جداً. يرجى تقليل حجم الملف إلى أقل من 3.5 ميجابايت والمحاولة مجدداً.');
+        }
         setProgress(50);
         finalFileUrl = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
@@ -104,8 +158,21 @@ export default function StudentAssignmentsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fileUrl: finalFileUrl }),
       });
-      const json = await res.json();
-      if (json.success) {
+
+      let json: any = null;
+      try {
+        json = await res.json();
+      } catch (err) {
+        if (res.status === 413) {
+          throw new Error('حجم الملف كبير جداً على السيرفر (Request Entity Too Large). يرجى تقليل حجم الملف.');
+        }
+        if (res.status === 403) {
+          throw new Error('ليس لديك صلاحية لتسليم هذا التكليف (Forbidden).');
+        }
+        throw new Error(`خطأ في استجابة الخادم (${res.status})`);
+      }
+
+      if (res.ok && json?.success) {
         setProgress(100);
         setDoneId(assignmentId);
         setAssignments(prev => prev.map(a =>
@@ -115,7 +182,7 @@ export default function StudentAssignmentsPage() {
         ));
         setSelectedFile(prev => { const n = { ...prev }; delete n[assignmentId]; return n; });
       } else {
-        alert(json.error || 'فشل حفظ التسليم');
+        alert(json?.error || 'فشل حفظ التسليم');
       }
     } catch (e: any) {
       console.error('Submission Error:', e);
