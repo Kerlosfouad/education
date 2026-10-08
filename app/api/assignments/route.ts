@@ -51,3 +51,67 @@ export async function GET() {
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
+
+export async function POST(req: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user || !['DOCTOR', 'ADMIN'].includes(session.user.role)) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const data = await req.json();
+    if (!data.title || !data.departmentId || data.academicYear === undefined) {
+      return NextResponse.json({ success: false, error: 'Missing required fields' }, { status: 400 });
+    }
+
+    const created = await db.assignment.create({
+      data: {
+        title: data.title,
+        description: data.description || null,
+        fileUrl: data.fileUrl || null,
+        departmentId: data.departmentId,
+        academicYear: Number(data.academicYear),
+        semester: Number(data.semester || 1),
+        subjectId: data.subjectId || null,
+        deadline: new Date(data.deadline),
+        allowUpload: true,
+      },
+    });
+
+    if (data.startDate) {
+      try {
+        await db.$executeRaw`
+          UPDATE assignments SET "startDate" = ${new Date(data.startDate)} WHERE id = ${created.id}
+        `;
+      } catch (e) {
+        console.warn('Could not update startDate:', e);
+      }
+    }
+
+    let subjectName = '';
+    if (data.subjectId) {
+      try {
+        const subj = await db.subject.findUnique({ where: { id: data.subjectId }, select: { name: true } });
+        if (subj?.name) subjectName = ` (${subj.name})`;
+      } catch {}
+    }
+
+    try {
+      const { notifyStudentsByFilter } = await import('@/lib/notifications');
+      await notifyStudentsByFilter(
+        `📝 New Assignment${subjectName}`,
+        `A new assignment has been published: ${data.title}${subjectName}. Please submit your work before the deadline.`,
+        'ASSIGNMENT',
+        data.departmentId,
+        Number(data.academicYear)
+      );
+    } catch (notifErr) {
+      console.error('Notification error:', notifErr);
+    }
+
+    return NextResponse.json({ success: true, data: created });
+  } catch (error: any) {
+    console.error('Assignment create POST error:', error);
+    return NextResponse.json({ success: false, error: error?.message || 'Failed to save assignment' }, { status: 500 });
+  }
+}

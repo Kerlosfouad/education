@@ -11,6 +11,8 @@ async function getAuthUser(req: any) {
     if (req) {
       const token = await getToken({ req: req as any, secret: process.env.NEXTAUTH_SECRET });
       if (token?.id) return { userId: token.id as string };
+      const secureToken = await getToken({ req: req as any, secret: process.env.NEXTAUTH_SECRET, secureCookie: true });
+      if (secureToken?.id) return { userId: secureToken.id as string };
     }
   } catch (e) {
     console.error("UploadThing getToken (req) error:", e);
@@ -19,14 +21,21 @@ async function getAuthUser(req: any) {
   try {
     const cookieStore = cookies();
     const cookieHeader = cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ');
+    const mockReq = {
+      headers: { cookie: cookieHeader },
+      cookies: Object.fromEntries(cookieStore.getAll().map(c => [c.name, c.value])),
+    };
     const token = await getToken({
-      req: {
-        headers: { cookie: cookieHeader },
-        cookies: Object.fromEntries(cookieStore.getAll().map(c => [c.name, c.value])),
-      } as any,
+      req: mockReq as any,
       secret: process.env.NEXTAUTH_SECRET,
     });
     if (token?.id) return { userId: token.id as string };
+    const secureToken = await getToken({
+      req: mockReq as any,
+      secret: process.env.NEXTAUTH_SECRET,
+      secureCookie: true,
+    });
+    if (secureToken?.id) return { userId: secureToken.id as string };
   } catch (e) {
     console.error("UploadThing getToken (cookies) error:", e);
   }

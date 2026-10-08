@@ -351,19 +351,25 @@ export default function AssignmentsPage() {
         : new Date().toISOString();
       const deadline = new Date(`${newAssignment.endDate}T${newAssignment.endTime}`).toISOString();
       
-      const res = await createAssignmentAction({
-        title: newAssignment.title,
-        description: newAssignment.description || null,
-        fileUrl: finalFileUrl,
-        departmentId: newAssignment.departmentId,
-        academicYear: parseInt(newAssignment.academicYear),
-        semester: parseInt(newAssignment.semester),
-        subjectId: newAssignment.subjectId,
-        startDate,
-        deadline,
+      const response = await fetch('/api/assignments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: newAssignment.title,
+          description: newAssignment.description || null,
+          fileUrl: finalFileUrl,
+          departmentId: newAssignment.departmentId,
+          academicYear: parseInt(newAssignment.academicYear),
+          semester: parseInt(newAssignment.semester),
+          subjectId: newAssignment.subjectId,
+          startDate,
+          deadline,
+        }),
       });
 
-      if (res.success) {
+      const res = await response.json();
+
+      if (response.ok && res.success) {
         setIsModalOpen(false);
         setNewAssignment({
           title: '',
