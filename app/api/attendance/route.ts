@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { canStudentAccessScopedContent, db, getOrCreateStudent, getStudentSubjectAccess } from '@/lib/db';
+import { cache } from '@/lib/cache';
 import { UAParser } from 'ua-parser-js';
 import { notifyAllStudents, notifyStudentsByFilter, notifyStudentsBySubject } from '@/lib/notifications';
 
@@ -389,6 +390,12 @@ export async function POST(req: NextRequest) {
           },
         },
       });
+
+      // Invalidate caches
+      cache.delete(`student:att-stats:${student.id}`);
+      cache.delete(`student:dashboard:${session.user.id}`);
+      cache.delete(`doctor:stats:summary`);
+      cache.delete(`doctor:analytics:overview`);
 
       return NextResponse.json(
         { success: true, data: attendance },

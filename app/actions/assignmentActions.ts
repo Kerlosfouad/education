@@ -1,5 +1,6 @@
 "use server";
 import { db } from "@/lib/db";
+import { cache } from "@/lib/cache";
 import { revalidatePath } from "next/cache";
 import { notifyStudentsByFilter } from "@/lib/notifications";
 import { getServerSession } from "next-auth";
@@ -56,6 +57,8 @@ export async function createAssignmentAction(data: {
       data.academicYear
     );
 
+    cache.invalidatePattern('student:assignments');
+    cache.delete('doctor:stats:summary');
     revalidatePath('/doctor/assignments');
     return { success: true };
   } catch (error) {
@@ -97,6 +100,8 @@ export async function deleteAssignmentAction(id: string) {
       return { success: false };
     }
     await db.assignment.delete({ where: { id } });
+    cache.invalidatePattern('student:assignments');
+    cache.delete('doctor:stats:summary');
     revalidatePath('/doctor/assignments');
     return { success: true };
   } catch {

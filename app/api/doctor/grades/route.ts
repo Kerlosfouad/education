@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { cache } from '@/lib/cache';
 
 // GET: fetch students + their grades for a subject
 export async function GET(req: NextRequest) {
@@ -14,10 +15,17 @@ export async function GET(req: NextRequest) {
   const subjectId = req.nextUrl.searchParams.get('subjectId');
   if (!subjectId) return NextResponse.json({ error: 'subjectId required' }, { status: 400 });
 
-  const subject = await db.subject.findUnique({
-    where: { id: subjectId },
-    select: { id: true, name: true, departmentId: true, academicYear: true, semester: true },
-  });
+  const subject = await cache.remember(
+    `subject:${subjectId}`,
+    600,
+    async () => {
+      return db.subject.findUnique({
+        where: { id: subjectId },
+        select: { id: true, name: true, departmentId: true, academicYear: true, semester: true },
+      });
+    },
+    ['subjects']
+  );
   if (!subject) return NextResponse.json({ error: 'Subject not found' }, { status: 404 });
 
   // Get students enrolled in this subject via student_subjects
@@ -226,6 +234,12 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  cache.delete(`grades:subject:${subjectId}`);
+  cache.delete(`student:grades:${studentId}`);
+  if (student?.userId) {
+    cache.delete(`notifications:${student.userId}`);
+  }
+
   return NextResponse.json({ success: true, grade });
 }
 
@@ -263,7 +277,13 @@ export async function DELETE(req: NextRequest) {
       await db.notification.deleteMany({
         where: { userId: student.userId, type: 'EXAM_RESULT' },
       });
+      cache.delete(`notifications:${student.userId}`);
     }
+  }
+
+  cache.delete(`grades:subject:${subjectId}`);
+  if (studentId) {
+    cache.delete(`student:grades:${studentId}`);
   }
 
   return NextResponse.json({ success: true });

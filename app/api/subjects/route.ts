@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { cache } from '@/lib/cache';
 
 export async function GET(req: NextRequest) {
   try {
@@ -12,17 +13,42 @@ export async function GET(req: NextRequest) {
     const semesterRaw = searchParams.get('semester');
     const semester = semesterRaw ? Number(semesterRaw) : null;
 
-    const subjects = await db.subject.findMany({
-      where: {
-        isActive: true,
-        ...(departmentId ? { departmentId } : {}),
-        ...(academicYear !== null ? { academicYear } : {}),
-        ...(semester !== null ? { semester } : {}),
+    const cacheKey = `subjects:dept:${departmentId || 'all'}:yr:${academicYear ?? 'all'}:sem:${semester ?? 'all'}`;
+
+    const subjects = await cache.remember(
+      cacheKey,
+      600, // 10 minutes
+      async () => {
+        return db.subject.findMany({
+          where: {
+            isActive: true,
+            ...(departmentId ? { departmentId } : {}),
+            ...(academicYear !== null ? { academicYear } : {}),
+            ...(semester !== null ? { semester } : {}),
+          },
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            departmentId: true,
+            academicYear: true,
+            semester: true,
+            department: { select: { name: true } },
+          },
+          orderBy: { name: 'asc' },
+        });
       },
-      select: { id: true, name: true, code: true, departmentId: true, academicYear: true, semester: true, department: { select: { name: true } } },
-      orderBy: { name: 'asc' },
-    });
-    return NextResponse.json({ success: true, data: subjects });
+      ['subjects']
+    );
+
+    return NextResponse.json(
+      { success: true, data: subjects },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=3600',
+        },
+      }
+    );
   } catch (error) {
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }

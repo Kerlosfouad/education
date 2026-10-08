@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { db } from '@/lib/db';
+import { cache } from '@/lib/cache';
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -12,15 +13,19 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const students = await db.student.findMany({
-      where: { user: { status: 'ACTIVE' }, studentCode: { not: '' } },
-      include: {
-        user: { select: { name: true } },
-        attendances: { where: { verificationMethod: { not: 'ABSENT' } }, select: { id: true } },
-        assignmentSubmissions: { select: { id: true } },
-        quizAttempts: { where: { status: 'COMPLETED' }, select: { id: true, percentage: true } },
-      }
-    });
+    const data = await cache.remember(
+      'doctor:analytics:overview',
+      60, // 60 seconds
+      async () => {
+        const students = await db.student.findMany({
+          where: { user: { status: 'ACTIVE' }, studentCode: { not: '' } },
+          include: {
+            user: { select: { name: true } },
+            attendances: { where: { verificationMethod: { not: 'ABSENT' } }, select: { id: true } },
+            assignmentSubmissions: { select: { id: true } },
+            quizAttempts: { where: { status: 'COMPLETED' }, select: { id: true, percentage: true } },
+          },
+        });
 
     // Fetch all sessions, quizzes, assignments in bulk
     const [allSessionsRaw, allQuizzes, allAssignments] = await Promise.all([
@@ -34,7 +39,7 @@ export async function GET() {
     type SessionRow = { id: string; departmentId: string | null; academicYear: number | null };
     const allSessions = allSessionsRaw as SessionRow[];
 
-    const data = students.map(student => {
+    const list = students.map(student => {
       const totalSessions = allSessions.filter(s =>
         !s.departmentId ||
         (s.departmentId === student.departmentId && (s.academicYear === student.academicYear || s.academicYear === null))
@@ -75,6 +80,11 @@ export async function GET() {
         totalAssignments,
       };
     });
+
+    return list;
+  },
+  ['doctor:analytics']
+);
 
     return NextResponse.json(data);
   } catch (error) {

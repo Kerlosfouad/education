@@ -56,8 +56,21 @@ export default function StudentAttendancePage() {
 
   useEffect(() => {
     fetchAll();
-    const interval = setInterval(fetchAll, 10000);
-    return () => clearInterval(interval);
+    const interval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        fetchAll();
+      }
+    }, 30000);
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') fetchAll();
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
   }, [fetchAll]);
 
   const markAttendance = async () => {

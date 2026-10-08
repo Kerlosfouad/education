@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { canStudentAccessScopedContent, db, getOrCreateStudent } from '@/lib/db';
+import { cache } from '@/lib/cache';
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -122,6 +123,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         status: 'COMPLETED',
       },
     });
+
+    // Invalidate student quizzes cache and doctor analytics
+    cache.invalidatePattern(`student:quizzes:${student.id}`);
+    cache.delete('doctor:analytics:overview');
 
     return NextResponse.json({
       success: true,

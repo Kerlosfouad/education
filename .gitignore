@@ -9,3 +9,11 @@ tsconfig.tsbuildinfo
 /lib/
 /types/
 /doctor/
+
+# Scratch & Temporary files
+*.sql
+*.log
+temp_*
+SIMPLIFIED_GRADES_REPORT.md
+emad_bayoumi_app/
+

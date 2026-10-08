@@ -4,47 +4,57 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { cache } from '@/lib/cache';
 
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const student = await db.student.findUnique({
-    where: { userId: session.user.id },
-    include: {
-      user: { select: { name: true, email: true, image: true } },
-      department: { select: { name: true } },
+  const data = await cache.remember(
+    `student:profile:${session.user.id}`,
+    60, // 60 seconds
+    async () => {
+      const student = await db.student.findUnique({
+        where: { userId: session.user.id },
+        include: {
+          user: { select: { name: true, email: true, image: true } },
+          department: { select: { name: true } },
+        },
+      });
+
+      if (!student) return null;
+
+      // Fetch semester via raw SQL since it may not be in generated Prisma types
+      const semesterResult = await db.$queryRaw<{ semester: number }[]>`
+        SELECT semester FROM students WHERE id = ${student.id}
+      `;
+      const semester = semesterResult[0]?.semester ?? 1;
+
+      // Fetch enrolled subjects
+      const enrolledSubjects = await db.$queryRaw<{ id: string; name: string; code: string; semester: number; status: string }[]>`
+        SELECT s.id, s.name, s.code, s.semester, 'ENROLLED' as status
+        FROM subjects s
+        INNER JOIN student_subjects ss ON ss."subjectId" = s.id
+        WHERE ss."studentId" = ${student.id}
+          AND s."isActive" = true
+        UNION
+        SELECT s.id, s.name, s.code, s.semester, 'PENDING' as status
+        FROM subjects s
+        INNER JOIN enrollment_requests er ON er."subjectId" = s.id
+        WHERE er."studentId" = ${student.id}
+          AND er.status = 'PENDING'
+          AND s."isActive" = true
+        ORDER BY semester, name
+      `;
+
+      return { ...student, semester, enrolledSubjects };
     },
-  });
+    [`student:${session.user.id}`]
+  );
 
-  if (!student) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  if (!data) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  // Fetch semester via raw SQL since it may not be in generated Prisma types
-  const semesterResult = await db.$queryRaw<{ semester: number }[]>`
-    SELECT semester FROM students WHERE id = ${student.id}
-  `;
-  const semester = semesterResult[0]?.semester ?? 1;
-
-  // Fetch enrolled subjects:
-  // 1. Subjects explicitly enrolled in student_subjects (isActive = true)
-  // 2. Extra subjects pending approval in enrollment_requests (isActive = true)
-  const enrolledSubjects = await db.$queryRaw<{ id: string; name: string; code: string; semester: number; status: string }[]>`
-    SELECT s.id, s.name, s.code, s.semester, 'ENROLLED' as status
-    FROM subjects s
-    INNER JOIN student_subjects ss ON ss."subjectId" = s.id
-    WHERE ss."studentId" = ${student.id}
-      AND s."isActive" = true
-    UNION
-    SELECT s.id, s.name, s.code, s.semester, 'PENDING' as status
-    FROM subjects s
-    INNER JOIN enrollment_requests er ON er."subjectId" = s.id
-    WHERE er."studentId" = ${student.id}
-      AND er.status = 'PENDING'
-      AND s."isActive" = true
-    ORDER BY semester, name
-  `;
-
-  return NextResponse.json({ success: true, data: { ...student, semester, enrolledSubjects } });
+  return NextResponse.json({ success: true, data });
 }
 
 export async function PATCH(request: Request) {
@@ -102,6 +112,13 @@ export async function PATCH(request: Request) {
     }
 
     await db.student.update({ where: { id: student.id }, data: updateData });
+
+    // Invalidate cached profile and related data
+    cache.delete(`student:profile:${session.user.id}`);
+    cache.delete(`student:full:${session.user.id}`);
+    cache.delete(`student:user:${session.user.id}`);
+    cache.invalidatePattern(`student:${student.id}`);
+    cache.invalidatePattern(`student:access:${student.id}`);
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

@@ -3,42 +3,48 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { db, getStudentSubjectAccess } from '@/lib/db';
+import { db, getOrCreateStudent, getStudentSubjectAccess } from '@/lib/db';
 import { notifyAllStudents, notifyStudentsBySubject } from '@/lib/notifications';
+import { cache } from '@/lib/cache';
 
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    // Students should only see videos for their accessible subjects, plus general videos.
-    let studentSubjectIds: string[] | null = null;
-    if (session.user.role === 'STUDENT') {
-      const student = await db.student.findUnique({
-        where: { userId: session.user.id },
-        select: { departmentId: true, academicYear: true, id: true },
-      });
-      if (student) {
-        const access = await getStudentSubjectAccess(student);
-        studentSubjectIds = access.subjectIds;
-      }
-    }
+    const cacheKey = `videos:${session.user.role}:${session.user.id}`;
+    const videos = await cache.remember(
+      cacheKey,
+      60, // 60 seconds
+      async () => {
+        // Students should only see videos for their accessible subjects, plus general videos.
+        let studentSubjectIds: string[] | null = null;
+        if (session.user.role === 'STUDENT') {
+          const student = await getOrCreateStudent(session.user.id);
+          if (student) {
+            const access = await getStudentSubjectAccess(student);
+            studentSubjectIds = access.subjectIds;
+          }
+        }
 
-    const videos = await db.lectureSlide.findMany({
-      where: {
-        fileType: 'video',
-        ...(studentSubjectIds
-          ? {
-              OR: [
-                { subjectId: null },
-                { subjectId: { in: studentSubjectIds } },
-              ],
-            }
-          : {}),
+        return db.lectureSlide.findMany({
+          where: {
+            fileType: 'video',
+            ...(studentSubjectIds
+              ? {
+                  OR: [
+                    { subjectId: null },
+                    { subjectId: { in: studentSubjectIds } },
+                  ],
+                }
+              : {}),
+          },
+          include: { subject: { select: { name: true } } },
+          orderBy: { uploadedAt: 'desc' },
+        });
       },
-      include: { subject: { select: { name: true } } },
-      orderBy: { uploadedAt: 'desc' },
-    });
+      ['videos']
+    );
 
     return NextResponse.json({ success: true, data: videos });
   } catch (error) {
@@ -80,6 +86,7 @@ export async function POST(req: NextRequest) {
       await notifyAllStudents('New video', `A new video was uploaded: ${title}`, 'ANNOUNCEMENT');
     }
 
+    cache.invalidatePattern('videos:');
     return NextResponse.json({ success: true, data: video }, { status: 201 });
   } catch (error) {
     console.error(error);
@@ -99,6 +106,7 @@ export async function DELETE(req: NextRequest) {
     if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 });
 
     await db.lectureSlide.delete({ where: { id } });
+    cache.invalidatePattern('videos:');
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error(error);

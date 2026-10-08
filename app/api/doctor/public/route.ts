@@ -2,51 +2,73 @@ export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { cache } from '@/lib/cache';
 
 // Public doctor info - accessible without authentication.
 // v2 - fetch doctor with profile only
 export async function GET() {
-  const doctor = await db.user.findFirst({
-    where: { role: 'DOCTOR', doctorProfile: { isNot: null } },
-    select: {
-      name: true,
-      email: true,
-      image: true,
-      doctorProfile: {
+  const data = await cache.remember(
+    'doctor:public:profile',
+    1800, // 30 minutes
+    async () => {
+      const doctor = await db.user.findFirst({
+        where: { role: 'DOCTOR', doctorProfile: { isNot: null } },
         select: {
-          title: true,
-          bio: true,
-          phone: true,
-          whatsapp: true,
-          facebook: true,
-          instagram: true,
-          twitter: true,
+          name: true,
+          email: true,
+          image: true,
+          doctorProfile: {
+            select: {
+              title: true,
+              bio: true,
+              phone: true,
+              whatsapp: true,
+              facebook: true,
+              instagram: true,
+              twitter: true,
+            },
+          },
         },
+      });
+
+      const empty = {
+        name: '',
+        email: '',
+        image: '',
+        title: '',
+        bio: '',
+        phone: '',
+        whatsapp: '',
+        facebook: '',
+        instagram: '',
+        twitter: '',
+      };
+
+      if (!doctor) return empty;
+
+      const p = doctor.doctorProfile;
+      return {
+        name: doctor.name || '',
+        email: '',
+        image: doctor.image?.startsWith('data:') ? '' : doctor.image || '',
+        title: p?.title || '',
+        bio: p?.bio || '',
+        phone: p?.phone || '',
+        whatsapp: p?.whatsapp || '',
+        facebook: p?.facebook || '',
+        instagram: p?.instagram || '',
+        twitter: p?.twitter || '',
+      };
+    },
+    ['doctor:public']
+  );
+
+  return NextResponse.json(
+    { success: true, data },
+    {
+      headers: {
+        'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=86400',
       },
-    },
-  });
-
-  const empty = { name: '', email: '', image: '', title: '', bio: '', phone: '', whatsapp: '', facebook: '', instagram: '', twitter: '' };
-
-  if (!doctor) {
-    return NextResponse.json({ success: true, data: empty });
-  }
-
-  const p = doctor.doctorProfile;
-
-  return NextResponse.json({
-    success: true,
-    data: {
-      name: doctor.name || '',
-      email: '',
-      image: doctor.image?.startsWith('data:') ? '' : (doctor.image || ''),
-      title: p?.title || '',
-      bio: p?.bio || '',
-      phone: p?.phone || '',
-      whatsapp: p?.whatsapp || '',
-      facebook: p?.facebook || '',
-      instagram: p?.instagram || '',
-      twitter: p?.twitter || '',
-    },
-  });
+    }
+  );
 }

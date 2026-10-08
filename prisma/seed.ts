@@ -95,7 +95,7 @@ async function main() {
     },
   });
 
-  await prisma.doctorProfile.upsert({
+  const doctorProfile = await prisma.doctorProfile.upsert({
     where: { userId: doctor.id },
     update: {},
     create: {
@@ -122,7 +122,7 @@ async function main() {
           departmentId: compDept.id,
           academicYear: 1,
           semester: 1,
-          doctorId: doctor.id,
+          doctorId: doctorProfile.id,
         },
       }),
       prisma.subject.upsert({
@@ -135,7 +135,7 @@ async function main() {
           departmentId: compDept.id,
           academicYear: 2,
           semester: 1,
-          doctorId: doctor.id,
+          doctorId: doctorProfile.id,
         },
       }),
       prisma.subject.upsert({
@@ -148,7 +148,7 @@ async function main() {
           departmentId: compDept.id,
           academicYear: 3,
           semester: 1,
-          doctorId: doctor.id,
+          doctorId: doctorProfile.id,
         },
       }),
     ]);

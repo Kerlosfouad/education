@@ -3,7 +3,8 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { db, getOrCreateStudent, getStudentSubjectAccess } from '@/lib/db';
+import { db, getStudentSubjectAccess } from '@/lib/db';
+import { cache } from '@/lib/cache';
 
 export async function GET() {
   try {
@@ -12,13 +13,17 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const studentBase = await getOrCreateStudent(session.user.id);
-    if (!studentBase) return NextResponse.json({ error: 'No department found' }, { status: 404 });
-
-    const student = await db.student.findUnique({
-      where: { userId: session.user.id },
-      include: { user: true, department: true },
-    });
+    const student = await cache.remember(
+      `student:full:${session.user.id}`,
+      180,
+      async () => {
+        return db.student.findUnique({
+          where: { userId: session.user.id },
+          include: { user: true, department: true },
+        });
+      },
+      [`student:${session.user.id}`]
+    );
 
     if (!student) return NextResponse.json({ error: 'Student not found' }, { status: 404 });
 
@@ -223,38 +228,71 @@ export async function GET() {
       take: 5,
     });
 
-    // Library - fetch from Book model (same as doctor uploads)
-    const libraryItems = await db.book.findMany({
-      orderBy: { createdAt: 'desc' },
-      take: 5,
-    });
-
-    // Unread notifications count
-    const unreadCount = await db.notification.count({
-      where: { userId: session.user.id, isRead: false },
-    });
-
-    // Doctor info (for student dashboard display)
-    const doctor = await db.user.findFirst({
-      where: { role: 'DOCTOR', doctorProfile: { isNot: null } },
-      select: {
-        name: true,
-        email: true,
-        image: true,
-        doctorProfile: {
-          select: {
-            title: true,
-            bio: true,
-            phone: true,
-            whatsapp: true,
-            facebook: true,
-            instagram: true,
-            twitter: true,
-          },
-        },
+    // Library - fetch from Book model (cached for 5 minutes)
+    const libraryItems = await cache.remember(
+      'books:latest:5',
+      300,
+      async () => {
+        return db.book.findMany({
+          orderBy: { createdAt: 'desc' },
+          take: 5,
+        });
       },
-    });
-    const dp = doctor?.doctorProfile;
+      ['books']
+    );
+
+    // Unread notifications count (cached for 15s)
+    const unreadCount = await cache.remember(
+      `notifications:unread:${session.user.id}`,
+      15,
+      async () => {
+        return db.notification.count({
+          where: { userId: session.user.id, isRead: false },
+        });
+      },
+      [`notifications:${session.user.id}`]
+    );
+
+    // Doctor info (cached for 30 minutes)
+    const doctorData = await cache.remember(
+      'doctor:public:profile',
+      1800,
+      async () => {
+        const doctor = await db.user.findFirst({
+          where: { role: 'DOCTOR', doctorProfile: { isNot: null } },
+          select: {
+            name: true,
+            email: true,
+            image: true,
+            doctorProfile: {
+              select: {
+                title: true,
+                bio: true,
+                phone: true,
+                whatsapp: true,
+                facebook: true,
+                instagram: true,
+                twitter: true,
+              },
+            },
+          },
+        });
+        const p = doctor?.doctorProfile;
+        return {
+          name: doctor?.name || '',
+          email: doctor?.email || '',
+          image: doctor?.image?.startsWith('data:') ? '' : doctor?.image || '',
+          title: p?.title || '',
+          bio: p?.bio || '',
+          phone: p?.phone || '',
+          whatsapp: p?.whatsapp || '',
+          facebook: p?.facebook || '',
+          instagram: p?.instagram || '',
+          twitter: p?.twitter || '',
+        };
+      },
+      ['doctor:public']
+    );
 
     return NextResponse.json({
       success: true,
@@ -267,18 +305,7 @@ export async function GET() {
           department: student.department.name,
           academicYear: student.academicYear,
         },
-        doctor: {
-          name: doctor?.name || '',
-          email: doctor?.email || '',
-          image: doctor?.image?.startsWith('data:') ? '' : (doctor?.image || ''),
-          title: dp?.title || '',
-          bio: dp?.bio || '',
-          phone: dp?.phone || '',
-          whatsapp: dp?.whatsapp || '',
-          facebook: dp?.facebook || '',
-          instagram: dp?.instagram || '',
-          twitter: dp?.twitter || '',
-        },
+        doctor: doctorData,
         stats: {
           quizzesCount: quizzes.length,
           assignmentsCount: visibleAssignments.length,

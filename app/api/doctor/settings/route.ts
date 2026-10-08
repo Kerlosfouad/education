@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { cache } from '@/lib/cache';
 import bcrypt from 'bcryptjs';
 
 export async function GET() {
@@ -85,6 +86,8 @@ export async function PATCH(req: NextRequest) {
               ${instagram ?? null}, ${twitter ?? null}, '{}')
     `;
   }
+
+  cache.delete('doctor:public:profile');
 
   return NextResponse.json({ success: true });
 }

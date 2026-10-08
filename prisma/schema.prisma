@@ -36,6 +36,8 @@ model User {
   loginHistory      LoginHistory[]
   
   @@map("users")
+  @@index([role, status])
+  @@index([status])
 }
 
 model Account {
@@ -88,6 +90,9 @@ model Book {
   createdAt    DateTime @default(now())
 
   department   Department? @relation(fields: [departmentId], references: [id])
+
+  @@index([departmentId, academicYear])
+  @@index([createdAt])
 }
 
 // Student profile
@@ -118,6 +123,7 @@ model Student {
   @@index([departmentId])
   @@index([academicYear])
   @@index([userId])
+  @@index([departmentId, academicYear, semester])
 }
 
 // Doctor profile
@@ -169,6 +175,7 @@ model Department {
   books       Book[]
   
   @@map("departments")
+  @@index([isActive])
 }
 
 // Subject model
@@ -199,6 +206,9 @@ model Subject {
   enrollmentRequests EnrollmentRequest[]
   
   @@map("subjects")
+  @@index([departmentId, academicYear, semester, isActive])
+  @@index([doctorId])
+  @@index([isActive])
 }
 
 // Attendance session
@@ -220,6 +230,10 @@ model AttendanceSession {
   attendances Attendance[]
   
   @@map("attendance_sessions")
+  @@index([subjectId])
+  @@index([departmentId, academicYear, semester])
+  @@index([isOpen, openTime, closeTime])
+  @@index([closeTime])
 }
 
 // Attendance record
@@ -242,6 +256,9 @@ model Attendance {
   @@map("attendances")
   @@index([studentId])
   @@index([sessionId])
+  @@index([studentId, verificationMethod])
+  @@index([sessionId, verificationMethod])
+  @@index([verificationMethod])
 }
 
 // Assignment
@@ -321,6 +338,9 @@ model Quiz {
   attempts      QuizAttempt[]
   
   @@map("quizzes")
+  @@index([subjectId])
+  @@index([departmentId, academicYear])
+  @@index([isPublished])
 }
 
 // Question
@@ -404,6 +424,8 @@ model LectureSlide {
   subject     Subject? @relation(fields: [subjectId], references: [id])
   
   @@map("lecture_slides")
+  @@index([subjectId, fileType])
+  @@index([fileType])
 }
 
 // E-Library items
@@ -503,6 +525,8 @@ model Notification {
   @@map("notifications")
   @@index([userId])
   @@index([isRead])
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
 }
 
 // Login history

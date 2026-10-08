@@ -32,8 +32,9 @@ export const authOptions: NextAuthOptions = {
         if (!credentials?.email || !credentials?.password) return null;
 
         try {
+          const normalizedEmail = credentials.email.trim().toLowerCase();
           const user = await db.user.findUnique({
-            where: { email: credentials.email.toLowerCase() },
+            where: { email: normalizedEmail },
             include: { student: true },
           });
 
@@ -70,6 +71,9 @@ export const authOptions: NextAuthOptions = {
             throw err;
           }
           console.error('Auth error:', err);
+          if (err.message?.includes('exceeded the quota') || err.message?.includes('quota') || err.message?.includes("Can't reach database")) {
+            throw new Error('Database quota exceeded or unreachable. Please check Neon database.');
+          }
           return null;
         }
       },

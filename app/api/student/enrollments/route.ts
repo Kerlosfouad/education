@@ -3,14 +3,15 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { db } from '@/lib/db';
+import { db, getOrCreateStudent, invalidateStudentCache } from '@/lib/db';
+import { cache } from '@/lib/cache';
 
 // GET - get enrolled subjects + pending requests for current student
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const student = await db.student.findUnique({ where: { userId: session.user.id } });
+  const student = await getOrCreateStudent(session.user.id);
   if (!student) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   const semesterRows = await db.$queryRaw<{ semester: number }[]>`SELECT semester FROM students WHERE id = ${student.id}`;
@@ -102,6 +103,7 @@ export async function POST(req: NextRequest) {
       UPDATE enrollment_requests SET status = 'PENDING', "updatedAt" = NOW()
       WHERE "studentId" = ${student.id} AND "subjectId" = ${subjectId}
     `;
+    invalidateStudentCache(student.id);
     return NextResponse.json({ success: true, status: 'PENDING' });
   }
 
@@ -122,7 +124,11 @@ export async function POST(req: NextRequest) {
         type: 'GENERAL',
       },
     });
+    cache.delete(`notifications:${doctor.id}`);
   }
+
+  invalidateStudentCache(student.id);
+  cache.delete(`student:dashboard:${student.userId}`);
 
   return NextResponse.json({ success: true, status: 'PENDING' });
 }
@@ -140,6 +146,11 @@ export async function DELETE(req: NextRequest) {
 
   await db.$executeRaw`DELETE FROM student_subjects WHERE "studentId" = ${student.id} AND "subjectId" = ${subjectId}`;
   await db.$executeRaw`DELETE FROM enrollment_requests WHERE "studentId" = ${student.id} AND "subjectId" = ${subjectId}`;
+
+  invalidateStudentCache(student.id);
+  cache.delete(`student:dashboard:${student.userId}`);
+  cache.delete(`student:assignments:${student.id}`);
+  cache.delete(`student:grades:${student.id}`);
 
   return NextResponse.json({ success: true });
 }

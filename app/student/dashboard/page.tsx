@@ -79,8 +79,22 @@ export default function StudentDashboardPage() {  const { t } = useI18n();
       .then(r => r.json())
       .then(j => { if (j.success) setDoctorInfo(j.data); })
       .catch(() => {});
-    const interval = setInterval(fetchDashboard, 15000);
-    return () => clearInterval(interval);
+
+    const interval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        fetchDashboard();
+      }
+    }, 45000);
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') fetchDashboard();
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
   }, [fetchDashboard]);
 
   const markAttendance = async () => {

@@ -3,7 +3,8 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { db } from '@/lib/db';
+import { db, invalidateStudentCache } from '@/lib/db';
+import { cache } from '@/lib/cache';
 
 // GET - get all pending enrollment requests
 export async function GET() {
@@ -79,6 +80,8 @@ export async function POST(req: NextRequest) {
           type: 'APPROVAL',
         },
       });
+      cache.delete(`notifications:${student.userId}`);
+      cache.delete(`student:dashboard:${student.userId}`);
     }
   } else {
     // Reject
@@ -96,8 +99,14 @@ export async function POST(req: NextRequest) {
           type: 'GENERAL',
         },
       });
+      cache.delete(`notifications:${student.userId}`);
+      cache.delete(`student:dashboard:${student.userId}`);
     }
   }
+
+  invalidateStudentCache(studentId);
+  cache.deletePattern(`student:grades:${studentId}*`);
+  cache.deletePattern(`student:assignments:${studentId}*`);
 
   return NextResponse.json({ success: true });
 }

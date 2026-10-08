@@ -1,4 +1,5 @@
 import { db } from './db';
+import { cache } from './cache';
 
 type NotifType = 'QUIZ' | 'ASSIGNMENT' | 'ATTENDANCE' | 'ANNOUNCEMENT' | 'EXAM_RESULT' | 'GENERAL';
 
@@ -26,6 +27,7 @@ export async function notifyAllStudents(
         type,
       })),
     });
+    cache.invalidatePattern('notifications:');
   } catch (error) {
     console.error('Failed to send notifications:', error);
   }
@@ -61,6 +63,7 @@ export async function notifyStudentsByFilter(
         type,
       })),
     });
+    cache.invalidatePattern('notifications:');
   } catch (error) {
     console.error('Failed to send filtered notifications:', error);
   }
@@ -100,6 +103,7 @@ export async function notifyStudentsBySubject(
         type,
       })),
     });
+    cache.invalidatePattern('notifications:');
   } catch (error) {
     console.error('Failed to send subject notifications:', error);
   }

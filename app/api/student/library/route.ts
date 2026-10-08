@@ -3,7 +3,8 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { db } from '@/lib/db';
+import { db, getOrCreateStudent } from '@/lib/db';
+import { cache } from '@/lib/cache';
 
 export async function GET() {
   try {
@@ -13,34 +14,38 @@ export async function GET() {
     }
 
     // Get student's department and level
-    const student = await db.student.findUnique({
-      where: { userId: session.user.id },
-      select: { departmentId: true, academicYear: true },
-    });
+    const student = await getOrCreateStudent(session.user.id);
 
-    // Show books that match student's dept+year OR have no restriction (null)
-    const books = await db.book.findMany({
-      where: {
-        OR: [
-          { departmentId: null, academicYear: null },
-          { departmentId: student?.departmentId ?? undefined, academicYear: null },
-          { departmentId: null, academicYear: student?.academicYear ?? undefined },
-          { departmentId: student?.departmentId ?? undefined, academicYear: student?.academicYear ?? undefined },
-        ],
+    const cacheKey = `library:dept:${student?.departmentId || 'all'}:yr:${student?.academicYear ?? 'all'}`;
+    const data = await cache.remember(
+      cacheKey,
+      300, // 5 minutes
+      async () => {
+        const books = await db.book.findMany({
+          where: {
+            OR: [
+              { departmentId: null, academicYear: null },
+              { departmentId: student?.departmentId ?? undefined, academicYear: null },
+              { departmentId: null, academicYear: student?.academicYear ?? undefined },
+              { departmentId: student?.departmentId ?? undefined, academicYear: student?.academicYear ?? undefined },
+            ],
+          },
+          orderBy: { createdAt: 'desc' },
+        });
+
+        return books.map(b => ({
+          id: b.id,
+          title: b.name,
+          author: null,
+          description: null,
+          category: b.type,
+          fileUrl: b.url,
+          externalUrl: null,
+          subject: null,
+        }));
       },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    const data = books.map(b => ({
-      id: b.id,
-      title: b.name,
-      author: null,
-      description: null,
-      category: b.type,
-      fileUrl: b.url,
-      externalUrl: null,
-      subject: null,
-    }));
+      ['books']
+    );
 
     return NextResponse.json({ success: true, data });
   } catch (error) {

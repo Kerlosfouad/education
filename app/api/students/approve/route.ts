@@ -3,7 +3,8 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { db } from '@/lib/db';
+import { db, invalidateStudentCache } from '@/lib/db';
+import { cache } from '@/lib/cache';
 import { generateStudentQRCode, generateUniqueBarcode } from '@/lib/codes';
 import { sendStudentApprovalEmail } from '@/lib/email';
 
@@ -67,6 +68,13 @@ export async function POST(req: NextRequest) {
           data: { barcode, qrCode: qrCodeDataUrl, approvedAt: new Date(), approvedBy: session.user.id },
         });
 
+        invalidateStudentCache(student.id);
+        cache.delete(`student:profile:${targetUserId}`);
+        cache.delete(`student:dashboard:${targetUserId}`);
+        cache.delete(`notifications:${targetUserId}`);
+        cache.delete('doctor:stats');
+        cache.deletePattern('doctor:analytics*');
+
         try {
           const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || '';
           const loginUrl = baseUrl ? `${baseUrl}/auth/login` : '/auth/login';
@@ -97,6 +105,16 @@ export async function POST(req: NextRequest) {
           type: 'APPROVAL',
         },
       });
+
+      if (student) {
+        invalidateStudentCache(student.id);
+      }
+      cache.delete(`student:profile:${targetUserId}`);
+      cache.delete(`student:dashboard:${targetUserId}`);
+      cache.delete(`notifications:${targetUserId}`);
+      cache.delete('doctor:stats');
+      cache.deletePattern('doctor:analytics*');
+
       return NextResponse.json({ success: true, message: 'Student rejected successfully' });
     } else {
       return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
