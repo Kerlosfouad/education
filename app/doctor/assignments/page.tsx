@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import {
   Plus, FileText, ExternalLink, Users,
   History, X, Trash2, ChevronRight, Loader2, Search, Filter, Lock, Unlock, Check,
-  Image as ImageIcon, Eye
+  Image as ImageIcon, Eye, Upload, FileCheck
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useI18n } from '@/lib/i18n';
@@ -45,6 +45,66 @@ interface AssignmentDetail {
   submissions: Submission[];
 }
 
+// Compress image if larger than 1MB to avoid upload bottleneck
+async function compressImageIfNeeded(file: File): Promise<File> {
+  if (!file.type.startsWith('image/')) return file;
+  if (file.size <= 1024 * 1024) return file;
+
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        const maxDim = 1800;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                resolve(new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", { type: "image/jpeg" }));
+                return;
+              }
+              resolve(file);
+            },
+            'image/jpeg',
+            0.8
+          );
+        } else {
+          resolve(file);
+        }
+      };
+      img.onerror = () => resolve(file);
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => resolve(file);
+    reader.readAsDataURL(file);
+  });
+}
+
+function isPdfUrl(url?: string | null): boolean {
+  if (!url) return false;
+  return (
+    url.startsWith('data:application/pdf') ||
+    url.toLowerCase().includes('.pdf') ||
+    url.toLowerCase().endsWith('.pdf')
+  );
+}
+
 export default function AssignmentsPage() {
   const { t } = useI18n();
   const [assignments, setAssignments] = useState<any[]>([]);
@@ -62,11 +122,15 @@ export default function AssignmentsPage() {
     endTime: '23:59',
     fileUrl: '',
   });
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string>('');
+
+  // Attached file (image or PDF)
+  const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  const [filePreview, setFilePreview] = useState<string>('');
+  const [fileType, setFileType] = useState<'image' | 'pdf' | null>(null);
   const [previewModalUrl, setPreviewModalUrl] = useState<string | null>(null);
 
-  const { startUpload } = useUploadThing('imageUploader');
+  // Use pdfUploader which accepts pdf, blob, and image up to 16MB
+  const { startUpload } = useUploadThing('pdfUploader');
   const [loading, setLoading] = useState(false);
   const [departments, setDepartments] = useState<{ id: string; name: string; code: string }[]>([]);
   const [allSubjects, setAllSubjects] = useState<{ id: string; name: string; code: string; departmentId: string; academicYear: number; semester: number }[]>([]);
@@ -193,29 +257,43 @@ export default function AssignmentsPage() {
   };
 
   const handleCreateClick = () => {
-    setImageFile(null);
-    setImagePreview('');
+    setAttachedFile(null);
+    setFilePreview('');
+    setFileType(null);
     setIsModalOpen(true);
   };
 
-  const handleImageSelect = (file: File | undefined) => {
+  const handleFileSelect = (file: File | undefined) => {
     if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select a valid image file (PNG, JPG, WEBP)');
+
+    const isImage = file.type.startsWith('image/') || /\.(png|jpe?g|webp|gif|svg)$/i.test(file.name);
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+
+    if (!isImage && !isPdf) {
+      toast.error('Please select an Image (PNG, JPG, WEBP) or a PDF file');
       return;
     }
-    if (file.size > 8 * 1024 * 1024) {
-      toast.error('Image size must be less than 8MB');
+
+    if (file.size > 16 * 1024 * 1024) {
+      toast.error('File size must be less than 16MB');
       return;
     }
-    setImageFile(file);
-    const localUrl = URL.createObjectURL(file);
-    setImagePreview(localUrl);
+
+    setAttachedFile(file);
+    if (isImage) {
+      setFileType('image');
+      const localUrl = URL.createObjectURL(file);
+      setFilePreview(localUrl);
+    } else {
+      setFileType('pdf');
+      setFilePreview(file.name);
+    }
   };
 
-  const handleRemoveImage = () => {
-    setImageFile(null);
-    setImagePreview('');
+  const handleRemoveFile = () => {
+    setAttachedFile(null);
+    setFilePreview('');
+    setFileType(null);
     setNewAssignment(p => ({ ...p, fileUrl: '' }));
   };
 
@@ -233,10 +311,17 @@ export default function AssignmentsPage() {
     try {
       let finalFileUrl: string | null = newAssignment.fileUrl || null;
 
-      // If an image file was selected, upload it
-      if (imageFile) {
+      // If an attached file was selected, upload it
+      if (attachedFile) {
         try {
-          const uploaded = await startUpload([imageFile]);
+          const fileToUpload = await compressImageIfNeeded(attachedFile);
+          const ext = fileToUpload.name.includes('.') ? fileToUpload.name.split('.').pop()?.toLowerCase() || 'pdf' : 'pdf';
+          const cleanFileName = `assignment_${Date.now()}.${ext}`;
+          const safeFile = new File([fileToUpload], cleanFileName, {
+            type: fileToUpload.type && fileToUpload.type !== '' ? fileToUpload.type : (fileType === 'pdf' ? 'application/pdf' : 'image/jpeg'),
+          });
+
+          const uploaded = await startUpload([safeFile]);
           if (uploaded?.[0]) {
             const uploadedData = uploaded[0] as any;
             finalFileUrl = uploadedData.ufsUrl || uploadedData.url || uploadedData.serverData?.url || null;
@@ -247,11 +332,16 @@ export default function AssignmentsPage() {
 
         // Base64 fallback if UploadThing is offline or failed
         if (!finalFileUrl) {
+          if (attachedFile.size > 4 * 1024 * 1024) {
+            toast.error('File upload failed and file is too large for fallback. Please reduce file size under 4MB.');
+            setLoading(false);
+            return;
+          }
           finalFileUrl = await new Promise<string>((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = () => resolve(reader.result as string);
             reader.onerror = reject;
-            reader.readAsDataURL(imageFile);
+            reader.readAsDataURL(attachedFile);
           });
         }
       }
@@ -260,6 +350,7 @@ export default function AssignmentsPage() {
         ? new Date(`${newAssignment.startDate}T${newAssignment.startTime}`).toISOString()
         : new Date().toISOString();
       const deadline = new Date(`${newAssignment.endDate}T${newAssignment.endTime}`).toISOString();
+      
       const res = await createAssignmentAction({
         title: newAssignment.title,
         description: newAssignment.description || null,
@@ -271,6 +362,7 @@ export default function AssignmentsPage() {
         startDate,
         deadline,
       });
+
       if (res.success) {
         setIsModalOpen(false);
         setNewAssignment({
@@ -286,10 +378,11 @@ export default function AssignmentsPage() {
           endTime: '23:59',
           fileUrl: '',
         });
-        setImageFile(null);
-        setImagePreview('');
+        setAttachedFile(null);
+        setFilePreview('');
+        setFileType(null);
         refreshData();
-        toast.success('Assignment published successfully with attached image!');
+        toast.success(attachedFile ? 'Assignment published successfully with attached sheet!' : 'Assignment published successfully!');
       } else {
         toast.error('Error: ' + res.error);
       }
@@ -399,14 +492,14 @@ export default function AssignmentsPage() {
           <p className="text-slate-500 dark:text-slate-400 mt-1">{t('createAssignmentsAndGrade')}</p>
         </div>
         <button onClick={handleCreateClick}
-          className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-100 dark:shadow-none transition-all w-fit">
-          <Plus size={20} /> {t('createNewAssignment')}
+          className="flex items-center gap-2 px-5 py-2.5 sm:px-6 sm:py-3 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-100 dark:shadow-none transition-all w-fit text-sm">
+          <Plus size={18} /> {t('createNewAssignment')}
         </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Assignment List */}
-        <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm p-6">
+        <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm p-4 sm:p-6">
           <div className="flex items-center gap-2 mb-4">
             <History className="text-indigo-500" size={20} />
             <h3 className="font-bold text-slate-800 dark:text-slate-100">{t('allAssignments')}</h3>
@@ -521,7 +614,7 @@ export default function AssignmentsPage() {
           ) : (
             <div className="space-y-4">
               {/* Assignment header */}
-              <div className="flex items-start justify-between">
+              <div className="flex items-start justify-between gap-2">
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="font-black text-slate-800 dark:text-slate-100 text-base sm:text-lg">{selected.title}</h3>
@@ -538,42 +631,77 @@ export default function AssignmentsPage() {
                     {' • Max score: '}{selected.maxScore}
                   </p>
                 </div>
-                {selected.fileUrl && (
-                  <button
-                    type="button"
-                    onClick={() => setPreviewModalUrl(selected.fileUrl)}
-                    className="flex items-center gap-1.5 text-xs bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300 font-bold px-3 py-1.5 rounded-xl hover:bg-indigo-100 transition-colors border border-indigo-200/60 dark:border-indigo-800"
-                  >
-                    <ImageIcon size={14} /> View Image
-                  </button>
-                )}
-              </div>
 
-              {selected.fileUrl && (
-                <div className="bg-slate-50 dark:bg-slate-700/40 rounded-xl p-2.5 border border-slate-200/80 dark:border-slate-600">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
-                      <ImageIcon size={13} /> Assignment Image / Sheet
-                    </span>
+                {selected.fileUrl && (
+                  isPdfUrl(selected.fileUrl) ? (
+                    <a
+                      href={selected.fileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 text-xs bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-300 font-bold px-3 py-1.5 rounded-xl hover:bg-red-100 transition-colors border border-red-200/60 dark:border-red-800 shrink-0"
+                    >
+                      <FileText size={14} className="text-red-500" /> View PDF
+                    </a>
+                  ) : (
                     <button
                       type="button"
                       onClick={() => setPreviewModalUrl(selected.fileUrl)}
-                      className="text-[10px] font-bold text-slate-500 hover:text-indigo-600 flex items-center gap-0.5"
+                      className="flex items-center gap-1.5 text-xs bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300 font-bold px-3 py-1.5 rounded-xl hover:bg-indigo-100 transition-colors border border-indigo-200/60 dark:border-indigo-800 shrink-0"
                     >
-                      <Eye size={12} /> Click to zoom
+                      <ImageIcon size={14} /> View Image
                     </button>
+                  )
+                )}
+              </div>
+
+              {/* Attached Sheet / Document Display */}
+              {selected.fileUrl && (
+                isPdfUrl(selected.fileUrl) ? (
+                  <div className="bg-red-50/40 dark:bg-red-950/20 rounded-xl p-3 border border-red-200/60 dark:border-red-900/40 flex items-center justify-between">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-9 h-9 rounded-lg bg-red-100 dark:bg-red-900/40 flex items-center justify-center shrink-0">
+                        <FileText size={18} className="text-red-600 dark:text-red-400" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">Attached Assignment Sheet (PDF)</p>
+                        <p className="text-[10px] text-slate-400">PDF Document provided for students</p>
+                      </div>
+                    </div>
+                    <a
+                      href={selected.fileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-xs font-bold text-red-600 dark:text-red-400 hover:underline bg-white dark:bg-slate-800 px-2.5 py-1.5 rounded-lg border border-red-200 dark:border-red-800 shadow-sm shrink-0"
+                    >
+                      <ExternalLink size={12} /> Open PDF
+                    </a>
                   </div>
-                  <div
-                    onClick={() => setPreviewModalUrl(selected.fileUrl)}
-                    className="cursor-pointer overflow-hidden rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-900/5 max-h-44 flex items-center justify-center group"
-                  >
-                    <img
-                      src={selected.fileUrl}
-                      alt={selected.title}
-                      className="w-full h-full max-h-44 object-contain group-hover:scale-105 transition-transform duration-200"
-                    />
+                ) : (
+                  <div className="bg-slate-50 dark:bg-slate-700/40 rounded-xl p-2.5 border border-slate-200/80 dark:border-slate-600">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                        <ImageIcon size={13} /> Assignment Image / Sheet
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setPreviewModalUrl(selected.fileUrl)}
+                        className="text-[10px] font-bold text-slate-500 hover:text-indigo-600 flex items-center gap-0.5"
+                      >
+                        <Eye size={12} /> Click to zoom
+                      </button>
+                    </div>
+                    <div
+                      onClick={() => setPreviewModalUrl(selected.fileUrl)}
+                      className="cursor-pointer overflow-hidden rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-900/5 max-h-44 flex items-center justify-center group"
+                    >
+                      <img
+                        src={selected.fileUrl}
+                        alt={selected.title}
+                        className="w-full h-full max-h-44 object-contain group-hover:scale-105 transition-transform duration-200"
+                      />
+                    </div>
                   </div>
-                </div>
+                )
               )}
 
               {/* Stats */}
@@ -733,32 +861,45 @@ export default function AssignmentsPage() {
         </div>
       </div>
 
-      {/* Create Modal */}
+      {/* Create Modal - Compact Mobile Optimized */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-white dark:bg-slate-800 w-full max-w-sm sm:max-w-md rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-2xl animate-in zoom-in duration-200 max-h-[92vh] overflow-y-auto my-auto">
-            <div className="flex justify-between items-center mb-3 sm:mb-4">
-              <h3 className="text-base sm:text-lg font-bold text-slate-800 dark:text-slate-100">New Assignment</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1">
-                <X size={20} />
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-2.5 sm:p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-800 w-full max-w-sm sm:max-w-md md:max-w-lg rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 shadow-2xl animate-in zoom-in duration-200 max-h-[92vh] flex flex-col my-auto border border-slate-100 dark:border-slate-700">
+            {/* Modal Header */}
+            <div className="flex justify-between items-center pb-2.5 border-b border-slate-100 dark:border-slate-700">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600">
+                  <Plus size={16} />
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-100">Create Assignment</h3>
+                  <p className="text-[10px] text-slate-400">Publish task, deadline & sheet</p>
+                </div>
+              </div>
+              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700">
+                <X size={18} />
               </button>
             </div>
-            <form onSubmit={handleSave} className="space-y-2.5 sm:space-y-3">
+
+            {/* Modal Form */}
+            <form onSubmit={handleSave} className="space-y-2 sm:space-y-2.5 pt-2.5 overflow-y-auto pr-0.5">
               <div>
-                <label className="text-[11px] font-bold text-slate-400 uppercase mb-1 block">Assignment Title *</label>
+                <label className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-0.5 block">Assignment Title *</label>
                 <input required
-                  className="w-full bg-slate-50 dark:bg-slate-700 dark:text-slate-100 border border-slate-200/80 dark:border-slate-600 rounded-xl px-3 py-2 text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none"
-                  placeholder="e.g., Week 5 Quiz / Sheet"
+                  className="w-full bg-slate-50 dark:bg-slate-700/60 dark:text-slate-100 border border-slate-200/90 dark:border-slate-600 rounded-xl px-2.5 py-1.5 text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none"
+                  placeholder="e.g., Week 5 Quiz / Assignment 2"
                   value={newAssignment.title}
                   onChange={e => setNewAssignment({ ...newAssignment, title: e.target.value })}
                 />
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+
+              {/* Department & Academic Year in 2 Columns on Mobile */}
+              <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-[11px] font-bold text-slate-400 uppercase mb-1 block">Department *</label>
+                  <label className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-0.5 block">Department *</label>
                   <select
                     required
-                    className="w-full bg-slate-50 dark:bg-slate-700 dark:text-slate-100 border border-slate-200/80 dark:border-slate-600 rounded-xl px-2.5 py-2 text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none"
+                    className="w-full bg-slate-50 dark:bg-slate-700/60 dark:text-slate-100 border border-slate-200/90 dark:border-slate-600 rounded-xl px-2 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500/20 outline-none"
                     value={newAssignment.departmentId}
                     onChange={e => setNewAssignment(p => ({ ...p, departmentId: e.target.value, academicYear: '' }))}
                   >
@@ -767,11 +908,11 @@ export default function AssignmentsPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold text-slate-400 uppercase mb-1 block">Academic Year *</label>
+                  <label className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-0.5 block">Level *</label>
                   <select
                     required
                     disabled={!newAssignment.departmentId}
-                    className="w-full bg-slate-50 dark:bg-slate-700 dark:text-slate-100 border border-slate-200/80 dark:border-slate-600 rounded-xl px-2.5 py-2 text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none disabled:opacity-50"
+                    className="w-full bg-slate-50 dark:bg-slate-700/60 dark:text-slate-100 border border-slate-200/90 dark:border-slate-600 rounded-xl px-2 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500/20 outline-none disabled:opacity-50"
                     value={newAssignment.academicYear}
                     onChange={e => setNewAssignment(p => ({ ...p, academicYear: e.target.value }))}
                   >
@@ -780,12 +921,14 @@ export default function AssignmentsPage() {
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+
+              {/* Semester & Subject in 2 Columns */}
+              <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-[11px] font-bold text-slate-400 uppercase mb-1 block">Semester *</label>
+                  <label className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-0.5 block">Semester *</label>
                   <select
                     required
-                    className="w-full bg-slate-50 dark:bg-slate-700 dark:text-slate-100 border border-slate-200/80 dark:border-slate-600 rounded-xl px-2.5 py-2 text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none"
+                    className="w-full bg-slate-50 dark:bg-slate-700/60 dark:text-slate-100 border border-slate-200/90 dark:border-slate-600 rounded-xl px-2 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500/20 outline-none"
                     value={newAssignment.semester}
                     onChange={e => setNewAssignment(p => ({ ...p, semester: e.target.value }))}
                   >
@@ -794,14 +937,14 @@ export default function AssignmentsPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold text-slate-400 uppercase mb-1 flex items-center justify-between">
+                  <label className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-0.5 flex items-center justify-between">
                     <span>Subject *</span>
-                    {modalLoadingSubjects && <Loader2 size={11} className="animate-spin text-indigo-500" />}
+                    {modalLoadingSubjects && <Loader2 size={10} className="animate-spin text-indigo-500" />}
                   </label>
                   <select
                     required
                     disabled={!newAssignment.departmentId || newAssignment.academicYear === '' || modalLoadingSubjects}
-                    className="w-full bg-slate-50 dark:bg-slate-700 dark:text-slate-100 border border-slate-200/80 dark:border-slate-600 rounded-xl px-2.5 py-2 text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none disabled:opacity-50"
+                    className="w-full bg-slate-50 dark:bg-slate-700/60 dark:text-slate-100 border border-slate-200/90 dark:border-slate-600 rounded-xl px-2 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500/20 outline-none disabled:opacity-50 truncate"
                     value={newAssignment.subjectId}
                     onChange={e => setNewAssignment(p => ({ ...p, subjectId: e.target.value }))}
                   >
@@ -820,97 +963,111 @@ export default function AssignmentsPage() {
                   </select>
                 </div>
               </div>
+
+              {/* Start Date & Time */}
               <div>
-                <label className="text-[11px] font-bold text-slate-400 uppercase mb-1 block">Start Date & Time *</label>
-                <div className="flex gap-1.5">
+                <label className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-0.5 block">Start Date & Time *</label>
+                <div className="grid grid-cols-3 gap-1.5">
                   <input required type="date"
-                    className="flex-1 bg-slate-50 dark:bg-slate-700 dark:text-slate-100 border border-slate-200/80 dark:border-slate-600 rounded-xl px-2.5 py-2 text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none"
+                    className="col-span-2 bg-slate-50 dark:bg-slate-700/60 dark:text-slate-100 border border-slate-200/90 dark:border-slate-600 rounded-xl px-2 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500/20 outline-none"
                     value={newAssignment.startDate}
                     onChange={e => setNewAssignment({ ...newAssignment, startDate: e.target.value })}
                   />
                   <input required type="time"
-                    className="w-24 sm:w-28 bg-slate-50 dark:bg-slate-700 dark:text-slate-100 border border-slate-200/80 dark:border-slate-600 rounded-xl px-2 py-2 text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none"
+                    className="col-span-1 bg-slate-50 dark:bg-slate-700/60 dark:text-slate-100 border border-slate-200/90 dark:border-slate-600 rounded-xl px-1.5 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500/20 outline-none text-center"
                     value={newAssignment.startTime}
                     onChange={e => setNewAssignment({ ...newAssignment, startTime: e.target.value })}
                   />
                 </div>
               </div>
+
+              {/* End Date & Time */}
               <div>
-                <label className="text-[11px] font-bold text-slate-400 uppercase mb-1 block">End Date (Deadline) *</label>
-                <div className="flex gap-1.5">
+                <label className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-0.5 block">End Date (Deadline) *</label>
+                <div className="grid grid-cols-3 gap-1.5">
                   <input required type="date"
-                    className="flex-1 bg-slate-50 dark:bg-slate-700 dark:text-slate-100 border border-slate-200/80 dark:border-slate-600 rounded-xl px-2.5 py-2 text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none"
+                    className="col-span-2 bg-slate-50 dark:bg-slate-700/60 dark:text-slate-100 border border-slate-200/90 dark:border-slate-600 rounded-xl px-2 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500/20 outline-none"
                     value={newAssignment.endDate}
                     onChange={e => setNewAssignment({ ...newAssignment, endDate: e.target.value })}
                   />
                   <input required type="time"
-                    className="w-24 sm:w-28 bg-slate-50 dark:bg-slate-700 dark:text-slate-100 border border-slate-200/80 dark:border-slate-600 rounded-xl px-2 py-2 text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none"
+                    className="col-span-1 bg-slate-50 dark:bg-slate-700/60 dark:text-slate-100 border border-slate-200/90 dark:border-slate-600 rounded-xl px-1.5 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500/20 outline-none text-center"
                     value={newAssignment.endTime}
                     onChange={e => setNewAssignment({ ...newAssignment, endTime: e.target.value })}
                   />
                 </div>
               </div>
 
-              {/* Optional Assignment Image */}
+              {/* File Attachment: Supports PDF and Images */}
               <div>
-                <label className="text-[11px] font-bold text-slate-400 uppercase mb-1 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <ImageIcon size={13} className="text-indigo-500" /> Assignment Image (Optional)
+                <label className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-0.5 flex items-center justify-between">
+                  <span className="flex items-center gap-1">
+                    <Upload size={12} className="text-indigo-500" /> Attached Sheet (PDF or Image)
                   </span>
-                  {imagePreview && (
+                  {attachedFile && (
                     <button
                       type="button"
-                      onClick={handleRemoveImage}
+                      onClick={handleRemoveFile}
                       className="text-[10px] text-red-500 hover:text-red-700 font-bold flex items-center gap-0.5"
                     >
-                      <Trash2 size={11} /> Remove
+                      <Trash2 size={10} /> Remove
                     </button>
                   )}
                 </label>
 
-                {imagePreview ? (
-                  <div className="relative rounded-xl overflow-hidden border border-indigo-200 dark:border-indigo-800 bg-slate-900/5 group">
-                    <img src={imagePreview} alt="Preview" className="w-full h-28 object-contain bg-slate-950/10" />
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                {attachedFile ? (
+                  <div className="p-2 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50/40 dark:bg-indigo-950/20 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${fileType === 'pdf' ? 'bg-red-100 text-red-600 dark:bg-red-900/40' : 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40'}`}>
+                        {fileType === 'pdf' ? <FileText size={16} /> : <ImageIcon size={16} />}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{attachedFile.name}</p>
+                        <p className="text-[10px] text-slate-400">{(attachedFile.size / (1024 * 1024)).toFixed(2)} MB • {fileType === 'pdf' ? 'PDF Document' : 'Image Sheet'}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      {fileType === 'image' && filePreview && (
+                        <button
+                          type="button"
+                          onClick={() => setPreviewModalUrl(filePreview)}
+                          className="px-2 py-1 bg-indigo-600 text-white rounded-lg text-[10px] font-bold flex items-center gap-1 hover:bg-indigo-700 transition-colors"
+                        >
+                          <Eye size={10} /> View
+                        </button>
+                      )}
                       <button
                         type="button"
-                        onClick={() => setPreviewModalUrl(imagePreview)}
-                        className="px-2.5 py-1 bg-white text-slate-800 rounded-lg text-xs font-bold flex items-center gap-1 shadow"
+                        onClick={handleRemoveFile}
+                        className="p-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-lg transition-colors"
                       >
-                        <Eye size={12} /> View
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleRemoveImage}
-                        className="px-2.5 py-1 bg-red-600 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow"
-                      >
-                        <Trash2 size={12} /> Remove
+                        <Trash2 size={13} />
                       </button>
                     </div>
                   </div>
                 ) : (
-                  <label className="flex flex-col items-center justify-center w-full h-20 border-2 border-dashed border-slate-200 dark:border-slate-600 hover:border-indigo-400 dark:hover:border-indigo-500 rounded-xl cursor-pointer bg-slate-50 dark:bg-slate-700/40 transition-colors">
+                  <label className="flex items-center justify-center gap-2 w-full h-14 sm:h-16 border-2 border-dashed border-slate-200 dark:border-slate-600 hover:border-indigo-400 dark:hover:border-indigo-500 rounded-xl cursor-pointer bg-slate-50 dark:bg-slate-700/40 transition-colors px-3">
                     <input
                       type="file"
-                      accept="image/*,.png,.jpg,.jpeg,.webp"
+                      accept=".pdf,application/pdf,image/*,.png,.jpg,.jpeg,.webp"
                       className="hidden"
-                      onChange={e => handleImageSelect(e.target.files?.[0])}
+                      onChange={e => handleFileSelect(e.target.files?.[0])}
                     />
-                    <div className="flex items-center gap-2 text-slate-500 dark:text-slate-300">
-                      <ImageIcon size={16} className="text-indigo-500" />
-                      <span className="text-xs font-medium">Attach assignment image / sheet</span>
+                    <Upload size={16} className="text-indigo-500 shrink-0" />
+                    <div className="text-left min-w-0">
+                      <p className="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate">Attach Assignment PDF or Image</p>
+                      <p className="text-[10px] text-slate-400">PDF, PNG, JPG, WEBP (Up to 16MB)</p>
                     </div>
-                    <p className="text-[10px] text-slate-400 mt-0.5">PNG, JPG, WEBP (Optional)</p>
                   </label>
                 )}
               </div>
 
               {/* Optional Notes/Description */}
               <div>
-                <label className="text-[11px] font-bold text-slate-400 uppercase mb-1 block">Notes / Description (Optional)</label>
+                <label className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-0.5 block">Notes / Description (Optional)</label>
                 <textarea
                   rows={2}
-                  className="w-full bg-slate-50 dark:bg-slate-700 dark:text-slate-100 border border-slate-200/80 dark:border-slate-600 rounded-xl px-2.5 py-1.5 text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none resize-none"
+                  className="w-full bg-slate-50 dark:bg-slate-700/60 dark:text-slate-100 border border-slate-200/90 dark:border-slate-600 rounded-xl px-2.5 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500/20 outline-none resize-none"
                   placeholder="Instructions or remarks for students..."
                   value={newAssignment.description}
                   onChange={e => setNewAssignment({ ...newAssignment, description: e.target.value })}
@@ -918,9 +1075,9 @@ export default function AssignmentsPage() {
               </div>
 
               <button type="submit" disabled={loading}
-                className="w-full py-2.5 sm:py-3 bg-indigo-600 text-white rounded-xl font-bold mt-1 hover:bg-indigo-700 transition-all shadow-md disabled:opacity-50 flex items-center justify-center gap-1.5 text-xs sm:text-sm">
-                {loading ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
-                {loading ? 'Saving...' : 'Save and Publish'}
+                className="w-full py-2.5 bg-indigo-600 text-white rounded-xl font-bold mt-2 hover:bg-indigo-700 transition-all shadow-md disabled:opacity-50 flex items-center justify-center gap-1.5 text-xs sm:text-sm">
+                {loading ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
+                {loading ? 'Publishing...' : 'Save & Publish Assignment'}
               </button>
             </form>
           </div>

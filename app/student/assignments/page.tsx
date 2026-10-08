@@ -273,38 +273,60 @@ export default function StudentAssignmentsPage() {
                     </div>
                   )}
 
-                  {/* Attached Assignment Image from Doctor */}
+                  {/* Attached Assignment Sheet (PDF or Image) from Doctor */}
                   {a.fileUrl && (
-                    <div className="mb-4 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-2xl p-3 border border-indigo-100 dark:border-indigo-900/40">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-bold text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5">
-                          <ImageIcon size={14} className="text-indigo-600 dark:text-indigo-400" />
-                          Assignment Sheet / Attached Image
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setPreviewModalUrl(a.fileUrl)}
-                          className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+                    (a.fileUrl.startsWith('data:application/pdf') || a.fileUrl.toLowerCase().includes('.pdf') || a.fileUrl.toLowerCase().endsWith('.pdf')) ? (
+                      <div className="mb-4 bg-red-50/40 dark:bg-red-950/20 rounded-2xl p-3.5 border border-red-200/60 dark:border-red-900/40 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-900/40 flex items-center justify-center shrink-0">
+                            <FileText size={20} className="text-red-600 dark:text-red-400" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100 truncate">Assignment Sheet (PDF)</p>
+                            <p className="text-[11px] text-slate-400">Attached instructions & document</p>
+                          </div>
+                        </div>
+                        <a
+                          href={a.fileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 text-xs font-bold bg-red-600 text-white hover:bg-red-700 px-3 py-2 rounded-xl transition-colors shadow-sm shrink-0"
                         >
-                          <Eye size={12} /> Click to zoom
-                        </button>
+                          <ExternalLink size={13} /> View PDF
+                        </a>
                       </div>
-                      <div
-                        onClick={() => setPreviewModalUrl(a.fileUrl)}
-                        className="cursor-pointer overflow-hidden rounded-xl border border-indigo-200/60 dark:border-indigo-800 bg-black/5 dark:bg-black/20 max-h-52 flex items-center justify-center group relative"
-                      >
-                        <img
-                          src={a.fileUrl}
-                          alt={a.title}
-                          className="w-full h-full max-h-52 object-contain group-hover:scale-105 transition-transform duration-200"
-                        />
-                        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <span className="bg-black/75 text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1 shadow-lg">
-                            <Eye size={13} /> View Full Image
+                    ) : (
+                      <div className="mb-4 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-2xl p-3 border border-indigo-100 dark:border-indigo-900/40">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-bold text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5">
+                            <ImageIcon size={14} className="text-indigo-600 dark:text-indigo-400" />
+                            Assignment Sheet / Attached Image
                           </span>
+                          <button
+                            type="button"
+                            onClick={() => setPreviewModalUrl(a.fileUrl)}
+                            className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+                          >
+                            <Eye size={12} /> Click to zoom
+                          </button>
+                        </div>
+                        <div
+                          onClick={() => setPreviewModalUrl(a.fileUrl)}
+                          className="cursor-pointer overflow-hidden rounded-xl border border-indigo-200/60 dark:border-indigo-800 bg-black/5 dark:bg-black/20 max-h-52 flex items-center justify-center group relative"
+                        >
+                          <img
+                            src={a.fileUrl}
+                            alt={a.title}
+                            className="w-full h-full max-h-52 object-contain group-hover:scale-105 transition-transform duration-200"
+                          />
+                          <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <span className="bg-black/75 text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1 shadow-lg">
+                              <Eye size={13} /> View Full Image
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    )
                   )}
                 </div>
 
