@@ -62,8 +62,34 @@ export async function GET() {
       },
       include: { subject: { select: { name: true } } },
       orderBy: { deadline: 'asc' },
-      take: 5,
     });
+
+    const assignmentIds = assignments.map(a => a.id);
+    let startDateMap: Record<string, Date | null> = {};
+    if (assignmentIds.length > 0) {
+      try {
+        const startDateRows = await db.$queryRaw<{ id: string; startDate: Date | null }[]>`
+          SELECT id, "startDate" FROM assignments WHERE id = ANY(${assignmentIds}::text[])
+        `;
+        startDateMap = Object.fromEntries(startDateRows.map(r => [r.id, r.startDate]));
+      } catch (e) {
+        console.warn('Could not query raw startDate:', e);
+      }
+    }
+
+    const visibleAssignments = assignments
+      .map(a => {
+        const rawSd = startDateMap[a.id];
+        const finalStartDate = a.startDate
+          ? new Date(a.startDate).toISOString()
+          : (rawSd ? new Date(rawSd).toISOString() : (a.createdAt ? new Date(a.createdAt).toISOString() : null));
+        return {
+          ...a,
+          startDate: finalStartDate,
+        };
+      })
+      .filter(a => !a.startDate || new Date(a.startDate) <= now)
+      .slice(0, 5);
 
     // Attendance rate - based on closed sessions for student's department AND academicYear AND semester
     const totalSessionsRaw = await db.$queryRaw<{count: bigint}[]>`
@@ -255,12 +281,12 @@ export async function GET() {
         },
         stats: {
           quizzesCount: quizzes.length,
-          assignmentsCount: assignments.length,
+          assignmentsCount: visibleAssignments.length,
           attendanceRate,
           videosCount: videos.length,
         },
         quizzes,
-        assignments,
+        assignments: visibleAssignments,
         videos,
         liveSessions,
         libraryItems: libraryItems.map(b => ({

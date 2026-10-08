@@ -322,19 +322,25 @@ export default function StudentDashboardPage() {  const { t } = useI18n();
               {data?.assignments.length === 0 ? (
                 <p className="text-slate-400 text-sm text-center py-6">{t('noAssignmentsYet')}</p>
               ) : data?.assignments.map((a) => (
-                <div key={a.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700/50 rounded-2xl">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/40 rounded-xl flex items-center justify-center">
-                      <FileText className="text-orange-600" size={18} />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-slate-800 dark:text-slate-200 text-sm">{a.title}</p>
-                      <p className="text-xs text-slate-400">{a.subject?.name}</p>
+                <div key={a.id} className="p-3.5 bg-slate-50 dark:bg-slate-700/50 rounded-2xl space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 bg-orange-100 dark:bg-orange-900/40 rounded-xl flex items-center justify-center text-orange-600 shrink-0">
+                        <FileText size={16} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-bold text-slate-800 dark:text-slate-200 text-xs sm:text-sm truncate">{a.title}</p>
+                        <p className="text-[11px] text-slate-400 truncate">{a.subject?.name}</p>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 text-xs text-orange-600 font-bold">
-                    <Clock size={12} />
-                    {new Date(a.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  <div className="flex items-center justify-between gap-1 text-[11px] pt-1.5 border-t border-slate-200/60 dark:border-slate-600/60">
+                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                      <Clock size={11} /> Start: {new Date(a.startDate || a.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </span>
+                    <span className="text-orange-600 dark:text-orange-400 font-bold flex items-center gap-1">
+                      <Clock size={11} /> Due: {new Date(a.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </span>
                   </div>
                 </div>
               ))}

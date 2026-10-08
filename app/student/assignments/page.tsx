@@ -241,19 +241,15 @@ export default function StudentAssignmentsPage() {
                       </div>
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="font-bold text-slate-800 dark:text-slate-100">{a.title}</h3>
+                          <h3 className="font-bold text-slate-800 dark:text-slate-100 text-base">{a.title}</h3>
                           {a.subject?.name && (
                             <span className="text-[10px] font-bold bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded-md">
                               {a.subject.name}
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
-                          <Clock size={11} />
-                          {a.startDate && (
-                            <span>From: {new Date(a.startDate).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} · </span>
-                          )}
-                          Due: {new Date(a.deadline).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          Max Score: <span className="font-bold text-slate-600 dark:text-slate-300">{a.maxScore || 100}</span>
                         </p>
                       </div>
                     </div>
@@ -264,6 +260,59 @@ export default function StudentAssignmentsPage() {
                     }`}>
                       {isDone ? 'Submitted' : overdue ? 'Overdue' : 'Pending'}
                     </span>
+                  </div>
+
+                  {/* Prominent Start & End Time Schedule Box */}
+                  <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 bg-slate-50 dark:bg-slate-700/40 rounded-2xl border border-slate-200/70 dark:border-slate-600/60">
+                    {/* Start Time */}
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                        <Clock size={15} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Start Time (وقت البدء)</p>
+                        <p className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate">
+                          {a.startDate
+                            ? new Date(a.startDate).toLocaleString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: true,
+                              })
+                            : 'Immediate'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Deadline / End Time */}
+                    <div className="flex items-center gap-2.5">
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                        overdue
+                          ? 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400'
+                          : 'bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400'
+                      }`}>
+                        <Clock size={15} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className={`text-[10px] font-bold uppercase tracking-wider ${
+                          overdue ? 'text-red-600 dark:text-red-400' : 'text-orange-600 dark:text-orange-400'
+                        }`}>
+                          Deadline (وقت الانتهاء)
+                        </p>
+                        <p className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate">
+                          {new Date(a.deadline).toLocaleString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: true,
+                          })}
+                        </p>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Notes / Description */}

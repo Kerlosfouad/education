@@ -44,18 +44,35 @@ export async function GET() {
       orderBy: { createdAt: 'desc' },
     });
 
-    // Filter out assignments whose startDate is in the future (raw SQL field)
-    const filtered = assignments.length === 0 ? [] : await (async () => {
-      const ids = assignments.map(a => a.id);
-      const startDateRows = await db.$queryRaw<{ id: string; startDate: Date | null }[]>`
-        SELECT id, "startDate" FROM assignments WHERE id = ANY(${ids}::text[])
-      `;
-      const startDateMap = Object.fromEntries(startDateRows.map(r => [r.id, r.startDate]));
-      return assignments.filter(a => {
-        const sd = startDateMap[a.id];
-        return !sd || new Date(sd) <= now;
-      });
-    })();
+    // Ensure startDate is properly attached from Prisma field or raw SQL
+    const ids = assignments.map(a => a.id);
+    let startDateMap: Record<string, Date | null> = {};
+    if (ids.length > 0) {
+      try {
+        const startDateRows = await db.$queryRaw<{ id: string; startDate: Date | null }[]>`
+          SELECT id, "startDate" FROM assignments WHERE id = ANY(${ids}::text[])
+        `;
+        startDateMap = Object.fromEntries(startDateRows.map(r => [r.id, r.startDate]));
+      } catch (e) {
+        console.warn('Could not query raw startDate:', e);
+      }
+    }
+
+    const assignmentsWithDates = assignments.map(a => {
+      const rawSd = startDateMap[a.id];
+      const finalStartDate = a.startDate
+        ? new Date(a.startDate).toISOString()
+        : (rawSd ? new Date(rawSd).toISOString() : (a.createdAt ? new Date(a.createdAt).toISOString() : null));
+      return {
+        ...a,
+        startDate: finalStartDate,
+      };
+    });
+
+    const filtered = assignmentsWithDates.filter(a => {
+      if (!a.startDate) return true;
+      return new Date(a.startDate) <= now;
+    });
 
     return NextResponse.json({ success: true, data: filtered });
   } catch {
