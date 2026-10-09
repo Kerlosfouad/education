@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { canStudentAccessScopedContent, db } from '@/lib/db';
+import { uploadToCloudinary } from '@/lib/cloudinary';
 
 // GET /api/assignments/[id] - get submissions for an assignment
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
@@ -163,7 +164,16 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     if (!hasAccess) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const body = await req.json().catch(() => ({}));
-    const fileUrl = body.fileUrl || null;
+    let fileUrl = body.fileUrl || null;
+
+    if (fileUrl && fileUrl.startsWith('data:')) {
+      try {
+        const uploaded = await uploadToCloudinary(fileUrl, 'submissions', 'auto');
+        fileUrl = uploaded.url;
+      } catch (uploadErr) {
+        console.error('Failed to upload file to Cloudinary, saving original:', uploadErr);
+      }
+    }
 
     const existing = await db.assignmentSubmission.findUnique({
       where: { assignmentId_studentId: { assignmentId: params.id, studentId: student.id } },

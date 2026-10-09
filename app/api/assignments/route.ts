@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db, getStudentSubjectAccess } from '@/lib/db';
+import { uploadToCloudinary } from '@/lib/cloudinary';
 
 export async function GET() {
   try {
@@ -64,11 +65,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'Missing required fields' }, { status: 400 });
     }
 
+    let fileUrl = data.fileUrl || null;
+    if (fileUrl && fileUrl.startsWith('data:')) {
+      try {
+        const uploaded = await uploadToCloudinary(fileUrl, 'assignments', 'auto');
+        fileUrl = uploaded.url;
+      } catch (uploadErr) {
+        console.error('Failed to upload assignment file to Cloudinary:', uploadErr);
+      }
+    }
+
     const created = await db.assignment.create({
       data: {
         title: data.title,
         description: data.description || null,
-        fileUrl: data.fileUrl || null,
+        fileUrl: fileUrl,
         departmentId: data.departmentId,
         academicYear: Number(data.academicYear),
         semester: Number(data.semester || 1),
