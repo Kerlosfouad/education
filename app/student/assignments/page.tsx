@@ -229,12 +229,6 @@ export default function StudentAssignmentsPage() {
             const hasSubmitted = a.submissions.length > 0 || doneId === a.id;
             const isDeadlinePassed = isOverdue(a.deadline);
 
-            // Detailed status checks
-            const isLateSubmission = hasSubmitted && (
-              sub?.status === 'LATE' ||
-              (sub?.submittedAt ? new Date(sub.submittedAt) > new Date(a.deadline) : false)
-            );
-            const isOnTimeSubmission = hasSubmitted && !isLateSubmission;
             const isOverdueNoSubmission = !hasSubmitted && isDeadlinePassed;
             const canSubmit = a.isActive && !hasSubmitted && !isDeadlinePassed;
             const isUploading = uploadingId === a.id;
@@ -246,18 +240,14 @@ export default function StudentAssignmentsPage() {
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
                       <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${
-                        isOnTimeSubmission
+                        hasSubmitted
                           ? 'bg-green-100 dark:bg-green-900/40 text-green-600'
-                          : isLateSubmission
-                          ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-600'
                           : isOverdueNoSubmission
                           ? 'bg-red-100 dark:bg-red-900/40 text-red-600'
                           : 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600'
                       }`}>
-                        {isOnTimeSubmission ? (
+                        {hasSubmitted ? (
                           <CheckCircle2 className="text-green-600" size={22} />
-                        ) : isLateSubmission ? (
-                          <Clock className="text-amber-600" size={22} />
                         ) : isOverdueNoSubmission ? (
                           <FileText className="text-red-500" size={22} />
                         ) : (
@@ -279,20 +269,16 @@ export default function StudentAssignmentsPage() {
                       </div>
                     </div>
                     <span className={`text-xs font-bold px-3 py-1 rounded-full shrink-0 ${
-                      isOnTimeSubmission
+                      hasSubmitted
                         ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300'
-                        : isLateSubmission
-                        ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300'
                         : isOverdueNoSubmission
                         ? 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-300'
                         : 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300'
                     }`}>
-                      {isOnTimeSubmission
+                      {hasSubmitted
                         ? 'تم التسليم · Submitted'
-                        : isLateSubmission
-                        ? 'تسليم متأخر · Late'
                         : isOverdueNoSubmission
-                        ? 'فات الموعد · Overdue'
+                        ? 'لم يتم التسليم · Overdue'
                         : 'متاح للتسليم · Pending'}
                     </span>
                   </div>
@@ -473,32 +459,14 @@ export default function StudentAssignmentsPage() {
 
                   {hasSubmitted && (
                     <div className="mt-2 space-y-2">
-                      <div className={`flex items-center gap-2 rounded-xl px-4 py-3 border ${
-                        isOnTimeSubmission
-                          ? 'bg-green-50 dark:bg-green-900/20 border-green-200/60 dark:border-green-800/40'
-                          : 'bg-amber-50 dark:bg-amber-900/20 border-amber-200/60 dark:border-amber-800/40'
-                      }`}>
-                        {isOnTimeSubmission ? (
-                          <CheckCircle2 className="text-green-600 shrink-0" size={18} />
-                        ) : (
-                          <Clock className="text-amber-600 shrink-0" size={18} />
-                        )}
+                      <div className="flex items-center gap-2 rounded-xl px-4 py-3 border bg-green-50 dark:bg-green-900/20 border-green-200/60 dark:border-green-800/40">
+                        <CheckCircle2 className="text-green-600 shrink-0" size={18} />
                         <div>
-                          <p className={`text-sm font-bold ${
-                            isOnTimeSubmission
-                              ? 'text-green-700 dark:text-green-400'
-                              : 'text-amber-700 dark:text-amber-400'
-                          }`}>
-                            {isOnTimeSubmission
-                              ? 'تم تسليم التكليف بنجاح (في الموعد)'
-                              : 'تم تسليم التكليف بعد الموعد المحدد (تسليم متأخر)'}
+                          <p className="text-sm font-bold text-green-700 dark:text-green-400">
+                            تم تسليم التكليف بنجاح
                           </p>
                           {sub?.submittedAt && (
-                            <p className={`text-[11px] ${
-                              isOnTimeSubmission
-                                ? 'text-green-600/80 dark:text-green-400/80'
-                                : 'text-amber-600/80 dark:text-amber-400/80'
-                            }`}>
+                            <p className="text-[11px] text-green-600/80 dark:text-green-400/80">
                               وقت التسليم: {new Date(sub.submittedAt).toLocaleString('en-US', {
                                 month: 'short',
                                 day: 'numeric',

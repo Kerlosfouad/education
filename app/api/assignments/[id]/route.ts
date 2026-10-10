@@ -177,8 +177,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
 
     const now = new Date();
-    const isLate = assignment.deadline ? now > new Date(assignment.deadline) : false;
-    const submissionStatus = isLate ? 'LATE' : 'SUBMITTED';
+    const submissionStatus = 'SUBMITTED';
 
     const existing = await db.assignmentSubmission.findUnique({
       where: { assignmentId_studentId: { assignmentId: params.id, studentId: student.id } },

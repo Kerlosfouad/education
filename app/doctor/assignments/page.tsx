@@ -783,15 +783,9 @@ export default function AssignmentsPage() {
                                 <div>
                                   <div className="flex items-center gap-1.5 flex-wrap">
                                     <p className="font-bold text-slate-800 dark:text-slate-100 text-xs sm:text-sm">{sub.student.user.name}</p>
-                                    {sub.status === 'LATE' || (selected.deadline && new Date(sub.submittedAt) > new Date(selected.deadline)) ? (
-                                      <span className="text-[9px] font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded">
-                                        متأخر / Late
-                                      </span>
-                                    ) : (
-                                      <span className="text-[9px] font-bold bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 px-1.5 py-0.5 rounded">
-                                        في الموعد / On Time
-                                      </span>
-                                    )}
+                                    <span className="text-[9px] font-bold bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 px-1.5 py-0.5 rounded">
+                                      تم التسليم / Submitted
+                                    </span>
                                   </div>
                                   <p className="text-[11px] text-slate-400">{sub.student.studentCode} · {new Date(sub.submittedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
                                 </div>
