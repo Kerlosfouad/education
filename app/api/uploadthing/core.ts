@@ -63,8 +63,8 @@ export const ourFileRouter = {
     }),
 
   pdfUploader: f({ 
-    pdf: { maxFileSize: "16MB" },
-    blob: { maxFileSize: "16MB" },
+    pdf: { maxFileSize: "32MB" },
+    blob: { maxFileSize: "32MB" },
     image: { maxFileSize: "16MB" }
   })
     .middleware(async ({ req }) => {

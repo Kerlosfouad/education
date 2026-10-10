@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { UploadCloud, FileText, File, Trash2, Download, Search, Plus, X } from 'lucide-react';
+import { UploadCloud, FileText, File as FileIcon, Trash2, Download, Search, Plus, X } from 'lucide-react';
 import { useUploadThing } from '@/lib/uploadthing';
 import { saveBookAction, getBooksAction, deleteBookAction } from '@/actions/bookActions';
 import { toast } from 'sonner';
@@ -19,7 +19,15 @@ export default function LibBooksPage() {
   const selectedDept = departments.find(d => d.id === form.departmentId);
   const LEVELS = selectedDept?.code === 'PREP' ? [0] : [1, 2, 3, 4];
 
-  const { startUpload } = useUploadThing('pdfUploader');
+  const [progress, setProgress] = useState(0);
+  const [uploadStatus, setUploadStatus] = useState('');
+
+  const { startUpload } = useUploadThing('pdfUploader', {
+    onUploadProgress: (p) => setProgress(p),
+    onUploadError: (err) => {
+      console.warn('UploadThing error callback:', err);
+    },
+  });
 
   useEffect(() => {
     refreshBooks();
@@ -39,26 +47,102 @@ export default function LibBooksPage() {
   };
 
   const handleUpload = async () => {
-    if (!selectedFile) { toast.error('Please select a PDF file'); return; }
+    if (!selectedFile) {
+      toast.error('يرجى اختيار ملف PDF أولاً');
+      return;
+    }
+
+    if (selectedFile.size === 0) {
+      toast.error('الملف المختار فارغ، يرجى اختيار ملف صالح');
+      return;
+    }
+
+    const MAX_SIZE_MB = 32;
+    if (selectedFile.size > MAX_SIZE_MB * 1024 * 1024) {
+      toast.error(`حجم الملف يتجاوز الحد المسموح به (${MAX_SIZE_MB} ميجابايت)`);
+      return;
+    }
+
     setUploading(true);
+    setProgress(10);
+    setUploadStatus('جاري رفع الملف...');
+
     try {
-      const uploaded = await startUpload([selectedFile]);
-      if (!uploaded?.[0]) { toast.error('Upload failed'); return; }
+      let finalUrl: string | null = null;
+
+      // 1. Prepare safe ASCII filename to avoid header encoding issues with Arabic names
+      const ext = selectedFile.name.includes('.')
+        ? selectedFile.name.split('.').pop()?.toLowerCase() || 'pdf'
+        : 'pdf';
+      const safeFile = new File([selectedFile], `book_${Date.now()}.${ext}`, {
+        type: selectedFile.type || 'application/pdf',
+      });
+
+      // 2. Try UploadThing first
+      try {
+        const uploaded = await startUpload([safeFile]);
+        if (uploaded?.[0]) {
+          const uData = uploaded[0] as any;
+          finalUrl = uData.ufsUrl || uData.url || uData.serverData?.url || null;
+        }
+      } catch (utErr) {
+        console.warn('UploadThing failed, trying direct upload fallback:', utErr);
+      }
+
+      // 3. Fallback to /api/upload if UploadThing failed and file is <= 4.5MB
+      if (!finalUrl) {
+        if (selectedFile.size <= 4.5 * 1024 * 1024) {
+          setUploadStatus('جاري الرفع عبر السيرفر البديل...');
+          setProgress(50);
+          const fd = new FormData();
+          fd.append('file', selectedFile);
+          fd.append('folder', 'library_books');
+          const res = await fetch('/api/upload', {
+            method: 'POST',
+            body: fd,
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.url) finalUrl = data.url;
+          }
+        }
+      }
+
+      if (!finalUrl) {
+        throw new Error('تعذر رفع الملف، يرجى التحقق من حجم الملف والاتصال بالإنترنت والمحاولة مجدداً');
+      }
+
+      setProgress(90);
+      setUploadStatus('جاري حفظ بيانات الكتاب...');
+
+      const originalNameWithoutExt = selectedFile.name.replace(/\.[^/.]+$/, '');
+      const bookName = form.title.trim() || originalNameWithoutExt;
+      const isPdf = selectedFile.name.toLowerCase().endsWith('.pdf') || selectedFile.type === 'application/pdf';
+
       await saveBookAction({
-        name: form.title || selectedFile.name,
-        type: selectedFile.name.endsWith('.pdf') ? 'PDF' : 'FILE',
+        name: bookName,
+        type: isPdf ? 'PDF' : 'FILE',
         size: (selectedFile.size / (1024 * 1024)).toFixed(1) + ' MB',
-        url: uploaded[0].url,
+        url: finalUrl,
         ...(form.departmentId ? { departmentId: form.departmentId } : {}),
         ...(form.academicYear !== '' ? { academicYear: Number(form.academicYear) } : {}),
       });
-      toast.success('File uploaded successfully');
+
+      setProgress(100);
+      toast.success('تم رفع الكتاب بنجاح وإتاحته للطلاب');
       setShowModal(false);
       setForm({ title: '', description: '', departmentId: '', academicYear: '' });
       setSelectedFile(null);
+      if (fileRef.current) fileRef.current.value = '';
       refreshBooks();
-    } catch { toast.error('Upload failed'); }
-    setUploading(false);
+    } catch (err: any) {
+      console.error('Book upload error:', err);
+      toast.error(err.message || 'فشل رفع الملف');
+    } finally {
+      setUploading(false);
+      setProgress(0);
+      setUploadStatus('');
+    }
   };
 
   const filteredFiles = files.filter(f => f.name.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -87,7 +171,7 @@ export default function LibBooksPage() {
             <div key={file.id} className='bg-white dark:bg-[#0f1f38] p-5 rounded-[2rem] border border-slate-100 dark:border-[#1a2f4a] hover:shadow-xl transition-all flex items-center justify-between shadow-sm'>
               <div className='flex items-center gap-5 truncate'>
                 <div className={`w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 ${file.type === 'PDF' ? 'bg-red-50 text-red-500' : 'bg-indigo-50 text-indigo-500'}`}>
-                  {file.type === 'PDF' ? <FileText size={28} /> : <File size={28} />}
+                  {file.type === 'PDF' ? <FileText size={28} /> : <FileIcon size={28} />}
                 </div>
                 <div className='truncate'>
                   <h4 className='font-bold text-slate-700 dark:text-white text-[15px] truncate max-w-[200px] md:max-w-md'>{file.name}</h4>
@@ -175,10 +259,25 @@ export default function LibBooksPage() {
               </div>
             </div>
 
+            {uploading && (
+              <div className='space-y-1.5 p-3 bg-indigo-50/70 dark:bg-slate-700/60 rounded-xl border border-indigo-100 dark:border-slate-600'>
+                <div className='flex justify-between items-center text-xs font-bold text-indigo-700 dark:text-indigo-300'>
+                  <span>{uploadStatus || 'جاري الرفع...'}</span>
+                  <span>{progress}%</span>
+                </div>
+                <div className='w-full bg-slate-200 dark:bg-slate-600 rounded-full h-2 overflow-hidden'>
+                  <div
+                    className='bg-indigo-600 h-2 rounded-full transition-all duration-300 ease-out'
+                    style={{ width: `${Math.max(progress, 8)}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
             <button onClick={handleUpload} disabled={uploading || !selectedFile}
-              className='w-full py-3 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50'>
+              className='w-full py-3 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 shadow-md shadow-indigo-100'>
               <UploadCloud size={18} />
-              {uploading ? 'Uploading...' : 'Upload PDF'}
+              {uploading ? (uploadStatus || 'Uploading...') : 'Upload PDF'}
             </button>
           </div>
         </div>

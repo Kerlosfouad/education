@@ -39,7 +39,9 @@ export async function POST(req: NextRequest) {
       const mimeType = file.type || 'application/octet-stream';
       const base64 = `data:${mimeType};base64,${buffer.toString('base64')}`;
 
-      const result = await uploadToCloudinary(base64, folder, 'auto');
+      const isPdf = file.name.toLowerCase().endsWith('.pdf') || mimeType === 'application/pdf';
+      const resourceType = isPdf ? 'raw' : 'auto';
+      const result = await uploadToCloudinary(base64, folder, resourceType);
       return NextResponse.json({ success: true, ...result });
     }
 
