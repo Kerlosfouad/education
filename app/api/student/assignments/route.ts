@@ -43,7 +43,7 @@ export async function GET() {
             subject: { select: { id: true, name: true, code: true } },
             submissions: {
               where: { studentId: student.id },
-              select: { id: true, status: true, fileUrl: true, score: true, gradedAt: true },
+              select: { id: true, status: true, fileUrl: true, score: true, gradedAt: true, submittedAt: true },
             },
           },
           orderBy: { createdAt: 'desc' },

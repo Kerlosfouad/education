@@ -18,7 +18,7 @@ interface Assignment {
   maxScore: number;
   isActive: boolean;
   subject?: { id: string; name: string; code?: string } | null;
-  submissions: { id: string; status: string; fileUrl: string | null; score: number | null; gradedAt: string | null }[];
+  submissions: { id: string; status: string; fileUrl: string | null; score: number | null; gradedAt: string | null; submittedAt?: string | null }[];
 }
 
 async function compressImageIfNeeded(file: File): Promise<File> {
@@ -175,9 +175,17 @@ export default function StudentAssignmentsPage() {
       if (res.ok && json?.success) {
         setProgress(100);
         setDoneId(assignmentId);
+        const newSub = {
+          id: json.data.id,
+          status: json.data.status || 'SUBMITTED',
+          fileUrl: finalFileUrl,
+          score: null,
+          gradedAt: null,
+          submittedAt: new Date().toISOString(),
+        };
         setAssignments(prev => prev.map(a =>
           a.id === assignmentId
-            ? { ...a, submissions: [{ id: json.data.id, status: 'SUBMITTED', fileUrl: finalFileUrl, score: null, gradedAt: null }] }
+            ? { ...a, submissions: [newSub] }
             : a
         ));
         setSelectedFile(prev => { const n = { ...prev }; delete n[assignmentId]; return n; });
@@ -217,12 +225,20 @@ export default function StudentAssignmentsPage() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {assignments.map(a => {
-            const submitted = a.submissions.length > 0;
-            const overdue = isOverdue(a.deadline);
-            const canSubmit = a.isActive && !submitted && !overdue;
+            const sub = a.submissions?.[0];
+            const hasSubmitted = a.submissions.length > 0 || doneId === a.id;
+            const isDeadlinePassed = isOverdue(a.deadline);
+
+            // Detailed status checks
+            const isLateSubmission = hasSubmitted && (
+              sub?.status === 'LATE' ||
+              (sub?.submittedAt ? new Date(sub.submittedAt) > new Date(a.deadline) : false)
+            );
+            const isOnTimeSubmission = hasSubmitted && !isLateSubmission;
+            const isOverdueNoSubmission = !hasSubmitted && isDeadlinePassed;
+            const canSubmit = a.isActive && !hasSubmitted && !isDeadlinePassed;
             const isUploading = uploadingId === a.id;
             const file = selectedFile[a.id];
-            const isDone = doneId === a.id || submitted;
 
             return (
               <div key={a.id} className="bg-white dark:bg-slate-800 p-5 sm:p-6 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm flex flex-col justify-between">
@@ -230,14 +246,23 @@ export default function StudentAssignmentsPage() {
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
                       <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${
-                        isDone ? 'bg-green-100 dark:bg-green-900/40'
-                        : overdue ? 'bg-red-100 dark:bg-red-900/40'
-                        : 'bg-orange-100 dark:bg-orange-900/40'
+                        isOnTimeSubmission
+                          ? 'bg-green-100 dark:bg-green-900/40 text-green-600'
+                          : isLateSubmission
+                          ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-600'
+                          : isOverdueNoSubmission
+                          ? 'bg-red-100 dark:bg-red-900/40 text-red-600'
+                          : 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600'
                       }`}>
-                        {isDone
-                          ? <CheckCircle2 className="text-green-600" size={22} />
-                          : <FileText className={overdue ? 'text-red-500' : 'text-orange-600'} size={22} />
-                        }
+                        {isOnTimeSubmission ? (
+                          <CheckCircle2 className="text-green-600" size={22} />
+                        ) : isLateSubmission ? (
+                          <Clock className="text-amber-600" size={22} />
+                        ) : isOverdueNoSubmission ? (
+                          <FileText className="text-red-500" size={22} />
+                        ) : (
+                          <FileText className="text-indigo-600" size={22} />
+                        )}
                       </div>
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
@@ -254,11 +279,21 @@ export default function StudentAssignmentsPage() {
                       </div>
                     </div>
                     <span className={`text-xs font-bold px-3 py-1 rounded-full shrink-0 ${
-                      isDone ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300'
-                      : overdue ? 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-300'
-                      : 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300'
+                      isOnTimeSubmission
+                        ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300'
+                        : isLateSubmission
+                        ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300'
+                        : isOverdueNoSubmission
+                        ? 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-300'
+                        : 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300'
                     }`}>
-                      {isDone ? 'Submitted' : overdue ? 'Overdue' : 'Pending'}
+                      {isOnTimeSubmission
+                        ? 'تم التسليم · Submitted'
+                        : isLateSubmission
+                        ? 'تسليم متأخر · Late'
+                        : isOverdueNoSubmission
+                        ? 'فات الموعد · Overdue'
+                        : 'متاح للتسليم · Pending'}
                     </span>
                   </div>
 
@@ -289,17 +324,27 @@ export default function StudentAssignmentsPage() {
                     {/* Deadline / End Time */}
                     <div className="flex items-center gap-2.5">
                       <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
-                        overdue
+                        isOverdueNoSubmission
                           ? 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400'
+                          : hasSubmitted
+                          ? 'bg-slate-200/80 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
                           : 'bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400'
                       }`}>
                         <Clock size={15} />
                       </div>
                       <div className="min-w-0">
                         <p className={`text-[10px] font-bold uppercase tracking-wider ${
-                          overdue ? 'text-red-600 dark:text-red-400' : 'text-orange-600 dark:text-orange-400'
+                          isOverdueNoSubmission
+                            ? 'text-red-600 dark:text-red-400'
+                            : hasSubmitted
+                            ? 'text-slate-500 dark:text-slate-400'
+                            : 'text-orange-600 dark:text-orange-400'
                         }`}>
-                          Deadline (وقت الانتهاء)
+                          {isOverdueNoSubmission
+                            ? 'Deadline (انتهى الموعد)'
+                            : hasSubmitted
+                            ? 'Deadline (موعد الانتهاء)'
+                            : 'Deadline (وقت الانتهاء)'}
                         </p>
                         <p className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate">
                           {new Date(a.deadline).toLocaleString('en-US', {
@@ -381,7 +426,7 @@ export default function StudentAssignmentsPage() {
 
                 {/* Submission Form / Status */}
                 <div>
-                  {!isDone && canSubmit && (
+                  {canSubmit && (
                     <div className="space-y-3 mt-2">
                       <label className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-xl cursor-pointer transition-colors ${
                         file ? 'border-indigo-400 bg-indigo-50 dark:bg-indigo-900/20' : 'border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/30'
@@ -426,26 +471,72 @@ export default function StudentAssignmentsPage() {
                     </div>
                   )}
 
-                  {isDone && (
+                  {hasSubmitted && (
                     <div className="mt-2 space-y-2">
-                      <div className="flex items-center gap-2 bg-green-50 dark:bg-green-900/20 rounded-xl px-4 py-3">
-                        <CheckCircle2 className="text-green-600 shrink-0" size={18} />
-                        <p className="text-sm font-bold text-green-700 dark:text-green-400">Assignment submitted successfully</p>
+                      <div className={`flex items-center gap-2 rounded-xl px-4 py-3 border ${
+                        isOnTimeSubmission
+                          ? 'bg-green-50 dark:bg-green-900/20 border-green-200/60 dark:border-green-800/40'
+                          : 'bg-amber-50 dark:bg-amber-900/20 border-amber-200/60 dark:border-amber-800/40'
+                      }`}>
+                        {isOnTimeSubmission ? (
+                          <CheckCircle2 className="text-green-600 shrink-0" size={18} />
+                        ) : (
+                          <Clock className="text-amber-600 shrink-0" size={18} />
+                        )}
+                        <div>
+                          <p className={`text-sm font-bold ${
+                            isOnTimeSubmission
+                              ? 'text-green-700 dark:text-green-400'
+                              : 'text-amber-700 dark:text-amber-400'
+                          }`}>
+                            {isOnTimeSubmission
+                              ? 'تم تسليم التكليف بنجاح (في الموعد)'
+                              : 'تم تسليم التكليف بعد الموعد المحدد (تسليم متأخر)'}
+                          </p>
+                          {sub?.submittedAt && (
+                            <p className={`text-[11px] ${
+                              isOnTimeSubmission
+                                ? 'text-green-600/80 dark:text-green-400/80'
+                                : 'text-amber-600/80 dark:text-amber-400/80'
+                            }`}>
+                              وقت التسليم: {new Date(sub.submittedAt).toLocaleString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: true,
+                              })}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                      {a.submissions[0]?.status === 'GRADED' && a.submissions[0]?.score !== null && (
-                        <div className="flex items-center justify-between bg-indigo-50 dark:bg-indigo-900/20 rounded-xl px-4 py-3">
+
+                      {sub?.status === 'GRADED' && sub?.score !== null && (
+                        <div className="flex items-center justify-between bg-indigo-50 dark:bg-indigo-900/20 rounded-xl px-4 py-3 border border-indigo-200/60 dark:border-indigo-800/40">
                           <div>
-                            <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase">Grade</p>
+                            <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase">Grade (الدرجة)</p>
                             <p className="text-xs text-slate-400 mt-0.5">
-                              {a.submissions[0].gradedAt && new Date(a.submissions[0].gradedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                              {sub.gradedAt && new Date(sub.gradedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                             </p>
                           </div>
                           <div className="text-right">
-                            <p className="text-2xl font-black text-indigo-600 dark:text-indigo-400">{a.submissions[0].score}</p>
+                            <p className="text-2xl font-black text-indigo-600 dark:text-indigo-400">{sub.score}</p>
                             <p className="text-xs text-slate-400">/ {a.maxScore}</p>
                           </div>
                         </div>
                       )}
+                    </div>
+                  )}
+
+                  {isOverdueNoSubmission && (
+                    <div className="mt-2">
+                      <div className="flex items-center gap-2 bg-red-50 dark:bg-red-900/20 rounded-xl px-4 py-3 border border-red-200/60 dark:border-red-800/40">
+                        <X className="text-red-600 shrink-0" size={18} />
+                        <div>
+                          <p className="text-sm font-bold text-red-700 dark:text-red-300">انتهى موعد تسليم هذا التكليف</p>
+                          <p className="text-[11px] text-red-600/80 dark:text-red-400/80">لم يتم رفع وتسليم الحل قبل الموعد النهائي</p>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>

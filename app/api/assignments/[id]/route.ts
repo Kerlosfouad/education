@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { canStudentAccessScopedContent, db } from '@/lib/db';
 import { uploadToCloudinary } from '@/lib/cloudinary';
+import { cache } from '@/lib/cache';
 
 // GET /api/assignments/[id] - get submissions for an assignment
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
@@ -156,7 +157,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     // Check assignment exists and is active (not locked)
     const assignment = await db.assignment.findUnique({
       where: { id: params.id },
-      select: { isActive: true, subjectId: true, departmentId: true, academicYear: true, semester: true },
+      select: { isActive: true, subjectId: true, departmentId: true, academicYear: true, semester: true, deadline: true },
     });
     if (!assignment) return NextResponse.json({ error: 'Assignment not found' }, { status: 404 });
     if (!assignment.isActive) return NextResponse.json({ error: 'Assignment is closed' }, { status: 403 });
@@ -175,6 +176,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       }
     }
 
+    const now = new Date();
+    const isLate = assignment.deadline ? now > new Date(assignment.deadline) : false;
+    const submissionStatus = isLate ? 'LATE' : 'SUBMITTED';
+
     const existing = await db.assignmentSubmission.findUnique({
       where: { assignmentId_studentId: { assignmentId: params.id, studentId: student.id } },
     });
@@ -182,15 +187,29 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     if (existing) {
       const updated = await db.assignmentSubmission.update({
         where: { id: existing.id },
-        data: { fileUrl, status: 'SUBMITTED', submittedAt: new Date() },
+        data: {
+          fileUrl,
+          status: existing.status === 'GRADED' ? 'GRADED' : submissionStatus,
+          submittedAt: now,
+        },
       });
+      await cache.delete(`student:assignments:${student.id}`);
+      await cache.invalidatePattern('student:assignments');
       return NextResponse.json({ success: true, data: updated });
     }
 
     const submission = await db.assignmentSubmission.create({
-      data: { assignmentId: params.id, studentId: student.id, fileUrl, status: 'SUBMITTED' },
+      data: {
+        assignmentId: params.id,
+        studentId: student.id,
+        fileUrl,
+        status: submissionStatus,
+        submittedAt: now,
+      },
     });
 
+    await cache.delete(`student:assignments:${student.id}`);
+    await cache.invalidatePattern('student:assignments');
     return NextResponse.json({ success: true, data: submission }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
