@@ -43,30 +43,6 @@ const nextConfig = {
           { key: 'Pragma', value: 'no-cache' },
         ],
       },
-      {
-        source: '/auth/:path*',
-        headers: [
-          { key: 'Cache-Control', value: 'no-store, max-age=0' },
-        ],
-      },
-      {
-        source: '/dashboard/:path*',
-        headers: [
-          { key: 'Cache-Control', value: 'no-store, max-age=0' },
-        ],
-      },
-      {
-        source: '/student/:path*',
-        headers: [
-          { key: 'Cache-Control', value: 'no-store, max-age=0' },
-        ],
-      },
-      {
-        source: '/doctor/:path*',
-        headers: [
-          { key: 'Cache-Control', value: 'no-store, max-age=0' },
-        ],
-      },
     ];
   },
 };

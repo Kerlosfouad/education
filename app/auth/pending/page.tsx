@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Clock, Mail, LogOut, BookOpen, CheckCircle } from 'lucide-react';
+import { Clock, Mail, LogOut, BookOpen, CheckCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
@@ -14,6 +14,7 @@ export default function PendingApprovalPage() {
   const { data: session, status, update } = useSession();
   const router = useRouter();
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [checking, setChecking] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -27,25 +28,61 @@ export default function PendingApprovalPage() {
       return;
     }
 
-    if (status === 'authenticated' && session?.user?.status === 'PENDING') {
-      intervalRef.current = setInterval(async () => {
+    const checkStatus = async () => {
+      try {
         const res = await fetch('/api/auth/check-status');
         if (res.ok) {
           const data = await res.json();
           if (data.status === 'ACTIVE') {
-            clearInterval(intervalRef.current!);
+            if (intervalRef.current) clearInterval(intervalRef.current);
             await update({ refreshStatus: true });
             toast.success('Your account has been approved!');
             window.location.href = '/student/dashboard';
+            return true;
           }
         }
-      }, 5000);
+      } catch {}
+      return false;
+    };
+
+    if (status === 'authenticated' && session?.user?.status === 'PENDING') {
+      // Check once on mount, then poll at a reasonable 45-second interval when active
+      intervalRef.current = setInterval(() => {
+        if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+          checkStatus();
+        }
+      }, 45000);
     }
 
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, [session, status, router, update]);
+
+  const handleManualCheck = async () => {
+    setChecking(true);
+    try {
+      const res = await fetch('/api/auth/check-status');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.status === 'ACTIVE') {
+          if (intervalRef.current) clearInterval(intervalRef.current);
+          await update({ refreshStatus: true });
+          toast.success('Your account has been approved!');
+          window.location.href = '/student/dashboard';
+          return;
+        } else {
+          toast.info('Account is still under review by the doctor.');
+        }
+      } else {
+        toast.error('Could not check status. Please try again.');
+      }
+    } catch {
+      toast.error('Connection error.');
+    } finally {
+      setChecking(false);
+    }
+  };
 
   const handleLogout = async () => {
     await signOut({ callbackUrl: '/auth/login' });
@@ -79,8 +116,8 @@ export default function PendingApprovalPage() {
               <div className="flex items-center gap-3">
                 <Mail className="w-5 h-5 text-primary shrink-0" />
                 <div className="text-left">
-                  <p className="text-sm font-medium">Auto-redirect enabled</p>
-                  <p className="text-xs text-muted-foreground">This page checks for approval every 5 seconds</p>
+                  <p className="text-sm font-medium">Automatic Checking Active</p>
+                  <p className="text-xs text-muted-foreground">Checks periodically or click below to check now</p>
                 </div>
               </div>
             </div>
@@ -98,7 +135,11 @@ export default function PendingApprovalPage() {
                 <span>Account activation</span>
               </div>
             </div>
-            <div className="mt-8 pt-6 border-t">
+            <div className="mt-6 pt-6 border-t flex flex-col gap-2">
+              <Button onClick={handleManualCheck} disabled={checking} className="w-full">
+                <RefreshCw className={`w-4 h-4 mr-2 ${checking ? 'animate-spin' : ''}`} />
+                {checking ? 'Checking Status...' : 'Check Status Now'}
+              </Button>
               <Button variant="outline" onClick={handleLogout} className="w-full">
                 <LogOut className="w-4 h-4 mr-2" />
                 Logout

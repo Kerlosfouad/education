@@ -80,20 +80,15 @@ export default function StudentDashboardPage() {  const { t } = useI18n();
       .then(j => { if (j.success) setDoctorInfo(j.data); })
       .catch(() => {});
 
+    // Poll dashboard every 3 minutes (180s) when visible instead of every 45s
     const interval = setInterval(() => {
       if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
         fetchDashboard();
       }
-    }, 45000);
-
-    const onVisibilityChange = () => {
-      if (document.visibilityState === 'visible') fetchDashboard();
-    };
-    document.addEventListener('visibilitychange', onVisibilityChange);
+    }, 180000);
 
     return () => {
       clearInterval(interval);
-      document.removeEventListener('visibilitychange', onVisibilityChange);
     };
   }, [fetchDashboard]);
 

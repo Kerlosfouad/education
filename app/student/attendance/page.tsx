@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { CalendarCheck2, CheckCircle2, XCircle, Clock, Loader2, AlertCircle } from 'lucide-react';
+import { CalendarCheck2, CheckCircle2, XCircle, Clock, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { AnnouncementBanner } from '@/components/AnnouncementBanner';
 
@@ -27,6 +27,7 @@ export default function StudentAttendancePage() {
   const { t } = useI18n();
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState({ attended: 0, absent: 0, total: 0, rate: 0 });
   const [openSession, setOpenSession] = useState<OpenSession | null>(null);
   const [alreadyMarked, setAlreadyMarked] = useState(false);
@@ -52,26 +53,37 @@ export default function StudentAttendancePage() {
       }
     } catch {}
     setLoading(false);
+    setRefreshing(false);
+  }, []);
+
+  const checkActiveSession = useCallback(async () => {
+    try {
+      const dashRes = await fetch('/api/student/dashboard');
+      const dashJson = await dashRes.json();
+      if (dashJson.success) {
+        setOpenSession(dashJson.data.openSession);
+        setAlreadyMarked(dashJson.data.alreadyMarked);
+      }
+    } catch {}
   }, []);
 
   useEffect(() => {
     fetchAll();
+  }, [fetchAll]);
+
+  useEffect(() => {
+    // If student already marked attendance, no need to poll at all!
+    if (alreadyMarked || markDone) return;
+
+    // Check active session every 60s only when page is visible
     const interval = setInterval(() => {
       if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
-        fetchAll();
+        checkActiveSession();
       }
-    }, 30000);
+    }, 60000);
 
-    const onVisibilityChange = () => {
-      if (document.visibilityState === 'visible') fetchAll();
-    };
-    document.addEventListener('visibilitychange', onVisibilityChange);
-
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener('visibilitychange', onVisibilityChange);
-    };
-  }, [fetchAll]);
+    return () => clearInterval(interval);
+  }, [alreadyMarked, markDone, checkActiveSession]);
 
   const markAttendance = async () => {
     if (!openSession) return;
@@ -107,9 +119,23 @@ export default function StudentAttendancePage() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
-      <AnnouncementBanner page="attendance" />      <div>
-        <h2 className="text-3xl font-black text-slate-800">{t('attendance')}</h2>
-        <p className="text-slate-500 mt-1">{t('trackYourAttendanceAcrossAllLectures')}</p>
+      <AnnouncementBanner page="attendance" />      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-3xl font-black text-slate-800">{t('attendance')}</h2>
+          <p className="text-slate-500 mt-1">{t('trackYourAttendanceAcrossAllLectures')}</p>
+        </div>
+        <button
+          onClick={() => {
+            setRefreshing(true);
+            fetchAll();
+          }}
+          disabled={refreshing}
+          className="flex items-center gap-2 px-4 py-2 text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition-colors disabled:opacity-50"
+          title="تحديث البيانات"
+        >
+          <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+          <span className="hidden sm:inline">تحديث</span>
+        </button>
       </div>
 
       {/* Open Session Banner */}

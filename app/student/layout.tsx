@@ -89,18 +89,15 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
   useEffect(() => { setMounted(true); }, []);
   useEffect(() => {
     fetchNotifications();
+    // Poll notifications every 3 minutes (180s) when visible instead of every 30s
     const interval = setInterval(() => {
       if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
         fetchNotifications();
       }
-    }, 30000);
-    const onVisibilityChange = () => {
-      if (document.visibilityState === 'visible') fetchNotifications();
-    };
-    document.addEventListener('visibilitychange', onVisibilityChange);
+    }, 180000);
+
     return () => {
       clearInterval(interval);
-      document.removeEventListener('visibilitychange', onVisibilityChange);
     };
   }, [fetchNotifications]);
 
