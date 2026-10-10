@@ -461,52 +461,56 @@ export default function AttendancePage() {
       )}
 
       {showModal && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl animate-in zoom-in-95 duration-300">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-slate-800">{t('newAttendanceSession')}</h3>
-              <button onClick={() => setShowModal(false)} className="p-2 hover:bg-slate-100 rounded-xl"><X size={20} className="text-slate-400" /></button>
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white w-full max-w-md max-h-[92vh] overflow-y-auto rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between mb-3 sm:mb-4 pb-2 border-b border-slate-100">
+              <h3 className="text-base sm:text-lg font-bold text-slate-800">{t('newAttendanceSession')}</h3>
+              <button onClick={() => setShowModal(false)} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors">
+                <X size={18} />
+              </button>
             </div>
-            {error && <div className="bg-red-50 text-red-600 rounded-2xl px-4 py-3 text-sm mb-4">{error}</div>}
-            <form onSubmit={handleCreate} className="space-y-4">
+            {error && <div className="bg-red-50 text-red-600 rounded-xl px-3 py-2 text-xs mb-3">{error}</div>}
+            <form onSubmit={handleCreate} className="space-y-3 text-xs sm:text-sm">
               <div>
-                <label className="text-xs font-bold text-slate-400 uppercase mb-1.5 block">{t('sessionTitleOptional')}</label>
+                <label className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase mb-1 block">{t('sessionTitleOptional')}</label>
                 <input type="text" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
                   placeholder="e.g. Week 3 lecture"
-                  className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2 sm:py-2.5 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
               </div>
               <div>
-                <label className="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Department</label>
+                <label className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase mb-1 block">Department</label>
                 <select value={form.departmentId} onChange={e => {
                     const newDeptId = e.target.value;
                     setForm(f => ({ ...f, departmentId: newDeptId, academicYear: '', subjectId: '' }));
                   }}
-                  className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2 sm:py-2.5 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
                   <option value="">All Departments</option>
                   {departments.map(d => <option key={d.id} value={d.id}>{d.nameAr || d.name}</option>)}
                 </select>
               </div>
-              <div>
-                <label className="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Level</label>
-                <select value={(form as any).academicYear || ''} onChange={e => setForm(f => ({ ...f, academicYear: e.target.value, subjectId: '' } as any))}
-                  className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
-                  <option value="">All Levels</option>
-                  {availableLevels.map(l => <option key={l} value={l}>Level {l}</option>)}
-                </select>
+              <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                <div>
+                  <label className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase mb-1 block">Level</label>
+                  <select value={(form as any).academicYear || ''} onChange={e => setForm(f => ({ ...f, academicYear: e.target.value, subjectId: '' } as any))}
+                    className="w-full border border-slate-200 rounded-xl px-2.5 sm:px-3 py-2 sm:py-2.5 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+                    <option value="">All Levels</option>
+                    {availableLevels.map(l => <option key={l} value={l}>Level {l}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase mb-1 block">Semester</label>
+                  <select value={form.semester} onChange={e => setForm(f => ({ ...f, semester: e.target.value, subjectId: '' }))}
+                    className="w-full border border-slate-200 rounded-xl px-2.5 sm:px-3 py-2 sm:py-2.5 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+                    <option value="">All Semesters</option>
+                    <option value="1">Semester 1</option>
+                    <option value="2">Semester 2</option>
+                  </select>
+                </div>
               </div>
               <div>
-                <label className="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Semester</label>
-                <select value={form.semester} onChange={e => setForm(f => ({ ...f, semester: e.target.value, subjectId: '' }))}
-                  className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
-                  <option value="">All Semesters</option>
-                  <option value="1">Semester 1</option>
-                  <option value="2">Semester 2</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Subject</label>
+                <label className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase mb-1 block">Subject</label>
                 <select value={form.subjectId} onChange={e => setForm(f => ({ ...f, subjectId: e.target.value }))}
-                  className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2 sm:py-2.5 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
                   <option value="">No specific subject</option>
                   {formSubjects.map(subject => (
                     <option key={subject.id} value={subject.id}>
@@ -514,32 +518,32 @@ export default function AttendancePage() {
                     </option>
                   ))}
                 </select>
-                <p className="mt-1.5 text-xs text-slate-400">
+                <p className="mt-1 text-[10px] sm:text-xs text-slate-400">
                   Choose a subject to show the session to core students and approved extra-subject students.
                 </p>
               </div>
               <div>
-                <label className="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Session Duration *</label>
-                <div className="grid grid-cols-2 gap-3">
+                <label className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase mb-1 block">Session Duration *</label>
+                <div className="grid grid-cols-2 gap-2 sm:gap-3">
                   <div>
-                    <label className="text-xs text-slate-400 mb-1 block">Hours</label>
+                    <label className="text-[10px] sm:text-xs text-slate-400 mb-0.5 block">Hours</label>
                     <select value={form.durationHours} onChange={e => setForm(f => ({ ...f, durationHours: e.target.value }))}
-                      className="w-full border border-slate-200 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+                      className="w-full border border-slate-200 rounded-xl px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
                       {[0,1,2,3,4,5,6].map(h => <option key={h} value={h}>{h}h</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="text-xs text-slate-400 mb-1 block">Minutes</label>
+                    <label className="text-[10px] sm:text-xs text-slate-400 mb-0.5 block">Minutes</label>
                     <select value={form.durationMinutes} onChange={e => setForm(f => ({ ...f, durationMinutes: e.target.value }))}
-                      className="w-full border border-slate-200 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+                      className="w-full border border-slate-200 rounded-xl px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
                       {[0,15,30,45].map(m => <option key={m} value={m}>{m}m</option>)}
                     </select>
                   </div>
                 </div>
               </div>
               <button type="submit" disabled={saving}
-                className="w-full py-3.5 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 mt-2">
-                {saving ? <Loader2 size={18} className="animate-spin" /> : <Plus size={18} />}
+                className="w-full py-2.5 sm:py-3 bg-blue-600 text-white rounded-xl sm:rounded-2xl font-bold hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 mt-2 text-xs sm:text-sm shadow-md shadow-blue-100">
+                {saving ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
                 {saving ? t('saving') : t('createSession')}
               </button>
             </form>
