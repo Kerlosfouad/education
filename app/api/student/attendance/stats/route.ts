@@ -37,13 +37,16 @@ export async function GET() {
           )
         `;
         const relevantSessionIds = relevantSessions.map(s => s.id);
-        const total = relevantSessionIds.length;
-        const attended = await db.attendance.count({
-          where: { studentId: student.id, sessionId: { in: relevantSessionIds }, verificationMethod: { not: 'ABSENT' } },
+
+        const studentRecords = await db.attendance.findMany({
+          where: { studentId: student.id },
+          select: { sessionId: true, verificationMethod: true },
         });
-        const absent = await db.attendance.count({
-          where: { studentId: student.id, sessionId: { in: relevantSessionIds }, verificationMethod: 'ABSENT' },
-        });
+        const studentSessionIds = studentRecords.map(a => a.sessionId);
+        const allSessionIds = Array.from(new Set([...relevantSessionIds, ...studentSessionIds]));
+        const total = allSessionIds.length;
+        const attended = studentRecords.filter(a => a.verificationMethod !== 'ABSENT').length;
+        const absent = total > attended ? total - attended : 0;
         const rate = total > 0 ? Math.round((attended / total) * 100) : 0;
 
         return { total, attended, absent, rate };

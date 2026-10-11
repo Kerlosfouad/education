@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { UploadCloud, FileText, File as FileIcon, Trash2, Download, Search, Plus, X } from 'lucide-react';
+import { UploadCloud, FileText, File as FileIcon, Trash2, Download, Search, Plus, X, ExternalLink } from 'lucide-react';
 import { useUploadThing } from '@/lib/uploadthing';
 import { saveBookAction, getBooksAction, deleteBookAction } from '@/actions/bookActions';
 import { toast } from 'sonner';
@@ -182,9 +182,27 @@ export default function LibBooksPage() {
                   </p>
                 </div>
               </div>
-              <div className='flex items-center gap-3'>
-                <a href={file.url} target='_blank' rel='noopener noreferrer' className='p-3 text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 rounded-2xl transition-all'><Download size={22} /></a>
-                <button onClick={() => handleDelete(file.id)} className='p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all'><Trash2 size={22} /></button>
+              <div className='flex items-center gap-2'>
+                <a
+                  href={`/api/files/download?url=${encodeURIComponent(file.url)}&filename=${encodeURIComponent(file.name + '.pdf')}&mode=inline`}
+                  target='_blank'
+                  rel='noopener noreferrer'
+                  title="عرض الملف / View PDF"
+                  className='p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all'
+                >
+                  <ExternalLink size={20} />
+                </a>
+                <a
+                  href={`/api/files/download?url=${encodeURIComponent(file.url)}&filename=${encodeURIComponent(file.name + '.pdf')}&mode=download`}
+                  target='_blank'
+                  rel='noopener noreferrer'
+                  download={`${file.name}.pdf`}
+                  title="تحميل بصيغة PDF / Download PDF"
+                  className='p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-2xl transition-all'
+                >
+                  <Download size={20} />
+                </a>
+                <button onClick={() => handleDelete(file.id)} title="حذف / Delete" className='p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all'><Trash2 size={20} /></button>
               </div>
             </div>
           ))}

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import {
   FileText, Clock, CheckCircle2, Loader2, Upload, X,
-  Image as ImageIcon, Eye, ExternalLink
+  Image as ImageIcon, Eye, ExternalLink, Download
 } from 'lucide-react';
 import { useUploadThing } from '@/lib/uploadthing';
 import { AnnouncementBanner } from '@/components/AnnouncementBanner';
@@ -69,6 +69,21 @@ async function compressImageIfNeeded(file: File): Promise<File> {
     reader.onerror = () => resolve(file);
     reader.readAsDataURL(file);
   });
+}
+
+function isPdfUrl(url?: string | null): boolean {
+  if (!url) return false;
+  const lower = url.toLowerCase();
+  if (lower.startsWith('data:application/pdf') || lower.includes('.pdf') || lower.endsWith('.pdf')) {
+    return true;
+  }
+  if (lower.startsWith('data:image/') || lower.includes('.png') || lower.includes('.jpg') || lower.includes('.jpeg') || lower.includes('.webp') || lower.includes('.gif') || lower.includes('.svg')) {
+    return false;
+  }
+  if (lower.includes('utfs.io') || lower.includes('ufs.sh') || lower.includes('/assignments/')) {
+    return true;
+  }
+  return false;
 }
 
 export default function StudentAssignmentsPage() {
@@ -355,7 +370,7 @@ export default function StudentAssignmentsPage() {
 
                   {/* Attached Assignment Sheet (PDF or Image) from Doctor */}
                   {a.fileUrl && (
-                    (a.fileUrl.startsWith('data:application/pdf') || a.fileUrl.toLowerCase().includes('.pdf') || a.fileUrl.toLowerCase().endsWith('.pdf')) ? (
+                    isPdfUrl(a.fileUrl) ? (
                       <div className="mb-4 bg-red-50/40 dark:bg-red-950/20 rounded-2xl p-3.5 border border-red-200/60 dark:border-red-900/40 flex items-center justify-between gap-3">
                         <div className="flex items-center gap-3 min-w-0">
                           <div className="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-900/40 flex items-center justify-center shrink-0">
@@ -366,14 +381,25 @@ export default function StudentAssignmentsPage() {
                             <p className="text-[11px] text-slate-400">Attached instructions & document</p>
                           </div>
                         </div>
-                        <a
-                          href={a.fileUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 text-xs font-bold bg-red-600 text-white hover:bg-red-700 px-3 py-2 rounded-xl transition-colors shadow-sm shrink-0"
-                        >
-                          <ExternalLink size={13} /> View PDF
-                        </a>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <a
+                            href={`/api/files/download?url=${encodeURIComponent(a.fileUrl)}&filename=${encodeURIComponent(a.title + '.pdf')}&mode=inline`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 text-xs font-bold bg-red-600 text-white hover:bg-red-700 px-3 py-2 rounded-xl transition-colors shadow-sm shrink-0"
+                          >
+                            <ExternalLink size={13} /> View PDF
+                          </a>
+                          <a
+                            href={`/api/files/download?url=${encodeURIComponent(a.fileUrl)}&filename=${encodeURIComponent(a.title + '.pdf')}&mode=download`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            download={`${a.title}.pdf`}
+                            className="flex items-center gap-1.5 text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 px-3 py-2 rounded-xl transition-colors shadow-sm shrink-0 border border-slate-200 dark:border-slate-700"
+                          >
+                            <Download size={13} /> Download
+                          </a>
+                        </div>
                       </div>
                     ) : (
                       <div className="mb-4 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-2xl p-3 border border-indigo-100 dark:border-indigo-900/40">

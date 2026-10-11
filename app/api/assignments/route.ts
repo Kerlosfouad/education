@@ -68,7 +68,8 @@ export async function POST(req: Request) {
     let fileUrl = data.fileUrl || null;
     if (fileUrl && fileUrl.startsWith('data:')) {
       try {
-        const uploaded = await uploadToCloudinary(fileUrl, 'assignments', 'auto');
+        const isPdf = fileUrl.startsWith('data:application/pdf');
+        const uploaded = await uploadToCloudinary(fileUrl, 'assignments', isPdf ? 'raw' : 'auto');
         fileUrl = uploaded.url;
       } catch (uploadErr) {
         console.error('Failed to upload assignment file to Cloudinary:', uploadErr);

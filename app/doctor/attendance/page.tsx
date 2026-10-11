@@ -116,7 +116,10 @@ export default function AttendancePage() {
     setSaving(true);
     try {
       const now = new Date();
-      const durationMs = (parseInt(form.durationHours) * 60 + parseInt(form.durationMinutes)) * 60 * 1000;
+      const hours = parseInt(form.durationHours) || 0;
+      const minutes = parseInt(form.durationMinutes) || 0;
+      const totalMinutes = (hours * 60 + minutes) > 0 ? (hours * 60 + minutes) : 60;
+      const durationMs = totalMinutes * 60 * 1000;
       const closeTime = new Date(now.getTime() + durationMs);
       const res = await fetch('/api/attendance', {
         method: 'POST',

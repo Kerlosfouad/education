@@ -83,10 +83,27 @@ export default function StudentLibraryPage() {
                   </div>
                 </div>
                 {(item.fileUrl || item.externalUrl) && (
-                  <a href={item.fileUrl || item.externalUrl || '#'} target="_blank" rel="noopener noreferrer"
-                    className="shrink-0 p-2.5 bg-slate-100 text-slate-500 hover:bg-indigo-100 hover:text-indigo-600 rounded-xl transition-colors">
-                    <Download size={16} />
-                  </a>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <a
+                      href={`/api/files/download?url=${encodeURIComponent(item.fileUrl || item.externalUrl || '')}&filename=${encodeURIComponent(item.title + '.pdf')}&mode=inline`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="عرض الملف / View PDF"
+                      className="p-2.5 bg-slate-100 text-slate-500 hover:bg-red-50 hover:text-red-600 rounded-xl transition-colors"
+                    >
+                      <ExternalLink size={16} />
+                    </a>
+                    <a
+                      href={`/api/files/download?url=${encodeURIComponent(item.fileUrl || item.externalUrl || '')}&filename=${encodeURIComponent(item.title + '.pdf')}&mode=download`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      download={`${item.title}.pdf`}
+                      title="تحميل بصيغة PDF / Download PDF"
+                      className="p-2.5 bg-slate-100 text-slate-500 hover:bg-indigo-100 hover:text-indigo-600 rounded-xl transition-colors"
+                    >
+                      <Download size={16} />
+                    </a>
+                  </div>
                 )}
               </div>
             );

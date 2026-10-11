@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import {
   Plus, FileText, ExternalLink, Users,
   History, X, Trash2, ChevronRight, Loader2, Search, Filter, Lock, Unlock, Check,
-  Image as ImageIcon, Eye, Upload, FileCheck
+  Image as ImageIcon, Eye, Upload, FileCheck, Download
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useI18n } from '@/lib/i18n';
@@ -99,11 +99,17 @@ async function compressImageIfNeeded(file: File): Promise<File> {
 
 function isPdfUrl(url?: string | null): boolean {
   if (!url) return false;
-  return (
-    url.startsWith('data:application/pdf') ||
-    url.toLowerCase().includes('.pdf') ||
-    url.toLowerCase().endsWith('.pdf')
-  );
+  const lower = url.toLowerCase();
+  if (lower.startsWith('data:application/pdf') || lower.includes('.pdf') || lower.endsWith('.pdf')) {
+    return true;
+  }
+  if (lower.startsWith('data:image/') || lower.includes('.png') || lower.includes('.jpg') || lower.includes('.jpeg') || lower.includes('.webp') || lower.includes('.gif') || lower.includes('.svg')) {
+    return false;
+  }
+  if (lower.includes('utfs.io') || lower.includes('ufs.sh') || lower.includes('/assignments/')) {
+    return true;
+  }
+  return false;
 }
 
 export default function AssignmentsPage() {
@@ -326,6 +332,9 @@ export default function AssignmentsPage() {
           if (uploaded?.[0]) {
             const uploadedData = uploaded[0] as any;
             finalFileUrl = uploadedData.ufsUrl || uploadedData.url || uploadedData.serverData?.url || null;
+            if (finalFileUrl && fileType === 'pdf' && !finalFileUrl.toLowerCase().includes('.pdf')) {
+              finalFileUrl += '#file.pdf';
+            }
           }
         } catch (utErr) {
           console.warn('UploadThing upload error, falling back to base64:', utErr);
@@ -641,14 +650,25 @@ export default function AssignmentsPage() {
 
                 {selected.fileUrl && (
                   isPdfUrl(selected.fileUrl) ? (
-                    <a
-                      href={selected.fileUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 text-xs bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-300 font-bold px-3 py-1.5 rounded-xl hover:bg-red-100 transition-colors border border-red-200/60 dark:border-red-800 shrink-0"
-                    >
-                      <FileText size={14} className="text-red-500" /> View PDF
-                    </a>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <a
+                        href={`/api/files/download?url=${encodeURIComponent(selected.fileUrl)}&filename=${encodeURIComponent(selected.title + '.pdf')}&mode=inline`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-xs bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-300 font-bold px-3 py-1.5 rounded-xl hover:bg-red-100 transition-colors border border-red-200/60 dark:border-red-800 shrink-0"
+                      >
+                        <FileText size={14} className="text-red-500" /> View PDF
+                      </a>
+                      <a
+                        href={`/api/files/download?url=${encodeURIComponent(selected.fileUrl)}&filename=${encodeURIComponent(selected.title + '.pdf')}&mode=download`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        download={`${selected.title}.pdf`}
+                        className="flex items-center gap-1.5 text-xs bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold px-3 py-1.5 rounded-xl hover:bg-slate-200 transition-colors shrink-0"
+                      >
+                        <Download size={14} /> Download
+                      </a>
+                    </div>
                   ) : (
                     <button
                       type="button"
@@ -674,14 +694,25 @@ export default function AssignmentsPage() {
                         <p className="text-[10px] text-slate-400">PDF Document provided for students</p>
                       </div>
                     </div>
-                    <a
-                      href={selected.fileUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-xs font-bold text-red-600 dark:text-red-400 hover:underline bg-white dark:bg-slate-800 px-2.5 py-1.5 rounded-lg border border-red-200 dark:border-red-800 shadow-sm shrink-0"
-                    >
-                      <ExternalLink size={12} /> Open PDF
-                    </a>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <a
+                        href={`/api/files/download?url=${encodeURIComponent(selected.fileUrl)}&filename=${encodeURIComponent(selected.title + '.pdf')}&mode=inline`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-xs font-bold text-red-600 dark:text-red-400 hover:underline bg-white dark:bg-slate-800 px-2.5 py-1.5 rounded-lg border border-red-200 dark:border-red-800 shadow-sm shrink-0"
+                      >
+                        <ExternalLink size={12} /> Open PDF
+                      </a>
+                      <a
+                        href={`/api/files/download?url=${encodeURIComponent(selected.fileUrl)}&filename=${encodeURIComponent(selected.title + '.pdf')}&mode=download`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        download={`${selected.title}.pdf`}
+                        className="flex items-center gap-1 text-xs font-bold text-slate-700 dark:text-slate-200 hover:underline bg-white dark:bg-slate-800 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm shrink-0"
+                      >
+                        <Download size={12} /> Download
+                      </a>
+                    </div>
                   </div>
                 ) : (
                   <div className="bg-slate-50 dark:bg-slate-700/40 rounded-xl p-2.5 border border-slate-200/80 dark:border-slate-600">
@@ -792,9 +823,14 @@ export default function AssignmentsPage() {
                               </div>
                               {sub.fileUrl ? (
                                 <div className="flex gap-1">
-                                  <a href={sub.fileUrl.startsWith('data:') ? `/api/assignments/submissions/${sub.id}/file` : sub.fileUrl} target="_blank" rel="noopener noreferrer"
+                                  <a href={sub.fileUrl.startsWith('data:') ? `/api/assignments/submissions/${sub.id}/file` : `/api/files/download?url=${encodeURIComponent(sub.fileUrl)}&filename=${encodeURIComponent(`${sub.student?.user?.name || 'submission'}_${sub.student?.studentCode || sub.id}.pdf`)}&mode=inline`} target="_blank" rel="noopener noreferrer"
                                     className="flex items-center gap-1 text-[11px] bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 font-bold px-2 py-1 rounded-lg hover:bg-indigo-100 transition-colors">
                                     <ExternalLink size={10} /> View
+                                  </a>
+                                  <a href={sub.fileUrl.startsWith('data:') ? `/api/assignments/submissions/${sub.id}/file` : `/api/files/download?url=${encodeURIComponent(sub.fileUrl)}&filename=${encodeURIComponent(`${sub.student?.user?.name || 'submission'}_${sub.student?.studentCode || sub.id}.pdf`)}&mode=download`} target="_blank" rel="noopener noreferrer"
+                                    download={`${sub.student?.user?.name || 'submission'}_${sub.student?.studentCode || sub.id}.pdf`}
+                                    className="flex items-center gap-1 text-[11px] bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold px-2 py-1 rounded-lg hover:bg-slate-200 transition-colors">
+                                    <Download size={10} />
                                   </a>
                                   <span className="flex items-center gap-1 text-[11px] bg-slate-100 dark:bg-slate-600 text-slate-600 dark:text-slate-300 font-bold px-2 py-1 rounded-lg">
                                     <FileText size={10} /> {sub.totalSubmissions}

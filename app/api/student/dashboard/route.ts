@@ -177,8 +177,8 @@ export async function GET() {
       FROM attendance_sessions s
       LEFT JOIN subjects subj ON s."subjectId" = subj.id
       WHERE s."isOpen" = true
-        AND s."openTime" <= ${now}
-        AND s."closeTime" >= ${now}
+        AND s."openTime" <= (${now}::timestamp + interval '10 minutes')
+        AND s."closeTime" >= (${now}::timestamp - interval '15 minutes')
         AND (
           (s."subjectId" IS NOT NULL AND s."subjectId" = ANY(${subjectIds}::text[]))
           OR (
@@ -188,6 +188,7 @@ export async function GET() {
             AND (s."semester" IS NULL OR s."semester" = ${semester})
           )
         )
+      ORDER BY s."createdAt" DESC
       LIMIT 1
     `;
     const openSession = openSessionRaw[0] ? {
@@ -203,7 +204,7 @@ export async function GET() {
       const existing = await db.attendance.findFirst({
         where: { studentId: student.id, sessionId: openSession.id },
       });
-      alreadyMarked = !!existing;
+      alreadyMarked = !!existing && existing.verificationMethod !== 'ABSENT';
     }
 
     // Videos - filtered by student's department, year and semester
@@ -324,7 +325,7 @@ export async function GET() {
           externalUrl: null,
           subject: null,
         })),
-        openSession: openSession && !alreadyMarked ? openSession : null,
+        openSession,
         alreadyMarked,
         unreadCount,
       },

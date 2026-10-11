@@ -114,24 +114,9 @@ export async function GET(req: NextRequest) {
 
       const { semester, coreSubjectIds } = await getStudentSubjectAccess(student);
 
-      // Get sessions that match student's enrolled subjects or general department/year/semester
-      const allSessions = await db.$queryRaw<any[]>`
-        SELECT DISTINCT s.id
-        FROM attendance_sessions s
-        WHERE (
-          (s."subjectId" IS NOT NULL AND s."subjectId" = ANY(${coreSubjectIds}::text[]))
-          OR (
-            s."subjectId" IS NULL
-            AND (s."departmentId" IS NULL OR s."departmentId" = ${student.departmentId})
-            AND (s."academicYear" IS NULL OR s."academicYear" = ${student.academicYear})
-            AND (s."semester" IS NULL OR s."semester" = ${semester})
-          )
-        )
-      `;
-      const sessionIds = allSessions.map((s: any) => s.id);
-
+      // Get student's attendance records
       const attendances = await db.attendance.findMany({
-        where: { studentId: student.id, sessionId: { in: sessionIds } },
+        where: { studentId: student.id },
         include: {
           session: {
             include: {
@@ -317,7 +302,10 @@ export async function POST(req: NextRequest) {
       }
 
       const now = new Date();
-      if (!attendanceSession.isOpen || now < attendanceSession.openTime || now > attendanceSession.closeTime) {
+      // Allow 10-minute buffer for clock skew on openTime, and 15-minute grace period on closeTime if session is open
+      const isWithinOpenTime = now.getTime() >= attendanceSession.openTime.getTime() - 10 * 60 * 1000;
+      const isWithinCloseTime = now.getTime() <= attendanceSession.closeTime.getTime() + 15 * 60 * 1000;
+      if (!attendanceSession.isOpen || !isWithinOpenTime || !isWithinCloseTime) {
         return NextResponse.json(
           { error: 'Attendance session is not open' },
           { status: 400 }
@@ -357,13 +345,23 @@ export async function POST(req: NextRequest) {
             },
           });
 
-          return NextResponse.json({ success: true, data: attendance, updated: true });
+          // Invalidate caches
+          cache.invalidatePattern(`student:${student.id}`);
+          cache.invalidatePattern(`student:att-stats:${student.id}`);
+          cache.invalidatePattern(`student:dashboard:${session.user.id}`);
+          cache.delete(`doctor:stats:summary`);
+          cache.delete(`doctor:analytics:overview`);
+
+          return NextResponse.json({ success: true, data: attendance, updated: true, alreadyMarked: true });
         }
 
-        return NextResponse.json(
-          { error: 'Attendance already marked' },
-          { status: 409 }
-        );
+        // Idempotent: Attendance is already marked as MANUAL/VERIFIED -> Treat as success
+        return NextResponse.json({
+          success: true,
+          data: existingAttendance,
+          alreadyMarked: true,
+          message: 'Attendance already recorded',
+        });
       }
 
       // Get device info
@@ -392,13 +390,14 @@ export async function POST(req: NextRequest) {
       });
 
       // Invalidate caches
-      cache.delete(`student:att-stats:${student.id}`);
-      cache.delete(`student:dashboard:${session.user.id}`);
+      cache.invalidatePattern(`student:${student.id}`);
+      cache.invalidatePattern(`student:att-stats:${student.id}`);
+      cache.invalidatePattern(`student:dashboard:${session.user.id}`);
       cache.delete(`doctor:stats:summary`);
       cache.delete(`doctor:analytics:overview`);
 
       return NextResponse.json(
-        { success: true, data: attendance },
+        { success: true, data: attendance, alreadyMarked: true },
         { status: 201 }
       );
     }
@@ -494,10 +493,25 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
+    const current = await db.attendanceSession.findUnique({
+      where: { id: sessionId },
+      select: { closeTime: true },
+    });
+    const now = new Date();
+    const shouldExtendCloseTime = isOpen && (!current?.closeTime || current.closeTime <= now);
+
     const updatedSession = await db.attendanceSession.update({
       where: { id: sessionId },
-      data: { isOpen },
+      data: {
+        isOpen,
+        ...(shouldExtendCloseTime ? { closeTime: new Date(now.getTime() + 60 * 60 * 1000) } : {}),
+      },
     });
+
+    // Invalidate caches
+    cache.invalidatePattern('student:dashboard');
+    cache.delete('doctor:stats:summary');
+    cache.delete('doctor:analytics:overview');
 
     return NextResponse.json({ success: true, data: updatedSession });
   } catch (error) {

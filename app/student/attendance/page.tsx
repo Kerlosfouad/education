@@ -48,8 +48,10 @@ export default function StudentAttendancePage() {
       if (recJson.success) setRecords(recJson.data);
       if (statsJson.success) setStats(statsJson.data);
       if (dashJson.success) {
-        setOpenSession(dashJson.data.openSession);
-        setAlreadyMarked(dashJson.data.alreadyMarked);
+        if (dashJson.data.openSession) {
+          setOpenSession(dashJson.data.openSession);
+        }
+        setAlreadyMarked(prev => prev || Boolean(dashJson.data.alreadyMarked));
       }
     } catch {}
     setLoading(false);
@@ -61,8 +63,10 @@ export default function StudentAttendancePage() {
       const dashRes = await fetch('/api/student/dashboard');
       const dashJson = await dashRes.json();
       if (dashJson.success) {
-        setOpenSession(dashJson.data.openSession);
-        setAlreadyMarked(dashJson.data.alreadyMarked);
+        if (dashJson.data.openSession) {
+          setOpenSession(dashJson.data.openSession);
+        }
+        setAlreadyMarked(prev => prev || Boolean(dashJson.data.alreadyMarked));
       }
     } catch {}
   }, []);
@@ -96,9 +100,10 @@ export default function StudentAttendancePage() {
         body: JSON.stringify({ sessionId: openSession.id }),
       });
       const json = await res.json();
-      if (json.success) {
+      if (json.success || res.status === 409 || json.alreadyMarked) {
         setMarkDone(true);
         setAlreadyMarked(true);
+        setMarkError('');
         fetchAll();
       } else {
         setMarkError(json.error || 'An error occurred');

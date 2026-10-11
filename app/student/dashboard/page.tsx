@@ -67,6 +67,9 @@ export default function StudentDashboardPage() {  const { t } = useI18n();
       const json = await res.json();
       if (json.success) {
         setData(json.data);
+        if (json.data.openSession && !json.data.alreadyMarked) {
+          setShowAttendanceModal(true);
+        }
       }
     } catch {}
     setLoading(false);
@@ -103,8 +106,9 @@ export default function StudentDashboardPage() {  const { t } = useI18n();
         body: JSON.stringify({ sessionId: data.openSession.id }),
       });
       const json = await res.json();
-      if (json.success) {
+      if (json.success || res.status === 409 || json.alreadyMarked) {
         setAttendanceDone(true);
+        setData(prev => prev ? { ...prev, alreadyMarked: true } : null);
         setTimeout(() => setShowAttendanceModal(false), 2000);
       } else {
         setAttendanceError(json.error || t('somethingWentWrong'));
@@ -133,7 +137,7 @@ export default function StudentDashboardPage() {  const { t } = useI18n();
   return (
     <>
       {/* Attendance Modal */}
-      {showAttendanceModal && data?.openSession && (
+      {showAttendanceModal && data?.openSession && !data?.alreadyMarked && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-md p-8 text-center animate-in zoom-in-95 duration-300">
             {attendanceDone ? (
@@ -203,6 +207,36 @@ export default function StudentDashboardPage() {  const { t } = useI18n();
 
         {/* Announcements */}
         <AnnouncementsBanner studentDeptId={data?.student?.id} />
+
+        {/* Active Session Banner */}
+        {data?.openSession && (
+          <div className={`rounded-3xl p-6 border-2 transition-all ${data.alreadyMarked || attendanceDone ? 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800' : 'bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-950/40 dark:to-blue-950/40 border-indigo-200 dark:border-indigo-800 shadow-sm'}`}>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ${data.alreadyMarked || attendanceDone ? 'bg-green-100 dark:bg-green-900/50 text-green-600' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600'}`}>
+                  {data.alreadyMarked || attendanceDone ? <CheckCircle2 size={28} /> : <CalendarCheck2 size={28} />}
+                </div>
+                <div>
+                  <p className="font-black text-slate-800 dark:text-slate-100 text-lg">
+                    {data.alreadyMarked || attendanceDone ? t('attendanceRecordedShort') : t('attendanceSessionOpen')}
+                  </p>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm">
+                    {data.openSession.title || data.openSession.subject?.name || 'Session'}
+                  </p>
+                </div>
+              </div>
+              {!data.alreadyMarked && !attendanceDone && (
+                <button
+                  onClick={() => setShowAttendanceModal(true)}
+                  className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold transition-colors flex items-center justify-center gap-2 shadow-md shadow-indigo-200 dark:shadow-none"
+                >
+                  <CalendarCheck2 size={18} />
+                  {t('markAttendance')}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Doctor Info Card */}
         {(() => {
@@ -430,8 +464,13 @@ export default function StudentDashboardPage() {  const { t } = useI18n();
                   <p className="text-xs text-slate-400 truncate">{item.author || item.subject?.name}</p>
                 </div>
                 {(item.fileUrl || item.externalUrl) && (
-                  <a href={item.fileUrl || item.externalUrl} target="_blank" rel="noopener noreferrer"
-                    className="shrink-0 text-emerald-600 hover:text-emerald-700">
+                  <a
+                    href={`/api/files/download?url=${encodeURIComponent(item.fileUrl || item.externalUrl || '')}&filename=${encodeURIComponent(item.title + '.pdf')}&mode=inline`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Open PDF"
+                    className="shrink-0 text-emerald-600 hover:text-emerald-700"
+                  >
                     <ExternalLink size={16} />
                   </a>
                 )}

@@ -14,38 +14,39 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     const submission = await db.assignmentSubmission.findUnique({
       where: { id: params.id },
-      select: { fileUrl: true },
+      select: {
+        fileUrl: true,
+        student: {
+          select: {
+            studentCode: true,
+            user: { select: { name: true } },
+          },
+        },
+      },
     });
 
     if (!submission || !submission.fileUrl) {
       return new NextResponse('File not found', { status: 404 });
     }
 
-    const fileUrl = submission.fileUrl;
+    const { fetchFileBuffer, sanitizeFilename } = await import('@/lib/files');
+    const { buffer, contentType } = await fetchFileBuffer(submission.fileUrl);
 
-    // If it's a web URL (UploadThing / CDN / S3), redirect
-    if (fileUrl.startsWith('http://') || fileUrl.startsWith('https://')) {
-      return NextResponse.redirect(fileUrl);
-    }
+    const isPdf = contentType === 'application/pdf' || (buffer.length >= 4 && buffer.toString('utf8', 0, 4) === '%PDF');
+    const ext = isPdf ? 'pdf' : (contentType.split('/')[1] || 'pdf');
+    const studentName = submission.student?.user?.name || 'student';
+    const studentCode = submission.student?.studentCode || params.id;
+    const downloadName = `${studentName}_${studentCode}.${ext}`;
+    const { safeAscii, utf8Name } = sanitizeFilename(downloadName, ext);
 
-    // If it's a base64 Data URL (e.g. data:application/pdf;base64,...)
-    if (fileUrl.startsWith('data:')) {
-      const parts = fileUrl.split(';base64,');
-      if (parts.length === 2) {
-        const mimeType = parts[0].replace('data:', '') || 'application/pdf';
-        const buffer = Buffer.from(parts[1], 'base64');
-        return new NextResponse(buffer, {
-          headers: {
-            'Content-Type': mimeType,
-            'Content-Disposition': 'inline; filename="submission.pdf"',
-            'Content-Length': buffer.length.toString(),
-            'Cache-Control': 'public, max-age=86400',
-          },
-        });
-      }
-    }
-
-    return new NextResponse('Invalid file format', { status: 400 });
+    return new NextResponse(new Uint8Array(buffer), {
+      headers: {
+        'Content-Type': isPdf ? 'application/pdf' : contentType,
+        'Content-Disposition': `inline; filename="${safeAscii}"; filename*=UTF-8''${encodeURIComponent(utf8Name)}`,
+        'Content-Length': buffer.length.toString(),
+        'Cache-Control': 'public, max-age=86400',
+      },
+    });
   } catch (error) {
     console.error('File serve error:', error);
     return new NextResponse('Server error', { status: 500 });
