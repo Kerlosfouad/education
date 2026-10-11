@@ -12,21 +12,22 @@ export async function GET() {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const cacheKey = `videos:${session.user.role}:${session.user.id}`;
+    let cacheKey = 'videos:DOCTOR';
+    let studentSubjectIds: string[] | null = null;
+
+    if (session.user.role === 'STUDENT') {
+      const student = await getOrCreateStudent(session.user.id);
+      if (student) {
+        const access = await getStudentSubjectAccess(student);
+        studentSubjectIds = access.subjectIds;
+      }
+      cacheKey = `videos:STUDENT:${studentSubjectIds ? [...studentSubjectIds].sort().join(',') : 'none'}`;
+    }
+
     const videos = await cache.remember(
       cacheKey,
       60, // 60 seconds
       async () => {
-        // Students should only see videos for their accessible subjects, plus general videos.
-        let studentSubjectIds: string[] | null = null;
-        if (session.user.role === 'STUDENT') {
-          const student = await getOrCreateStudent(session.user.id);
-          if (student) {
-            const access = await getStudentSubjectAccess(student);
-            studentSubjectIds = access.subjectIds;
-          }
-        }
-
         return db.lectureSlide.findMany({
           where: {
             fileType: 'video',
@@ -81,9 +82,9 @@ export async function POST(req: NextRequest) {
     });
 
     if (subjectId) {
-      await notifyStudentsBySubject('New Video', `A new video was uploaded: ${title}`, 'ANNOUNCEMENT', subjectId);
+      void notifyStudentsBySubject('New Video', `A new video was uploaded: ${title}`, 'ANNOUNCEMENT', subjectId).catch(console.error);
     } else {
-      await notifyAllStudents('New video', `A new video was uploaded: ${title}`, 'ANNOUNCEMENT');
+      void notifyAllStudents('New video', `A new video was uploaded: ${title}`, 'ANNOUNCEMENT').catch(console.error);
     }
 
     cache.invalidatePattern('videos:');

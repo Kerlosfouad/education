@@ -140,12 +140,13 @@ class MemoryCache {
   }
 }
 
-// Global singleton to survive Next.js HMR in development
+// Global singleton to survive across route evaluations and HMR
 declare global {
   var appCache: MemoryCache | undefined;
 }
 
-export const cache = globalThis.appCache ?? new MemoryCache();
-if (process.env.NODE_ENV !== 'production') {
-  globalThis.appCache = cache;
+if (!globalThis.appCache) {
+  globalThis.appCache = new MemoryCache();
 }
+
+export const cache = globalThis.appCache;

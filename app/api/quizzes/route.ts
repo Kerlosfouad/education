@@ -24,8 +24,20 @@ export async function GET(req: NextRequest) {
         cacheKey,
         30, // 30 seconds
         async () => {
-          const where: any = { isPublished: true };
-          if (subjectId) where.subjectId = subjectId;
+          const { semester: studentSemester, subjectIds } = await getStudentSubjectAccess(student);
+          const allowedSubjectIds = new Set(subjectIds);
+
+          const where: any = {
+            isPublished: true,
+            OR: [
+              { subjectId: { in: subjectIds } },
+              { departmentId: student.departmentId, academicYear: student.academicYear },
+            ],
+          };
+          if (subjectId) {
+            where.subjectId = subjectId;
+            delete where.OR;
+          }
 
           const quizzes = await db.quiz.findMany({
             where,
@@ -55,9 +67,6 @@ export async function GET(req: NextRequest) {
             department: q.departmentId ? deptMap[q.departmentId] ?? null : null,
             semester: semesterMap[q.id] ?? null,
           }));
-
-          const { semester: studentSemester, subjectIds } = await getStudentSubjectAccess(student);
-          const allowedSubjectIds = new Set(subjectIds);
 
           const filteredQuizzes = quizzesWithAll.filter((quiz: any) => {
             if (quiz.subjectId && allowedSubjectIds.has(quiz.subjectId)) return true;
@@ -98,34 +107,42 @@ export async function GET(req: NextRequest) {
     const where: any = {};
     if (subjectId) where.subjectId = subjectId;
 
-    const quizzes = await db.quiz.findMany({
-      where,
-      include: {
-        subject: { include: { department: true } },
-        _count: { select: { questions: true, attempts: true } },
+    const cacheKey = `doctor:quizzes:${subjectId || 'all'}`;
+    const quizzesWithAll = await cache.remember(
+      cacheKey,
+      30, // 30 seconds
+      async () => {
+        const quizzes = await db.quiz.findMany({
+          where,
+          include: {
+            subject: { include: { department: true } },
+            _count: { select: { questions: true, attempts: true } },
+          },
+          orderBy: { createdAt: 'desc' },
+        });
+
+        const deptIds = Array.from(new Set(quizzes.map((q: any) => q.departmentId).filter(Boolean)));
+        const depts = deptIds.length > 0
+          ? await db.department.findMany({ where: { id: { in: deptIds as string[] } }, select: { id: true, name: true } })
+          : [];
+        const deptMap = Object.fromEntries(depts.map((d: any) => [d.id, d]));
+
+        const quizIds = quizzes.map((q: any) => q.id);
+        const quizSemesters = quizIds.length > 0
+          ? await db.$queryRaw<{ id: string; semester: number | null }[]>`
+              SELECT id, semester FROM quizzes WHERE id = ANY(${quizIds}::text[])
+            `
+          : [];
+        const semesterMap = Object.fromEntries(quizSemesters.map(q => [q.id, q.semester]));
+
+        return quizzes.map((q: any) => ({
+          ...q,
+          department: q.departmentId ? deptMap[q.departmentId] ?? null : null,
+          semester: semesterMap[q.id] ?? null,
+        }));
       },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    const deptIds = Array.from(new Set(quizzes.map((q: any) => q.departmentId).filter(Boolean)));
-    const depts = deptIds.length > 0
-      ? await db.department.findMany({ where: { id: { in: deptIds as string[] } }, select: { id: true, name: true } })
-      : [];
-    const deptMap = Object.fromEntries(depts.map((d: any) => [d.id, d]));
-
-    const quizIds = quizzes.map((q: any) => q.id);
-    const quizSemesters = quizIds.length > 0
-      ? await db.$queryRaw<{ id: string; semester: number | null }[]>`
-          SELECT id, semester FROM quizzes WHERE id = ANY(${quizIds}::text[])
-        `
-      : [];
-    const semesterMap = Object.fromEntries(quizSemesters.map(q => [q.id, q.semester]));
-
-    const quizzesWithAll = quizzes.map((q: any) => ({
-      ...q,
-      department: q.departmentId ? deptMap[q.departmentId] ?? null : null,
-      semester: semesterMap[q.id] ?? null,
-    }));
+      ['quizzes']
+    );
 
     return NextResponse.json({ success: true, data: quizzesWithAll });
   } catch (error) {

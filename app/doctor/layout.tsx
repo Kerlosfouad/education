@@ -7,7 +7,7 @@ import { useTheme } from 'next-themes';
 import {
   LayoutDashboard, Users, Calendar, ClipboardList,
   HelpCircle, Video, Library, GraduationCap,
-  BarChart3, Settings, Menu, LogOut, MonitorPlay, Sun, Moon,
+  Settings, Menu, LogOut, MonitorPlay, Sun, Moon,
   X, Phone, MessageCircle, Facebook, Instagram, Twitter, Award, Megaphone,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -58,7 +58,6 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
     { icon: Award,           label: 'Grades',           path: '/doctor/grades' },
     { icon: Video,           label: t('videos'),        path: '/doctor/videos' },
     { icon: Library,         label: t('eLibrary'),      path: '/doctor/libbooks' },
-    { icon: BarChart3,       label: t('analytics'),     path: '/doctor/analytics' },
     { icon: Settings,        label: t('settings'),      path: '/doctor/settings' },
   ];
 

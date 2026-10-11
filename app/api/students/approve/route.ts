@@ -74,6 +74,7 @@ export async function POST(req: NextRequest) {
         cache.delete(`notifications:${targetUserId}`);
         cache.delete('doctor:stats');
         cache.deletePattern('doctor:analytics*');
+        cache.invalidateTag('students');
 
         try {
           const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || '';
@@ -114,6 +115,7 @@ export async function POST(req: NextRequest) {
       cache.delete(`notifications:${targetUserId}`);
       cache.delete('doctor:stats');
       cache.deletePattern('doctor:analytics*');
+      cache.invalidateTag('students');
 
       return NextResponse.json({ success: true, message: 'Student rejected successfully' });
     } else {

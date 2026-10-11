@@ -97,22 +97,7 @@ export async function GET() {
       .slice(0, 5);
 
     // Attendance rate - based on closed sessions for student's department AND academicYear AND semester
-    const totalSessionsRaw = await db.$queryRaw<{count: bigint}[]>`
-      SELECT COUNT(DISTINCT s.id) as count
-      FROM attendance_sessions s
-      WHERE s."closeTime" < ${now}
-      AND (
-        (s."subjectId" IS NOT NULL AND s."subjectId" = ANY(${coreSubjectIds}::text[]))
-        OR (
-          s."subjectId" IS NULL
-          AND (s."departmentId" IS NULL OR s."departmentId" = ${student.departmentId})
-          AND (s."academicYear" IS NULL OR s."academicYear" = ${student.academicYear})
-          AND (s."semester" IS NULL OR s."semester" = ${semester})
-        )
-      )
-    `;
-    const totalSessions = Number(totalSessionsRaw[0]?.count ?? 0);
-    const relevantSessionIds = (await db.$queryRaw<{id: string}[]>`
+    const relevantSessions = await db.$queryRaw<{ id: string }[]>`
       SELECT DISTINCT s.id
       FROM attendance_sessions s
       WHERE s."closeTime" < ${now}
@@ -125,39 +110,22 @@ export async function GET() {
           AND (s."semester" IS NULL OR s."semester" = ${semester})
         )
       )
-    `).map(s => s.id);
-    const attendedSessions = relevantSessionIds.length > 0
-      ? await db.attendance.count({
-          where: { studentId: student.id, sessionId: { in: relevantSessionIds }, verificationMethod: { not: 'ABSENT' } },
-        })
-      : 0;
-    const attendanceRate = totalSessions > 0
-      ? Math.round((attendedSessions / totalSessions) * 100)
-      : 0;
+    `;
+    const relevantSessionIds = relevantSessions.map((s) => s.id);
+    const totalSessions = relevantSessionIds.length;
 
-    // Auto-mark absent for sessions that have closed and student has no record
-    const closedSessions = await db.$queryRaw<{id: string}[]>`
-      SELECT DISTINCT s.id
-      FROM attendance_sessions s
-      WHERE s."closeTime" < ${now}
-      AND (
-        (s."subjectId" IS NOT NULL AND s."subjectId" = ANY(${coreSubjectIds}::text[]))
-        OR (
-          s."subjectId" IS NULL
-          AND (s."departmentId" IS NULL OR s."departmentId" = ${student.departmentId})
-          AND (s."academicYear" IS NULL OR s."academicYear" = ${student.academicYear})
-          AND (s."semester" IS NULL OR s."semester" = ${semester})
-        )
-      )
-    `;
-    if (closedSessions.length > 0) {
-      const closedIds = closedSessions.map((s) => s.id);
+    let attendedSessions = 0;
+    if (totalSessions > 0) {
       const existingRecords = await db.attendance.findMany({
-        where: { studentId: student.id, sessionId: { in: closedIds } },
-        select: { sessionId: true },
+        where: { studentId: student.id, sessionId: { in: relevantSessionIds } },
+        select: { sessionId: true, verificationMethod: true },
       });
+
+      attendedSessions = existingRecords.filter((r) => r.verificationMethod !== 'ABSENT').length;
+
+      // Auto-mark absent for sessions that have closed and student has no record
       const existingSessionIds = new Set(existingRecords.map((r) => r.sessionId));
-      const missedIds = closedIds.filter((id) => !existingSessionIds.has(id));
+      const missedIds = relevantSessionIds.filter((id) => !existingSessionIds.has(id));
       if (missedIds.length > 0) {
         await db.attendance.createMany({
           data: missedIds.map((sessionId) => ({
@@ -169,6 +137,10 @@ export async function GET() {
         });
       }
     }
+
+    const attendanceRate = totalSessions > 0
+      ? Math.round((attendedSessions / totalSessions) * 100)
+      : 0;
 
     // Open attendance session (for auto-popup) - filtered by student's department
     const openSessionRaw = await db.$queryRaw<any[]>`

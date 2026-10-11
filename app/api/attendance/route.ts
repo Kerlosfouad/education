@@ -68,41 +68,50 @@ export async function GET(req: NextRequest) {
       const where: any = {};
       if (subjectId) where.subjectId = subjectId;
 
-      const sessions = await db.attendanceSession.findMany({
-        where,
-        include: {
-          subject: true,
-          _count: { select: { attendances: true } },
+      const cacheKey = `doctor:attendance:sessions:${subjectId || 'all'}`;
+      const sessionsWithDept = await cache.remember(
+        cacheKey,
+        15, // 15 seconds
+        async () => {
+          const sessions = await db.attendanceSession.findMany({
+            where,
+            include: {
+              subject: true,
+              _count: { select: { attendances: true } },
+            },
+            orderBy: { createdAt: 'desc' },
+            take: 100,
+          });
+
+          // Fetch departmentId and academicYear via raw SQL (stored outside Prisma schema)
+          const sessionIds = sessions.map((s: any) => s.id);
+          const rawSessions = sessionIds.length > 0
+            ? await db.$queryRaw<{ id: string; departmentId: string | null; academicYear: number | null; semester: number | null }[]>`
+                SELECT id, "departmentId", "academicYear", "semester" FROM attendance_sessions WHERE id = ANY(${sessionIds}::text[])
+              `
+            : [];
+          const rawMap = Object.fromEntries(rawSessions.map(r => [r.id, r]));
+
+          // Fetch department info
+          const departmentIds = Array.from(new Set(rawSessions.map(r => r.departmentId).filter(Boolean)));
+          const departments = departmentIds.length > 0
+            ? await db.department.findMany({ where: { id: { in: departmentIds as string[] } }, select: { id: true, name: true, nameAr: true } })
+            : [];
+          const deptMap = Object.fromEntries(departments.map((d: any) => [d.id, d]));
+
+          return sessions.map((s: any) => {
+            const raw = rawMap[s.id];
+            return {
+              ...s,
+              departmentId: raw?.departmentId ?? null,
+              academicYear: raw?.academicYear ?? null,
+              semester: raw?.semester ?? null,
+              department: raw?.departmentId ? deptMap[raw.departmentId] ?? null : null,
+            };
+          });
         },
-        orderBy: { createdAt: 'desc' },
-      });
-
-      // Fetch departmentId and academicYear via raw SQL (stored outside Prisma schema)
-      const sessionIds = sessions.map((s: any) => s.id);
-      const rawSessions = sessionIds.length > 0
-        ? await db.$queryRaw<{ id: string; departmentId: string | null; academicYear: number | null; semester: number | null }[]>`
-            SELECT id, "departmentId", "academicYear", "semester" FROM attendance_sessions WHERE id = ANY(${sessionIds}::text[])
-          `
-        : [];
-      const rawMap = Object.fromEntries(rawSessions.map(r => [r.id, r]));
-
-      // Fetch department info
-      const departmentIds = Array.from(new Set(rawSessions.map(r => r.departmentId).filter(Boolean)));
-      const departments = departmentIds.length > 0
-        ? await db.department.findMany({ where: { id: { in: departmentIds as string[] } }, select: { id: true, name: true, nameAr: true } })
-        : [];
-      const deptMap = Object.fromEntries(departments.map((d: any) => [d.id, d]));
-
-      const sessionsWithDept = sessions.map((s: any) => {
-        const raw = rawMap[s.id];
-        return {
-          ...s,
-          departmentId: raw?.departmentId ?? null,
-          academicYear: raw?.academicYear ?? null,
-          semester: raw?.semester ?? null,
-          department: raw?.departmentId ? deptMap[raw.departmentId] ?? null : null,
-        };
-      });
+        ['attendance:sessions']
+      );
 
       return NextResponse.json({ success: true, data: sessionsWithDept });
     }
@@ -112,22 +121,28 @@ export async function GET(req: NextRequest) {
       const student = await getOrCreateStudent(session.user.id);
       if (!student) return NextResponse.json({ error: 'No department found' }, { status: 404 });
 
-      const { semester, coreSubjectIds } = await getStudentSubjectAccess(student);
-
-      // Get student's attendance records
-      const attendances = await db.attendance.findMany({
-        where: { studentId: student.id },
-        include: {
-          session: {
+      // Get student's attendance records (cached for 20s)
+      const cacheKey = `student:attendance:${student.id}`;
+      const attendances = await cache.remember(
+        cacheKey,
+        20, // 20 seconds
+        async () => {
+          return db.attendance.findMany({
+            where: { studentId: student.id },
             include: {
-              subject: true,
+              session: {
+                include: {
+                  subject: true,
+                },
+              },
             },
-          },
+            orderBy: {
+              timestamp: 'desc',
+            },
+          });
         },
-        orderBy: {
-          timestamp: 'desc',
-        },
-      });
+        [`student:${student.id}`]
+      );
 
       return NextResponse.json({ success: true, data: attendances });
     }
@@ -247,6 +262,10 @@ export async function POST(req: NextRequest) {
             'ATTENDANCE'
           ).catch(() => {});
         }
+
+        cache.invalidateTag('attendance:sessions');
+        cache.delete('doctor:stats:summary');
+        cache.delete('doctor:analytics:overview');
 
         return NextResponse.json(
           { success: true, data: attendanceSession },
@@ -510,6 +529,7 @@ export async function PATCH(req: NextRequest) {
 
     // Invalidate caches
     cache.invalidatePattern('student:dashboard');
+    cache.invalidateTag('attendance:sessions');
     cache.delete('doctor:stats:summary');
     cache.delete('doctor:analytics:overview');
 
@@ -540,6 +560,9 @@ export async function DELETE(req: NextRequest) {
     }
 
     await db.attendanceSession.delete({ where: { id: sessionId } });
+    cache.invalidateTag('attendance:sessions');
+    cache.delete('doctor:stats:summary');
+    cache.delete('doctor:analytics:overview');
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error: any) {
     console.error('Error deleting attendance session:', error);

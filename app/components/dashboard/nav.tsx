@@ -61,7 +61,6 @@ const doctorNavItems = [
   { href: '/doctor/slides', label: 'Slides', icon: BookOpen },
   { href: '/doctor/library', label: 'E-Library', icon: Library },
   { href: '/doctor/results', label: 'Results', icon: Award },
-  { href: '/doctor/analytics', label: 'Analytics', icon: LayoutDashboard },
   { href: '/doctor/settings', label: 'Settings', icon: Settings },
 ];
 
