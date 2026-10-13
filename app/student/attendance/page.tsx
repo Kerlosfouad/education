@@ -37,21 +37,21 @@ export default function StudentAttendancePage() {
 
   const fetchAll = useCallback(async () => {
     try {
-      const [recRes, statsRes, dashRes] = await Promise.all([
+      const [recRes, statsRes, activeRes] = await Promise.all([
         fetch('/api/attendance'),
         fetch('/api/student/attendance/stats'),
-        fetch('/api/student/dashboard'),
+        fetch('/api/student/attendance/active-session'),
       ]);
-      const [recJson, statsJson, dashJson] = await Promise.all([
-        recRes.json(), statsRes.json(), dashRes.json(),
+      const [recJson, statsJson, activeJson] = await Promise.all([
+        recRes.json(), statsRes.json(), activeRes.json(),
       ]);
       if (recJson.success) setRecords(recJson.data);
       if (statsJson.success) setStats(statsJson.data);
-      if (dashJson.success) {
-        if (dashJson.data.openSession) {
-          setOpenSession(dashJson.data.openSession);
+      if (activeJson.success && activeJson.data) {
+        if (activeJson.data.openSession) {
+          setOpenSession(activeJson.data.openSession);
         }
-        setAlreadyMarked(prev => prev || Boolean(dashJson.data.alreadyMarked));
+        setAlreadyMarked(prev => prev || Boolean(activeJson.data.alreadyMarked));
       }
     } catch {}
     setLoading(false);
@@ -60,13 +60,13 @@ export default function StudentAttendancePage() {
 
   const checkActiveSession = useCallback(async () => {
     try {
-      const dashRes = await fetch('/api/student/dashboard');
-      const dashJson = await dashRes.json();
-      if (dashJson.success) {
-        if (dashJson.data.openSession) {
-          setOpenSession(dashJson.data.openSession);
+      const activeRes = await fetch('/api/student/attendance/active-session');
+      const activeJson = await activeRes.json();
+      if (activeJson.success && activeJson.data) {
+        if (activeJson.data.openSession) {
+          setOpenSession(activeJson.data.openSession);
         }
-        setAlreadyMarked(prev => prev || Boolean(dashJson.data.alreadyMarked));
+        setAlreadyMarked(prev => prev || Boolean(activeJson.data.alreadyMarked));
       }
     } catch {}
   }, []);

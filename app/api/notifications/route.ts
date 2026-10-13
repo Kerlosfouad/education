@@ -13,7 +13,7 @@ export async function GET() {
 
     const notifications = await cache.remember(
       `notifications:${session.user.id}`,
-      20, // 20 seconds buffer for fast polling
+      60, // 60 seconds cache buffer (invalidated immediately on read/create)
       async () => {
         return db.notification.findMany({
           where: { userId: session.user.id },

@@ -67,6 +67,7 @@ export async function GET() {
       },
       include: { subject: { select: { name: true } } },
       orderBy: { deadline: 'asc' },
+      take: 10,
     });
 
     const assignmentIds = assignments.map(a => a.id);
@@ -122,20 +123,6 @@ export async function GET() {
       });
 
       attendedSessions = existingRecords.filter((r) => r.verificationMethod !== 'ABSENT').length;
-
-      // Auto-mark absent for sessions that have closed and student has no record
-      const existingSessionIds = new Set(existingRecords.map((r) => r.sessionId));
-      const missedIds = relevantSessionIds.filter((id) => !existingSessionIds.has(id));
-      if (missedIds.length > 0) {
-        await db.attendance.createMany({
-          data: missedIds.map((sessionId) => ({
-            studentId: student.id,
-            sessionId,
-            verificationMethod: 'ABSENT',
-          })),
-          skipDuplicates: true,
-        });
-      }
     }
 
     const attendanceRate = totalSessions > 0

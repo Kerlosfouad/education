@@ -41,79 +41,81 @@ export async function GET(req: NextRequest) {
   const now = new Date();
   const studentIds = students.map(s => s.id);
 
-  // 1. Assignments & Submissions
-  const assignments = await db.assignment.findMany({
-    where: {
-      isActive: true,
-      OR: [
-        { subjectId },
-        { departmentId: subject.departmentId, academicYear: subject.academicYear, subjectId: null },
-      ],
-    },
-    select: { id: true, title: true, maxScore: true },
-  });
+  // Step 1: Concurrently fetch all parent structures (assignments, quizzes, sessions, exam results)
+  const [assignments, quizzes, attendanceSessions, grades] = await Promise.all([
+    db.assignment.findMany({
+      where: {
+        isActive: true,
+        OR: [
+          { subjectId },
+          { departmentId: subject.departmentId, academicYear: subject.academicYear, subjectId: null },
+        ],
+      },
+      select: { id: true, title: true, maxScore: true },
+    }),
+    db.quiz.findMany({
+      where: {
+        OR: [
+          { subjectId },
+          { departmentId: subject.departmentId, academicYear: subject.academicYear, subjectId: null },
+        ],
+      },
+      select: { id: true, title: true },
+    }),
+    db.attendanceSession.findMany({
+      where: {
+        closeTime: { lt: now },
+        OR: [
+          { subjectId },
+          { departmentId: subject.departmentId, academicYear: subject.academicYear, subjectId: null },
+        ],
+      },
+      select: { id: true },
+    }),
+    db.examResult.findMany({
+      where: { subjectId },
+    }),
+  ]);
+
   const assignmentIds = assignments.map(a => a.id);
-  const submissions = assignmentIds.length > 0 && studentIds.length > 0
-    ? await db.assignmentSubmission.findMany({
-        where: {
-          assignmentId: { in: assignmentIds },
-          studentId: { in: studentIds },
-          status: 'GRADED',
-        },
-        include: { assignment: { select: { title: true, maxScore: true } } },
-        orderBy: { submittedAt: 'desc' },
-      })
-    : [];
-
-  // 2. Quizzes & Attempts
-  const quizzes = await db.quiz.findMany({
-    where: {
-      OR: [
-        { subjectId },
-        { departmentId: subject.departmentId, academicYear: subject.academicYear, subjectId: null },
-      ],
-    },
-    select: { id: true, title: true },
-  });
   const quizIds = quizzes.map(q => q.id);
-  const quizAttempts = quizIds.length > 0 && studentIds.length > 0
-    ? await db.quizAttempt.findMany({
-        where: {
-          quizId: { in: quizIds },
-          studentId: { in: studentIds },
-          status: 'COMPLETED',
-        },
-        include: { quiz: { select: { title: true } } },
-        orderBy: { completedAt: 'desc' },
-      })
-    : [];
-
-  // 3. Attendance Sessions & Records
-  const attendanceSessions = await db.attendanceSession.findMany({
-    where: {
-      closeTime: { lt: now },
-      OR: [
-        { subjectId },
-        { departmentId: subject.departmentId, academicYear: subject.academicYear, subjectId: null },
-      ],
-    },
-    select: { id: true },
-  });
   const sessionIds = attendanceSessions.map(s => s.id);
-  const attendances = sessionIds.length > 0 && studentIds.length > 0
-    ? await db.attendance.findMany({
-        where: {
-          sessionId: { in: sessionIds },
-          studentId: { in: studentIds },
-          verificationMethod: { not: 'ABSENT' },
-        },
-        select: { studentId: true },
-      })
-    : [];
 
-  const grades = await db.examResult.findMany({
-    where: { subjectId },
-  });
+  // Step 2: Concurrently fetch all student submission & attempt records
+  const [submissions, quizAttempts, attendances] = await Promise.all([
+    assignmentIds.length > 0 && studentIds.length > 0
+      ? db.assignmentSubmission.findMany({
+          where: {
+            assignmentId: { in: assignmentIds },
+            studentId: { in: studentIds },
+            status: 'GRADED',
+          },
+          include: { assignment: { select: { title: true, maxScore: true } } },
+          orderBy: { submittedAt: 'desc' },
+        })
+      : Promise.resolve([]),
+    quizIds.length > 0 && studentIds.length > 0
+      ? db.quizAttempt.findMany({
+          where: {
+            quizId: { in: quizIds },
+            studentId: { in: studentIds },
+            status: 'COMPLETED',
+          },
+          include: { quiz: { select: { title: true } } },
+          orderBy: { completedAt: 'desc' },
+        })
+      : Promise.resolve([]),
+    sessionIds.length > 0 && studentIds.length > 0
+      ? db.attendance.findMany({
+          where: {
+            sessionId: { in: sessionIds },
+            studentId: { in: studentIds },
+            verificationMethod: { not: 'ABSENT' },
+          },
+          select: { studentId: true },
+        })
+      : Promise.resolve([]),
+  ]);
 
   const gradeMap: Record<string, Record<string, number>> = {};
   grades.forEach(g => {

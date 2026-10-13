@@ -75,6 +75,23 @@ export default function StudentDashboardPage() {  const { t } = useI18n();
     setLoading(false);
   }, []);
 
+  const checkActiveSession = useCallback(async () => {
+    try {
+      const res = await fetch('/api/student/attendance/active-session');
+      const json = await res.json();
+      if (json.success && json.data) {
+        if (json.data.openSession && !json.data.alreadyMarked) {
+          setData(prev => prev ? {
+            ...prev,
+            openSession: json.data.openSession,
+            alreadyMarked: json.data.alreadyMarked
+          } : prev);
+          setShowAttendanceModal(true);
+        }
+      }
+    } catch {}
+  }, []);
+
   useEffect(() => {
     fetchDashboard();
     // Fetch doctor info separately from public endpoint (no auth needed)
@@ -83,17 +100,17 @@ export default function StudentDashboardPage() {  const { t } = useI18n();
       .then(j => { if (j.success) setDoctorInfo(j.data); })
       .catch(() => {});
 
-    // Poll dashboard every 3 minutes (180s) when visible instead of every 45s
+    // Poll only for active attendance sessions every 2 minutes when visible, avoiding heavy dashboard recalculations
     const interval = setInterval(() => {
       if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
-        fetchDashboard();
+        checkActiveSession();
       }
-    }, 180000);
+    }, 120000);
 
     return () => {
       clearInterval(interval);
     };
-  }, [fetchDashboard]);
+  }, [fetchDashboard, checkActiveSession]);
 
   const markAttendance = async () => {
     if (!data?.openSession) return;

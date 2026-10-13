@@ -287,6 +287,9 @@ model Assignment {
   @@index([departmentId])
   @@index([academicYear])
   @@index([subjectId])
+  @@index([departmentId, academicYear, semester, isActive])
+  @@index([subjectId, isActive])
+  @@index([deadline])
 }
 
 // Assignment submission
@@ -341,6 +344,8 @@ model Quiz {
   @@index([subjectId])
   @@index([departmentId, academicYear])
   @@index([isPublished])
+  @@index([isPublished, departmentId, academicYear])
+  @@index([subjectId, isPublished])
 }
 
 // Question
